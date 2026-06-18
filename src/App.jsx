@@ -515,7 +515,12 @@ function App() {
     }
 
     setIsSaving(true)
+    const generatedId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)
+    const generatedCreatedAt = new Date().toISOString()
+
     const newRecord = {
+      id: generatedId,
+      created_at: generatedCreatedAt,
       client_name: clientName,
       imei_new: finalImeiNew,
       imei_used: finalImeiUsed,
@@ -564,10 +569,10 @@ function App() {
       console.error('Error saving:', err)
       try {
         await localDb.saveEvaluation(newRecord)
-        triggerNotification('Nuvem offline. Salvo localmente como contingência!', 'warning')
+        triggerNotification(`Erro na nuvem: ${err.message || String(err)}. Salvo localmente!`, 'warning')
         loadEvaluations()
       } catch (localErr) {
-        triggerNotification('Erro ao salvar dados localmente.', 'error')
+        triggerNotification(`Erro ao salvar localmente: ${localErr.message || String(localErr)}`, 'error')
       }
     } finally {
       setIsSaving(false)
