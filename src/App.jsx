@@ -194,6 +194,13 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
+  const triggerNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type })
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }))
+    }, 3000)
+  }
+
   // Controle de Migração de Dados Locais
   const [localRecordsToSync, setLocalRecordsToSync] = useState([])
   const [isSyncingLocal, setIsSyncingLocal] = useState(false)
