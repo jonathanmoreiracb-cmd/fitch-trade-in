@@ -385,6 +385,41 @@ function App() {
     setPaymentSplits(paymentSplits.filter((_, i) => i !== index))
   }
 
+  // Estatísticas de Estoque Histórico
+  const inventoryStats = useMemo(() => {
+    const stats = {}
+    evaluations.forEach(item => {
+      const key = `${item.used_model} ${item.used_storage}`
+      const evalVal = parseFloat(item.max_evaluation || item.maxEvaluation || 0)
+      const vitrineVal = parseFloat(item.vitrine_price || item.vitrinePrice || 0)
+      
+      if (!stats[key]) {
+        stats[key] = {
+          model: item.used_model || item.usedModel,
+          storage: item.used_storage || item.usedStorage,
+          count: 0,
+          totalEval: 0,
+          totalVitrine: 0
+        }
+      }
+      stats[key].count += 1
+      stats[key].totalEval += evalVal
+      stats[key].totalVitrine += vitrineVal
+    })
+    
+    return Object.values(stats).map(item => ({
+      ...item,
+      avgCost: item.totalEval / item.count,
+      avgVitrine: item.totalVitrine / item.count
+    })).sort((a, b) => b.count - a.count)
+  }, [evaluations])
+
+  const currentModelAverage = useMemo(() => {
+    const key = `${usedModel} ${usedStorage}`
+    const match = inventoryStats.find(item => `${item.model} ${item.storage}` === key)
+    return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count } : null
+  }, [usedModel, usedStorage, inventoryStats])
+
   // Lógica Matemática e Agregação de Pagamentos Combinados
   const calculationData = useMemo(() => {
     const cost = parseFloat(newCost) || 0
