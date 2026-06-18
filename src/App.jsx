@@ -160,6 +160,7 @@ function App() {
   const [newStorage, setNewStorage] = useState(STORAGE_OPTIONS[0])
   const [newColor, setNewColor] = useState(APPLE_COLORS[0])
   const [newCost, setNewCost] = useState('')
+  const [operationalCost, setOperationalCost] = useState('920') // Custo operacional flexivel, default 920
 
   // Inputs de Aparelhos (Usado)
   const [usedModel, setUsedModel] = useState(USED_MODELS[5]) // iPhone 13 Pro padrão
@@ -289,6 +290,7 @@ function App() {
   const calculationData = useMemo(() => {
     const cost = parseFloat(newCost) || 0
     const addVal = parseFloat(additionalValue) || 0
+    const opCost = parseFloat(operationalCost) || 0 // Margem/Custo flexível
     const rates = GATEWAY_RATES[selectedGateway]
 
     if (!rates) {
@@ -310,9 +312,13 @@ function App() {
     }
 
     const netReceived = addVal * (1 - (rate / 100))
-    const vitrinePrice = (cost + 920) - netReceived
+    const vitrinePrice = (cost + opCost) - netReceived
     const maxEvaluation = vitrinePrice - 400
     const machineFee = addVal * (rate / 100)
+
+    // Detalhamento dinâmico baseado no custo operacional definido
+    const giftCost = opCost >= 120 ? 120 : opCost
+    const totalProfit = opCost - giftCost
 
     return {
       isValid: true,
@@ -321,10 +327,10 @@ function App() {
       vitrinePrice,
       maxEvaluation,
       machineFee,
-      giftCost: 120,
-      totalProfit: 800
+      giftCost,
+      totalProfit
     }
-  }, [newCost, additionalValue, selectedGateway, paymentType, installments])
+  }, [newCost, additionalValue, selectedGateway, paymentType, installments, operationalCost])
 
   // Salvar no Banco
   const handleSaveEvaluation = async () => {
@@ -357,6 +363,7 @@ function App() {
       new_storage: newStorage,
       new_color: newColor,
       new_cost: parseFloat(newCost),
+      operational_cost: parseFloat(operationalCost) || 920,
       used_model: usedModel,
       used_storage: usedStorage,
       used_color: usedColor,
@@ -380,7 +387,7 @@ function App() {
           .from('evaluations')
           .insert([newRecord])
         if (error) throw error
-        triggerNotification('Avaliação com cores e IMEI salva no Supabase!')
+        triggerNotification('Avaliação salva no Supabase!')
       } else {
         await localDb.saveEvaluation(newRecord)
         triggerNotification('Salvo localmente! Dados seguros offline.')
@@ -438,6 +445,7 @@ function App() {
     setNewStorage(record.new_storage || record.newStorage || STORAGE_OPTIONS[0])
     setNewColor(record.new_color || record.newColor || APPLE_COLORS[0])
     setNewCost(String(record.new_cost || record.newCost || ''))
+    setOperationalCost(String(record.operational_cost !== undefined ? record.operational_cost : (record.operationalCost !== undefined ? record.operationalCost : 920)))
     
     setUsedModel(record.used_model || record.usedModel || USED_MODELS[0])
     setUsedStorage(record.used_storage || record.usedStorage || STORAGE_OPTIONS[0])
@@ -480,6 +488,7 @@ function App() {
 📱 *Aparelho Novo:* ${newModel} (${newStorage}) - Cor: ${newColor}
 🆔 *IMEI Novo:* ${imeiNew || 'Não Informado'}
 💵 *Custo do Novo:* ${formatCurrency(newCost)}
+⚙️ *Custos/Margem Novo:* ${formatCurrency(parseFloat(operationalCost) || 0)}
 
 🔄 *Usado de Entrada:* ${usedModel} (${usedStorage}) - Cor: ${usedColor}
 🆔 *IMEI Usado:* ${imeiUsed || 'Não Informado'}
@@ -503,12 +512,12 @@ function App() {
 
 --------------------------------------------
 *Gerado em:* ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-*Sistema Fitch Trade-In Manager v2*`
+*Sistema Fitch Trade-In Manager v3*`
 
     navigator.clipboard.writeText(summaryText)
       .then(() => {
         setCopySuccess(true)
-        triggerNotification('Resumo com cores copiado!')
+        triggerNotification('Resumo completo copiado!')
         setTimeout(() => setCopySuccess(false), 2000)
       })
       .catch(() => {
@@ -581,9 +590,9 @@ function App() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               Fitch Trade-In
-              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v3</span>
+              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v5</span>
             </h1>
-            <p className="text-xs text-zinc-500">Cores da Apple & Média de Vitrine Integrada</p>
+            <p className="text-xs text-zinc-500">Custo Operacional Flexível & Rastreabilidade de IMEI</p>
           </div>
         </div>
 
@@ -737,7 +746,7 @@ function App() {
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="Tabela de custo do dia"
+                    placeholder="Custo do novo"
                     value={newCost}
                     onChange={(e) => setNewCost(e.target.value)}
                     className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600"
@@ -745,8 +754,28 @@ function App() {
                 </div>
               </div>
 
+              {/* Margem / Custos Operacionais Flexíveis */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                  Margem / Custos Operacionais
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-medium text-sm">
+                    R$
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Padrão: 920.00"
+                    value={operationalCost}
+                    onChange={(e) => setOperationalCost(e.target.value)}
+                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600 font-semibold"
+                  />
+                </div>
+              </div>
+
               {/* IMEI Novo */}
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2">
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
                   IMEI do Novo *
                 </label>
@@ -760,7 +789,7 @@ function App() {
                     placeholder="IMEI de 15 dígitos"
                     value={imeiNew}
                     onChange={(e) => setImeiNew(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-655"
+                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
                   />
                 </div>
               </div>
@@ -874,7 +903,7 @@ function App() {
                     placeholder="IMEI de 15 dígitos"
                     value={imeiUsed}
                     onChange={(e) => setImeiUsed(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-655"
+                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
                   />
                 </div>
               </div>
@@ -1002,14 +1031,14 @@ function App() {
                     <TrendingUp className="w-4 h-4 text-blue-400" />
                   </div>
                   <div className="mt-4">
-                    <h3 className="text-xs text-zinc-400 font-medium">Preço de Venda do Seminovo</h3>
+                    <h3 className="text-xs text-zinc-400 font-medium">Preço de Venda do Usado</h3>
                     <p className="text-3xl font-extrabold text-white mt-1 tracking-tight">
                       {formatBRL(calculationData.vitrinePrice)}
                     </p>
                   </div>
                   <div className="mt-3 text-[10px] text-zinc-500 flex items-center gap-1.5 border-t border-zinc-800/80 pt-2.5">
                     <Info className="w-3 h-3 text-zinc-500 shrink-0" />
-                    <span>Custo do Novo + R$ 920 - Líquido Máquina</span>
+                    <span>Custo do Novo + Custo Operacional (R$ {operationalCost}) - Líquido Máquina</span>
                   </div>
                 </div>
 
@@ -1029,7 +1058,7 @@ function App() {
                     </p>
                   </div>
                   
-                  {/* Badge Inteligente de Preço Médio de Vitrine & Custo Pago */}
+                  {/* Badge Inteligente */}
                   {currentModelAverage ? (
                     <div className="mt-3 text-[10px] text-blue-400 bg-blue-950/20 border border-blue-900/30 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
                       <div className="flex items-center gap-1.5 font-semibold">
@@ -1078,7 +1107,7 @@ function App() {
 
         </section>
 
-        {/* COLUNA DIREITA: Checklist Técnico e KPIs de Custo Médio / Vitrine (Col 5) */}
+        {/* COLUNA DIREITA: Checklist Técnico e KPIs (Col 5) */}
         <section className="lg:col-span-5 space-y-8">
           
           {/* Painel do Checklist */}
@@ -1253,7 +1282,7 @@ function App() {
             </div>
           </div>
 
-          {/* Painel de Inventário & Custo Médio / Vitrine Média */}
+          {/* Painel de Inventário */}
           <div className="glass-panel rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2 border-b border-zinc-800 pb-2">
               <Archive className="w-4 h-4 text-blue-400" />
@@ -1297,7 +1326,7 @@ function App() {
                 <Database className="w-5 h-5 text-emerald-400" />
                 Histórico de Vendas & Trade-ins
               </h2>
-              <p className="text-xs text-zinc-500">Controle completo com cores, IMEIs e clientes</p>
+              <p className="text-xs text-zinc-500">Controle completo com custos flexíveis, cores e IMEIs</p>
             </div>
             
             {/* Busca */}
@@ -1351,11 +1380,12 @@ function App() {
                         <span className="font-medium text-zinc-300 block font-semibold">
                           {record.new_model || record.newModel} ({record.new_storage || record.newStorage || '128GB'})
                         </span>
-                        <span className="text-[10px] text-zinc-400 block">
-                          Cor: {record.new_color || record.newColor || 'N/D'}
-                        </span>
-                        <span className="text-[10px] text-zinc-500 font-mono block">
-                          IMEI: {record.imei_new || record.imeiNew || 'N/D'}
+                        <div className="text-[10px] text-zinc-400 space-y-0.5">
+                          <span>Cor: {record.new_color || record.newColor || 'N/D'}</span>
+                          <span className="block font-mono text-zinc-500">IMEI: {record.imei_new || record.imeiNew || 'N/D'}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 font-mono block mt-1">
+                          Custo: {formatBRL(record.new_cost || record.newCost)} | Operacional: {formatBRL(record.operational_cost !== undefined ? record.operational_cost : (record.operationalCost !== undefined ? record.operationalCost : 920))}
                         </span>
                       </td>
 
@@ -1476,9 +1506,9 @@ function App() {
                 Lucro Combinado Garantido
               </span>
               <p className="text-xl font-black text-white mt-0.5">
-                R$ 800,00
+                {calculationData.isValid ? formatBRL(calculationData.totalProfit) : 'R$ 800,00'}
               </p>
-              <span className="text-[9px] text-zinc-500">R$ 400 (Novo) + R$ 400 (Usado)</span>
+              <span className="text-[9px] text-zinc-500">Custo Operacional deduzido o Brinde</span>
             </div>
           </div>
         </div>
