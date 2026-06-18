@@ -188,17 +188,21 @@ function App() {
 
   // Estados Auxiliares
   const [copySuccess, setCopySuccess] = useState(false)
-  const [dbStatus, setDbStatus] = useState({ connected: false, mode: 'checking' })
+  const [dbStatus, setDbStatus] = useState({ connected: false, mode: 'checking', errorMsg: '' })
   const [evaluations, setEvaluations] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
+  // Controle de Migração de Dados Locais
+  const [localRecordsToSync, setLocalRecordsToSync] = useState([])
+  const [isSyncingLocal, setIsSyncingLocal] = useState(false)
+
   // Carregar Histórico
   const loadEvaluations = async () => {
     try {
       if (isSupabaseConfigured) {
-        setDbStatus({ connected: false, mode: 'checking' })
+        setDbStatus({ connected: false, mode: 'checking', errorMsg: '' })
         const { data, error } = await supabase
           .from('evaluations')
           .select('*')
@@ -206,17 +210,21 @@ function App() {
         
         if (error) throw error
         setEvaluations(data || [])
-        setDbStatus({ connected: true, mode: 'Supabase' })
+        setDbStatus({ connected: true, mode: 'Supabase', errorMsg: '' })
       } else {
         const data = await localDb.getEvaluations()
         setEvaluations(data)
-        setDbStatus({ connected: false, mode: 'Local (Offline)' })
+        setDbStatus({ connected: false, mode: 'Local (Offline)', errorMsg: '' })
       }
     } catch (err) {
       console.error('Database connection error:', err)
       const data = await localDb.getEvaluations()
       setEvaluations(data)
-      setDbStatus({ connected: false, mode: 'Local (Fallback)' })
+      setDbStatus({ 
+        connected: false, 
+        mode: 'Local (Fallback)', 
+        errorMsg: err.message || JSON.stringify(err) 
+      })
     }
   }
 
@@ -224,7 +232,117 @@ function App() {
     loadEvaluations()
   }, [])
 
-  // Auxiliares de Gerenciamento do Split de Pagamentos
+  // Monitorar se há dados no localStorage quando conectados ao Supabase
+  useEffect(() => {
+    if (dbStatus.connected && dbStatus.mode === 'Supabase') {
+      localDb.getEvaluations().then(localData => {
+        if (localData && localData.length > 0) {
+          setLocalRecordsToSync(localData)
+        }
+      })
+    }
+  }, [dbStatus])
+
+  // Lógica de Migração de Dados de localStorage -> Supabase
+  const handleSyncLocalToCloud = async () => {
+    setIsSyncingLocal(true)
+    let successCount = 0
+    
+    try {
+      for (const record of localRecordsToSync) {
+        let loadedMargin = 800
+        let loadedOpCost = 120
+
+        if (record.profit_margin !== undefined && record.profit_margin !== null) {
+          loadedMargin = record.profit_margin
+          loadedOpCost = record.operational_cost !== undefined ? record.operational_cost : 120
+        } else if (record.profitMargin !== undefined && record.profitMargin !== null) {
+          loadedMargin = record.profitMargin
+          loadedOpCost = record.operationalCost !== undefined ? record.operationalCost : 120
+        } else {
+          const oldCombined = parseFloat(record.operational_cost || record.operationalCost || 920)
+          if (oldCombined === 920) {
+            loadedMargin = 800
+            loadedOpCost = 120
+          } else {
+            loadedMargin = oldCombined >= 120 ? oldCombined - 120 : 0
+            loadedOpCost = oldCombined >= 120 ? 120 : oldCombined
+          }
+        }
+
+        let loadedSplits = []
+        if (record.payment_splits && Array.isArray(record.payment_splits)) {
+          loadedSplits = record.payment_splits
+        } else if (record.paymentSplits && Array.isArray(record.paymentSplits)) {
+          loadedSplits = record.paymentSplits
+        } else {
+          const oldVal = String(record.additional_value || record.additionalValue || '')
+          const oldGw = record.gateway || 'Dinheiro / Pix'
+          const oldInst = record.installments || 1
+          
+          let oldType = 'credit'
+          if (oldInst === 1 && (oldGw === 'Dinheiro / Pix' || (GATEWAY_RATES[oldGw]?.debitRate === record.applied_rate))) {
+            oldType = 'debit'
+          }
+
+          loadedSplits = [{
+            id: 1,
+            value: oldVal,
+            gateway: oldGw,
+            type: oldType,
+            installments: oldInst
+          }]
+        }
+
+        const cloudRecord = {
+          client_name: record.client_name || record.clientName || 'Cliente Geral',
+          imei_new: record.imei_new || record.imeiNew || '000000000000000',
+          imei_used: record.imei_used || record.imeiUsed || '000000000000000',
+          new_model: record.new_model || record.newModel || NEW_MODELS[0],
+          new_storage: record.new_storage || record.newStorage || '128GB',
+          new_color: record.new_color || record.newColor || APPLE_COLORS[0],
+          new_cost: parseFloat(record.new_cost || record.newCost) || 0,
+          profit_margin: parseFloat(loadedMargin) || 800,
+          operational_cost: parseFloat(loadedOpCost) || 120,
+          used_model: record.used_model || record.usedModel || USED_MODELS[0],
+          used_storage: record.used_storage || record.usedStorage || '128GB',
+          used_color: record.used_color || record.usedColor || APPLE_COLORS[0],
+          additional_value: parseFloat(record.additional_value || record.additionalValue) || 0,
+          gateway: record.gateway || 'Dinheiro / Pix',
+          installments: parseInt(record.installments) || 1,
+          applied_rate: parseFloat(record.applied_rate || record.appliedRate) || 0,
+          net_received: parseFloat(record.net_received || record.netReceived) || 0,
+          vitrine_price: parseFloat(record.vitrine_price || record.vitrinePrice) || 0,
+          max_evaluation: parseFloat(record.max_evaluation || record.maxEvaluation) || 0,
+          battery_health: parseInt(record.battery_health || record.batteryHealth) || 85,
+          original_screen: record.original_screen !== undefined ? record.original_screen : true,
+          biometrics_status: record.biometrics_status || 'ok',
+          camera_status: record.camera_status || 'ok',
+          body_condition: record.body_condition || 'Excelente',
+          payment_splits: loadedSplits
+        }
+
+        const { error } = await supabase
+          .from('evaluations')
+          .insert([cloudRecord])
+        
+        if (error) throw error
+        successCount++
+      }
+
+      localStorage.removeItem('trade_in_evaluations')
+      setLocalRecordsToSync([])
+      triggerNotification(`${successCount} avaliações enviadas para a nuvem com sucesso!`)
+      loadEvaluations()
+    } catch (err) {
+      console.error('Error during data migration:', err)
+      triggerNotification(`Erro de sincronização. Concluídos: ${successCount}`, 'error')
+    } finally {
+      setIsSyncingLocal(false)
+    }
+  }
+
+  // Auxiliares de Splits
   const handleSplitChange = (index, field, val) => {
     const updated = [...paymentSplits]
     updated[index][field] = val
@@ -263,52 +381,6 @@ function App() {
     if (paymentSplits.length === 1) return
     setPaymentSplits(paymentSplits.filter((_, i) => i !== index))
   }
-
-  const triggerNotification = (message, type = 'success') => {
-    setNotification({ show: true, message, type })
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }))
-    }, 3500)
-  }
-
-  // Agrupamento de Estoque Recebido e Médias de Preço
-  const inventoryStats = useMemo(() => {
-    const stats = {}
-    evaluations.forEach(record => {
-      const model = record.used_model || record.usedModel
-      const storage = record.used_storage || record.usedStorage || '128GB'
-      if (!model) return
-      
-      const key = `${model} ${storage}`
-      const evalVal = parseFloat(record.max_evaluation || record.maxEvaluation || 0)
-      const vitrineVal = parseFloat(record.vitrine_price || record.vitrinePrice || 0)
-      
-      if (!stats[key]) {
-        stats[key] = {
-          model,
-          storage,
-          count: 0,
-          totalEval: 0,
-          totalVitrine: 0
-        }
-      }
-      stats[key].count += 1
-      stats[key].totalEval += evalVal
-      stats[key].totalVitrine += vitrineVal
-    })
-    
-    return Object.values(stats).map(item => ({
-      ...item,
-      avgCost: item.totalEval / item.count,
-      avgVitrine: item.totalVitrine / item.count
-    })).sort((a, b) => b.count - a.count)
-  }, [evaluations])
-
-  const currentModelAverage = useMemo(() => {
-    const key = `${usedModel} ${usedStorage}`
-    const match = inventoryStats.find(item => `${item.model} ${item.storage}` === key)
-    return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count } : null
-  }, [usedModel, usedStorage, inventoryStats])
 
   // Lógica Matemática e Agregação de Pagamentos Combinados
   const calculationData = useMemo(() => {
@@ -366,12 +438,8 @@ function App() {
       return { isValid: false, errorMsg }
     }
 
-    // Vitrine = (Custo Novo + Margem Lucro + Despesas) - Líquido Recebido
     const vitrinePrice = (cost + pMargin + opCost) - totalNetReceived
-    // Avaliação do Usado = Vitrine - Metade da Margem Pretendida (Margem Usado)
     const maxEvaluation = vitrinePrice - (pMargin / 2)
-    
-    // Taxa Média Ponderada
     const appliedRate = totalValue > 0 ? (totalMachineFee / totalValue) * 100 : 0
 
     return {
@@ -387,7 +455,7 @@ function App() {
     }
   }, [newCost, profitMargin, operationalCost, paymentSplits])
 
-  // Salvar no Banco (Supabase ou LocalStorage)
+  // Salvar no Banco
   const handleSaveEvaluation = async () => {
     if (!clientName.trim()) {
       triggerNotification('Preencha o Nome do Cliente para continuar.', 'error')
@@ -435,7 +503,7 @@ function App() {
       biometrics_status: biometricsStatus,
       camera_status: cameraStatus,
       body_condition: bodyCondition,
-      payment_splits: paymentSplits // Salva a matriz estruturada como JSON
+      payment_splits: paymentSplits 
     }
 
     try {
@@ -444,14 +512,13 @@ function App() {
           .from('evaluations')
           .insert([newRecord])
         if (error) throw error
-        triggerNotification('Avaliação com múltiplas formas de pagamento salva no Supabase!')
+        triggerNotification('Avaliação salva no Supabase!')
       } else {
         await localDb.saveEvaluation(newRecord)
         triggerNotification('Salvo localmente! Dados seguros offline.')
       }
       loadEvaluations()
       
-      // Reseta inputs voláteis
       setClientName('')
       setImeiNew('')
       setImeiUsed('')
@@ -493,7 +560,7 @@ function App() {
     }
   }
 
-  // Carregar registro antigo de volta na UI
+  // Carregar registro de volta na UI
   const handleLoadRecord = (record) => {
     setClientName(record.client_name || record.clientName || '')
     setImeiNew(record.imei_new || record.imeiNew || '')
@@ -504,7 +571,6 @@ function App() {
     setNewColor(record.new_color || record.newColor || APPLE_COLORS[0])
     setNewCost(String(record.new_cost || record.newCost || ''))
     
-    // Separação de lucros/despesas
     let loadedMargin = 800
     let loadedOpCost = 120
 
@@ -527,7 +593,6 @@ function App() {
     setProfitMargin(String(loadedMargin))
     setOperationalCost(String(loadedOpCost))
 
-    // Carregar splits ou re-hidratar registro legado de split único
     let loadedSplits = []
     if (record.payment_splits && Array.isArray(record.payment_splits)) {
       loadedSplits = record.payment_splits
@@ -614,12 +679,12 @@ ${splitsList}
 
 --------------------------------------------
 *Gerado em:* ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-*Sistema Fitch Trade-In Manager v2*`
+*Sistema Fitch Trade-In Manager v3*`
 
     navigator.clipboard.writeText(summaryText)
       .then(() => {
         setCopySuccess(true)
-        triggerNotification('Resumo com múltiplos pagamentos copiado!')
+        triggerNotification('Resumo completo copiado!')
         setTimeout(() => setCopySuccess(false), 2000)
       })
       .catch(() => {
@@ -688,7 +753,7 @@ ${splitsList}
               Fitch Trade-In
               <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v7</span>
             </h1>
-            <p className="text-xs text-zinc-500">Múltiplos Pagamentos Combinados por Venda</p>
+            <p className="text-xs text-zinc-500">Mapeamento Comercial de Vendas e IMEI</p>
           </div>
         </div>
 
@@ -724,6 +789,46 @@ ${splitsList}
         </div>
       </header>
 
+      {/* Banner de Erro de Conexão com o Supabase */}
+      {dbStatus.errorMsg && (
+        <div className="max-w-7xl mx-auto px-6 mt-4">
+          <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-4 backdrop-blur-md">
+            <h4 className="text-sm font-semibold text-red-400">Erro de Conexão com o Supabase</h4>
+            <p className="text-xs text-zinc-400 mt-1 font-mono break-all">
+              {dbStatus.errorMsg}
+            </p>
+            <p className="text-[11px] text-zinc-500 mt-2">
+              Verifique se a URL/chave anon no .env (ou no painel da Vercel) estão corretas, ou se as permissões de acesso ao banco (políticas RLS) foram aplicadas.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de Sincronização Pendente para Dados Locais */}
+      {localRecordsToSync.length > 0 && (
+        <div className="max-w-7xl mx-auto px-6 mt-4">
+          <div className="bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <Info className="w-5 h-5 text-blue-400 shrink-0 animate-bounce" />
+              <div>
+                <h4 className="text-sm font-semibold text-white">Sincronização Pendente de Histórico</h4>
+                <p className="text-xs text-zinc-400">
+                  Encontramos {localRecordsToSync.length} avaliação(ões) salva(s) no seu navegador anterior. Deseja importá-las para a nuvem do Supabase?
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={isSyncingLocal}
+              onClick={handleSyncLocalToCloud}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-xs font-semibold py-2 px-4 rounded-xl transition-all shadow-md shrink-0 cursor-pointer"
+            >
+              {isSyncingLocal ? 'Enviando...' : 'Sincronizar com a Nuvem'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Grid de Conteúdo Principal */}
       <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
@@ -753,7 +858,7 @@ ${splitsList}
                     placeholder="Nome do cliente para rastreabilidade"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600"
+                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600"
                   />
                 </div>
               </div>
@@ -794,7 +899,7 @@ ${splitsList}
                   <select
                     value={newStorage}
                     onChange={(e) => setNewStorage(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
                   >
                     {STORAGE_OPTIONS.map(opt => (
                       <option key={opt} value={opt}>{opt}</option>
@@ -818,7 +923,7 @@ ${splitsList}
                   <select
                     value={newColor}
                     onChange={(e) => setNewColor(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
                   >
                     {APPLE_COLORS.map(color => (
                       <option key={color} value={color}>{color}</option>
@@ -885,7 +990,7 @@ ${splitsList}
                     placeholder="Padrão: 120.00"
                     value={operationalCost}
                     onChange={(e) => setOperationalCost(e.target.value)}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600 font-medium"
+                    className="w-full bg-zinc-955 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600 font-medium"
                   />
                 </div>
               </div>
@@ -948,7 +1053,7 @@ ${splitsList}
                   <select
                     value={usedStorage}
                     onChange={(e) => setUsedStorage(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
                   >
                     {STORAGE_OPTIONS.map(opt => (
                       <option key={opt} value={opt}>{opt}</option>
@@ -972,7 +1077,7 @@ ${splitsList}
                   <select
                     value={usedColor}
                     onChange={(e) => setUsedColor(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
                   >
                     {APPLE_COLORS.map(color => (
                       <option key={color} value={color}>{color}</option>
@@ -999,7 +1104,7 @@ ${splitsList}
                     placeholder="IMEI de 15 dígitos"
                     value={imeiUsed}
                     onChange={(e) => setImeiUsed(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
+                    className="w-full bg-zinc-950/80 border border-zinc-850 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
                   />
                 </div>
               </div>
@@ -1007,7 +1112,7 @@ ${splitsList}
             </div>
 
             {/* SELEÇÃO DE PAGAMENTOS MÚLTIPLOS (SPLITS) */}
-            <div className="bg-zinc-950/60 border border-zinc-850 rounded-xl p-4 md:p-5 space-y-4">
+            <div className="bg-zinc-950/60 border border-zinc-855 rounded-xl p-4 md:p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
                   Formas de Pagamento Combinadas *
@@ -1054,7 +1159,7 @@ ${splitsList}
                               placeholder="Valor"
                               value={split.value}
                               onChange={(e) => handleSplitChange(index, 'value', e.target.value)}
-                              className="w-full bg-zinc-950 border border-zinc-850 focus:border-zinc-700 rounded-lg py-1.5 pl-7 pr-2.5 text-white text-xs outline-none transition-all placeholder:text-zinc-650"
+                              className="w-full bg-zinc-950 border border-zinc-850 focus:border-zinc-700 rounded-lg py-1.5 pl-7 pr-2.5 text-white text-xs outline-none transition-all placeholder:text-zinc-655"
                             />
                           </div>
                         </div>
@@ -1089,7 +1194,7 @@ ${splitsList}
                               className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${
                                 split.type === 'debit'
                                   ? 'bg-white text-black border-white'
-                                  : 'bg-zinc-955 text-zinc-400 border-zinc-850 hover:text-white disabled:opacity-35'
+                                  : 'bg-zinc-955 border-zinc-850 text-zinc-400 hover:text-white disabled:opacity-35'
                               }`}
                             >
                               Déb
@@ -1100,7 +1205,7 @@ ${splitsList}
                               className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${
                                 split.type === 'credit'
                                   ? 'bg-white text-black border-white'
-                                  : 'bg-zinc-955 text-zinc-400 border-zinc-850 hover:text-white'
+                                  : 'bg-zinc-955 border-zinc-850 text-zinc-400 hover:text-white'
                               }`}
                             >
                               Créd
