@@ -165,19 +165,19 @@ function App() {
   const [newColor, setNewColor] = useState(APPLE_COLORS[0])
   const [newCost, setNewCost] = useState('')
   
-  // Separação de Margem de Lucro e Custos Operacionais
-  const [profitMargin, setProfitMargin] = useState('800') // Lucro combinado default
-  const [operationalCost, setOperationalCost] = useState('120') // Custo operacional default
+  // Lucros e Despesas
+  const [profitMargin, setProfitMargin] = useState('800') 
+  const [operationalCost, setOperationalCost] = useState('120') 
+
+  // Múltiplos Splits de Pagamento Adicional
+  const [paymentSplits, setPaymentSplits] = useState([
+    { id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }
+  ])
 
   // Inputs de Aparelhos (Usado)
-  const [usedModel, setUsedModel] = useState(USED_MODELS[5]) // iPhone 13 Pro padrão
+  const [usedModel, setUsedModel] = useState(USED_MODELS[5]) 
   const [usedStorage, setUsedStorage] = useState(STORAGE_OPTIONS[0])
   const [usedColor, setUsedColor] = useState(APPLE_COLORS[0])
-  
-  const [additionalValue, setAdditionalValue] = useState('')
-  const [selectedGateway, setSelectedGateway] = useState('Dinheiro / Pix')
-  const [paymentType, setPaymentType] = useState('credit') // 'debit' ou 'credit'
-  const [installments, setInstallments] = useState(1)
 
   // Checklist do Usado
   const [batteryHealth, setBatteryHealth] = useState(85)
@@ -193,28 +193,6 @@ function App() {
   const [isSaving, setIsSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
-
-  // Ajusta dinamicamente taxas do gateway
-  useEffect(() => {
-    const rates = GATEWAY_RATES[selectedGateway]
-    if (rates) {
-      if (!rates.hasDebit && paymentType === 'debit') {
-        setPaymentType('credit')
-        setInstallments(1)
-      } else if (paymentType === 'credit') {
-        const maxInstallment = Math.max(...Object.keys(rates.creditRates).map(Number))
-        if (installments > maxInstallment) {
-          setInstallments(maxInstallment)
-        }
-      }
-    }
-  }, [selectedGateway])
-
-  useEffect(() => {
-    if (paymentType === 'debit') {
-      setInstallments(1)
-    }
-  }, [paymentType])
 
   // Carregar Histórico
   const loadEvaluations = async () => {
@@ -246,6 +224,46 @@ function App() {
     loadEvaluations()
   }, [])
 
+  // Auxiliares de Gerenciamento do Split de Pagamentos
+  const handleSplitChange = (index, field, val) => {
+    const updated = [...paymentSplits]
+    updated[index][field] = val
+    
+    if (field === 'gateway') {
+      const rates = GATEWAY_RATES[val]
+      if (rates) {
+        if (!rates.hasDebit && updated[index].type === 'debit') {
+          updated[index].type = 'credit'
+          updated[index].installments = 1
+        } else if (updated[index].type === 'credit') {
+          const maxInstallment = Math.max(...Object.keys(rates.creditRates).map(Number))
+          if (updated[index].installments > maxInstallment) {
+            updated[index].installments = maxInstallment
+          }
+        }
+      }
+    }
+    
+    if (field === 'type' && val === 'debit') {
+      updated[index].installments = 1
+    }
+
+    setPaymentSplits(updated)
+  }
+
+  const addPaymentSplit = () => {
+    const newId = paymentSplits.length > 0 ? Math.max(...paymentSplits.map(s => s.id)) + 1 : 1
+    setPaymentSplits([
+      ...paymentSplits,
+      { id: newId, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }
+    ])
+  }
+
+  const removePaymentSplit = (index) => {
+    if (paymentSplits.length === 1) return
+    setPaymentSplits(paymentSplits.filter((_, i) => i !== index))
+  }
+
   const triggerNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type })
     setTimeout(() => {
@@ -253,7 +271,7 @@ function App() {
     }, 3500)
   }
 
-  // Agrupamento de Custo Médio e Preço Médio de Vitrine
+  // Agrupamento de Estoque Recebido e Médias de Preço
   const inventoryStats = useMemo(() => {
     const stats = {}
     evaluations.forEach(record => {
@@ -286,59 +304,90 @@ function App() {
     })).sort((a, b) => b.count - a.count)
   }, [evaluations])
 
-  // Custo e Vitrine médios do modelo usado atualmente selecionado
   const currentModelAverage = useMemo(() => {
     const key = `${usedModel} ${usedStorage}`
     const match = inventoryStats.find(item => `${item.model} ${item.storage}` === key)
     return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count } : null
   }, [usedModel, usedStorage, inventoryStats])
 
-  // Lógica Matemática
+  // Lógica Matemática e Agregação de Pagamentos Combinados
   const calculationData = useMemo(() => {
     const cost = parseFloat(newCost) || 0
-    const addVal = parseFloat(additionalValue) || 0
-    const pMargin = parseFloat(profitMargin) || 0 // Margem real de lucro
-    const opCost = parseFloat(operationalCost) || 0 // Despesas/Custos operacionais
-    const rates = GATEWAY_RATES[selectedGateway]
+    const pMargin = parseFloat(profitMargin) || 0 
+    const opCost = parseFloat(operationalCost) || 0 
 
-    if (!rates) {
-      return { isValid: false, errorMsg: 'Gateway inválido.' }
+    let totalValue = 0
+    let totalNetReceived = 0
+    let totalMachineFee = 0
+    let isValid = true
+    let errorMsg = ''
+
+    for (let i = 0; i < paymentSplits.length; i++) {
+      const split = paymentSplits[i]
+      const val = parseFloat(split.value) || 0
+      const gateway = split.gateway
+      const type = split.type
+      const inst = split.installments
+      const rates = GATEWAY_RATES[gateway]
+
+      if (!rates) {
+        isValid = false
+        errorMsg = `Forma de pagamento #${i + 1} possui canal inválido.`
+        break
+      }
+
+      let rate = 0
+      if (type === 'debit') {
+        if (!rates.hasDebit) {
+          isValid = false
+          errorMsg = `A forma #${i + 1} (${gateway}) não aceita Débito.`
+          break
+        }
+        rate = rates.debitRate
+      } else {
+        const selectedRate = rates.creditRates[inst]
+        if (selectedRate === undefined) {
+          isValid = false
+          errorMsg = `A forma #${i + 1} (${gateway}) não aceita parcelamento em ${inst}x.`
+          break
+        }
+        rate = selectedRate
+      }
+
+      const netReceived = val * (1 - (rate / 100))
+      const machineFee = val * (rate / 100)
+
+      totalValue += val
+      totalNetReceived += netReceived
+      totalMachineFee += machineFee
     }
 
-    let rate = 0
-    if (paymentType === 'debit') {
-      if (!rates.hasDebit) {
-        return { isValid: false, errorMsg: `O gateway ${selectedGateway} não aceita Débito.` }
-      }
-      rate = rates.debitRate
-    } else {
-      const selectedRate = rates.creditRates[installments]
-      if (selectedRate === undefined) {
-        return { isValid: false, errorMsg: `Parcelamento em ${installments}x não é suportado no gateway ${selectedGateway}.` }
-      }
-      rate = selectedRate
+    if (!isValid) {
+      return { isValid: false, errorMsg }
     }
 
-    const netReceived = addVal * (1 - (rate / 100))
-    // Vitrine = (Custo + Lucro Pretendido + Despesa) - Líquido Recebido
-    const vitrinePrice = (cost + pMargin + opCost) - netReceived
-    // Avaliação Máxima = Vitrine - Metade da Margem Pretendida (Lucro do Usado)
+    // Vitrine = (Custo Novo + Margem Lucro + Despesas) - Líquido Recebido
+    const vitrinePrice = (cost + pMargin + opCost) - totalNetReceived
+    // Avaliação do Usado = Vitrine - Metade da Margem Pretendida (Margem Usado)
     const maxEvaluation = vitrinePrice - (pMargin / 2)
-    const machineFee = addVal * (rate / 100)
+    
+    // Taxa Média Ponderada
+    const appliedRate = totalValue > 0 ? (totalMachineFee / totalValue) * 100 : 0
 
     return {
       isValid: true,
-      appliedRate: rate,
-      netReceived,
+      appliedRate: parseFloat(appliedRate.toFixed(2)),
+      netReceived: totalNetReceived,
       vitrinePrice,
       maxEvaluation,
-      machineFee,
+      machineFee: totalMachineFee,
       giftCost: opCost, 
-      totalProfit: pMargin 
+      totalProfit: pMargin,
+      totalValue
     }
-  }, [newCost, additionalValue, selectedGateway, paymentType, installments, profitMargin, operationalCost])
+  }, [newCost, profitMargin, operationalCost, paymentSplits])
 
-  // Salvar no Banco
+  // Salvar no Banco (Supabase ou LocalStorage)
   const handleSaveEvaluation = async () => {
     if (!clientName.trim()) {
       triggerNotification('Preencha o Nome do Cliente para continuar.', 'error')
@@ -350,8 +399,8 @@ function App() {
       return
     }
 
-    if (!newCost || !additionalValue) {
-      triggerNotification('Defina o Custo do Novo e o Valor Adicional.', 'error')
+    if (!newCost || calculationData.totalValue <= 0) {
+      triggerNotification('Defina o Custo do Novo e os Valores de Pagamento.', 'error')
       return
     }
 
@@ -374,9 +423,9 @@ function App() {
       used_model: usedModel,
       used_storage: usedStorage,
       used_color: usedColor,
-      additional_value: parseFloat(additionalValue),
-      gateway: selectedGateway,
-      installments: parseInt(installments),
+      additional_value: calculationData.totalValue,
+      gateway: paymentSplits.map(s => `${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}: R$ ${s.value})`).join(' + '),
+      installments: Math.max(...paymentSplits.map(s => s.installments)),
       applied_rate: calculationData.appliedRate,
       net_received: calculationData.netReceived,
       vitrine_price: calculationData.vitrinePrice,
@@ -385,7 +434,8 @@ function App() {
       original_screen: originalScreen,
       biometrics_status: biometricsStatus,
       camera_status: cameraStatus,
-      body_condition: bodyCondition
+      body_condition: bodyCondition,
+      payment_splits: paymentSplits // Salva a matriz estruturada como JSON
     }
 
     try {
@@ -394,7 +444,7 @@ function App() {
           .from('evaluations')
           .insert([newRecord])
         if (error) throw error
-        triggerNotification('Avaliação salva no Supabase com lucros e custos separados!')
+        triggerNotification('Avaliação com múltiplas formas de pagamento salva no Supabase!')
       } else {
         await localDb.saveEvaluation(newRecord)
         triggerNotification('Salvo localmente! Dados seguros offline.')
@@ -405,6 +455,7 @@ function App() {
       setClientName('')
       setImeiNew('')
       setImeiUsed('')
+      setPaymentSplits([{ id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }])
     } catch (err) {
       console.error('Error saving:', err)
       try {
@@ -442,7 +493,7 @@ function App() {
     }
   }
 
-  // Carregar registro de volta na UI
+  // Carregar registro antigo de volta na UI
   const handleLoadRecord = (record) => {
     setClientName(record.client_name || record.clientName || '')
     setImeiNew(record.imei_new || record.imeiNew || '')
@@ -453,7 +504,7 @@ function App() {
     setNewColor(record.new_color || record.newColor || APPLE_COLORS[0])
     setNewCost(String(record.new_cost || record.newCost || ''))
     
-    // Mapeamento e compatibilidade reversa para o split Lucro vs Despesa
+    // Separação de lucros/despesas
     let loadedMargin = 800
     let loadedOpCost = 120
 
@@ -464,7 +515,6 @@ function App() {
       loadedMargin = record.profitMargin
       loadedOpCost = record.operationalCost !== undefined ? record.operationalCost : 120
     } else {
-      // É um registro antigo (v5 ou v2) com valor operacional combinado
       const oldCombined = parseFloat(record.operational_cost || record.operationalCost || 920)
       if (oldCombined === 920) {
         loadedMargin = 800
@@ -474,23 +524,38 @@ function App() {
         loadedOpCost = oldCombined >= 120 ? 120 : oldCombined
       }
     }
-
     setProfitMargin(String(loadedMargin))
     setOperationalCost(String(loadedOpCost))
+
+    // Carregar splits ou re-hidratar registro legado de split único
+    let loadedSplits = []
+    if (record.payment_splits && Array.isArray(record.payment_splits)) {
+      loadedSplits = record.payment_splits
+    } else if (record.paymentSplits && Array.isArray(record.paymentSplits)) {
+      loadedSplits = record.paymentSplits
+    } else {
+      const oldVal = String(record.additional_value || record.additionalValue || '')
+      const oldGw = record.gateway || 'Dinheiro / Pix'
+      const oldInst = record.installments || 1
+      
+      let oldType = 'credit'
+      if (oldInst === 1 && (oldGw === 'Dinheiro / Pix' || (GATEWAY_RATES[oldGw]?.debitRate === record.applied_rate))) {
+        oldType = 'debit'
+      }
+
+      loadedSplits = [{
+        id: 1,
+        value: oldVal,
+        gateway: oldGw,
+        type: oldType,
+        installments: oldInst
+      }]
+    }
+    setPaymentSplits(loadedSplits)
     
     setUsedModel(record.used_model || record.usedModel || USED_MODELS[0])
     setUsedStorage(record.used_storage || record.usedStorage || STORAGE_OPTIONS[0])
     setUsedColor(record.used_color || record.usedColor || APPLE_COLORS[0])
-    setAdditionalValue(String(record.additional_value || record.additionalValue || ''))
-    
-    setSelectedGateway(record.gateway || 'Dinheiro / Pix')
-    setInstallments(record.installments || 1)
-    
-    if (record.installments === 1 && (record.gateway === 'Dinheiro / Pix' || (GATEWAY_RATES[record.gateway]?.debitRate === record.applied_rate))) {
-      setPaymentType('debit')
-    } else {
-      setPaymentType('credit')
-    }
 
     setBatteryHealth(record.battery_health || record.batteryHealth || 85)
     setOriginalScreen(record.original_screen !== undefined ? record.original_screen : true)
@@ -512,6 +577,11 @@ function App() {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
     }
 
+    const splitsList = paymentSplits.map(s => {
+      const val = parseFloat(s.value) || 0
+      return `  - ${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}): ${formatCurrency(val)}`
+    }).join('\n')
+
     const summaryText = `🍎 *AVALIAÇÃO DE TRADE-IN - Fitch*
 --------------------------------------------
 👤 *Cliente:* ${clientName || 'Não Informado'}
@@ -531,10 +601,10 @@ function App() {
 🛠️ *Estado da Carcaça:* ${bodyCondition}
 
 --------------------------------------------
-*PAGAMENTO ADICIONAL:*
-- *Valor Pago:* ${formatCurrency(additionalValue)}
-- *Canal:* ${selectedGateway} (${paymentType === 'debit' ? 'Débito' : `${installments}x no Crédito`})
-- *Taxa Aplicada:* ${calculationData.appliedRate}%
+💳 *PAGAMENTO ADICIONAL:*
+${splitsList}
+- *Valor Adicional Total:* ${formatCurrency(calculationData.totalValue)}
+- *Taxa Média Ponderada:* ${calculationData.appliedRate}%
 - *Valor Líquido Recebido:* ${formatCurrency(calculationData.netReceived)}
 
 --------------------------------------------
@@ -544,12 +614,12 @@ function App() {
 
 --------------------------------------------
 *Gerado em:* ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-*Sistema Fitch Trade-In Manager v3*`
+*Sistema Fitch Trade-In Manager v2*`
 
     navigator.clipboard.writeText(summaryText)
       .then(() => {
         setCopySuccess(true)
-        triggerNotification('Resumo completo com lucros e despesas copiado!')
+        triggerNotification('Resumo com múltiplos pagamentos copiado!')
         setTimeout(() => setCopySuccess(false), 2000)
       })
       .catch(() => {
@@ -577,12 +647,6 @@ function App() {
     if (isNaN(val) || val === null) return 'R$ 0,00'
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
-
-  const availableInstallments = useMemo(() => {
-    const rates = GATEWAY_RATES[selectedGateway]
-    if (!rates) return []
-    return Object.keys(rates.creditRates).map(Number).sort((a, b) => a - b)
-  }, [selectedGateway])
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans antialiased pb-12 relative overflow-hidden">
@@ -622,9 +686,9 @@ function App() {
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               Fitch Trade-In
-              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v6</span>
+              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v7</span>
             </h1>
-            <p className="text-xs text-zinc-500">Métricas de Lucro e Despesas Separadas</p>
+            <p className="text-xs text-zinc-500">Múltiplos Pagamentos Combinados por Venda</p>
           </div>
         </div>
 
@@ -920,28 +984,8 @@ function App() {
                 </div>
               </div>
 
-              {/* Valor Adicional Pago pelo Cliente */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
-                  Valor Adicional Pago *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-medium text-sm">
-                    R$
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Passado em Pix ou Cartão"
-                    value={additionalValue}
-                    onChange={(e) => setAdditionalValue(e.target.value)}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600"
-                  />
-                </div>
-              </div>
-
               {/* IMEI Usado */}
-              <div className="space-y-2 md:col-span-1 lg:col-span-2">
+              <div className="space-y-2 md:col-span-2 lg:col-span-3">
                 <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
                   IMEI do Usado *
                 </label>
@@ -962,96 +1006,148 @@ function App() {
 
             </div>
 
-            {/* SELEÇÃO DE PAGAMENTO */}
+            {/* SELEÇÃO DE PAGAMENTOS MÚLTIPLOS (SPLITS) */}
             <div className="bg-zinc-950/60 border border-zinc-850 rounded-xl p-4 md:p-5 space-y-4">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
-                Modalidade de Pagamento e Taxas
-              </span>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                
-                {/* Gateway / Canal */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-medium text-zinc-500 block">Maquininha / Canal</label>
-                  <div className="relative">
-                    <select
-                      value={selectedGateway}
-                      onChange={(e) => setSelectedGateway(e.target.value)}
-                      className="w-full appearance-none bg-zinc-900 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-2.5 pl-3.5 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
-                    >
-                      {Object.keys(GATEWAY_RATES).map(gw => (
-                        <option key={gw} value={gw}>{gw}</option>
-                      ))}
-                    </select>
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                      <ChevronDown className="w-4 h-4" />
-                    </span>
-                  </div>
-                </div>
-
-                {/* Tipo Débito / Crédito */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-medium text-zinc-500 block">Tipo</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      disabled={!GATEWAY_RATES[selectedGateway]?.hasDebit}
-                      onClick={() => setPaymentType('debit')}
-                      className={`py-2 text-xs font-semibold rounded-lg border transition-all duration-200 ${
-                        paymentType === 'debit'
-                          ? 'bg-white text-black border-white'
-                          : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700 disabled:opacity-40 disabled:hover:text-zinc-400 disabled:hover:border-zinc-800'
-                      }`}
-                    >
-                      Débito
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentType('credit')}
-                      className={`py-2 text-xs font-semibold rounded-lg border transition-all duration-200 ${
-                        paymentType === 'credit'
-                          ? 'bg-white text-black border-white'
-                          : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700'
-                      }`}
-                    >
-                      Crédito
-                    </button>
-                  </div>
-                </div>
-
-                {/* Parcelas */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-medium text-zinc-500 block">Parcelas</label>
-                  {paymentType === 'debit' ? (
-                    <div className="w-full bg-zinc-900 border border-zinc-800 text-zinc-500 rounded-lg py-2.5 px-3.5 text-sm">
-                      À Vista
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <select
-                        value={installments}
-                        onChange={(e) => setInstallments(parseInt(e.target.value))}
-                        className="w-full appearance-none bg-zinc-900 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-2.5 pl-3.5 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
-                      >
-                        {availableInstallments.map(inst => (
-                          <option key={inst} value={inst}>{inst}x</option>
-                        ))}
-                      </select>
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                        <ChevronDown className="w-4 h-4" />
-                      </span>
-                    </div>
-                  )}
-                </div>
-
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                  Formas de Pagamento Combinadas *
+                </span>
+                <button
+                  type="button"
+                  onClick={addPaymentSplit}
+                  className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-155 flex items-center gap-1 cursor-pointer"
+                >
+                  + Adicionar Pagamento
+                </button>
               </div>
 
-              {/* Informação sobre a taxa ativa */}
+              <div className="space-y-4">
+                {paymentSplits.map((split, index) => {
+                  const availableInsts = GATEWAY_RATES[split.gateway] 
+                    ? Object.keys(GATEWAY_RATES[split.gateway].creditRates).map(Number).sort((a, b) => a - b)
+                    : []
+                  
+                  return (
+                    <div key={split.id} className="relative bg-zinc-900/40 border border-zinc-850 rounded-xl p-4 space-y-3.5 group/split">
+                      {/* Botão Remover Split */}
+                      {paymentSplits.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removePaymentSplit(index)}
+                          className="absolute top-2.5 right-2.5 text-zinc-500 hover:text-red-400 transition-colors duration-150 p-1 rounded hover:bg-zinc-800"
+                          title="Remover esta forma de pagamento"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        
+                        {/* Valor do Split */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Valor (R$)</label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Valor"
+                              value={split.value}
+                              onChange={(e) => handleSplitChange(index, 'value', e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-850 focus:border-zinc-700 rounded-lg py-1.5 pl-7 pr-2.5 text-white text-xs outline-none transition-all placeholder:text-zinc-650"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Canal / Gateway */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Canal</label>
+                          <div className="relative">
+                            <select
+                              value={split.gateway}
+                              onChange={(e) => handleSplitChange(index, 'gateway', e.target.value)}
+                              className="w-full appearance-none bg-zinc-950 border border-zinc-855 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer"
+                            >
+                              {Object.keys(GATEWAY_RATES).map(gw => (
+                                <option key={gw} value={gw}>{gw}</option>
+                              ))}
+                            </select>
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Tipo */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Tipo</label>
+                          <div className="grid grid-cols-2 gap-1">
+                            <button
+                              type="button"
+                              disabled={!GATEWAY_RATES[split.gateway]?.hasDebit}
+                              onClick={() => handleSplitChange(index, 'type', 'debit')}
+                              className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${
+                                split.type === 'debit'
+                                  ? 'bg-white text-black border-white'
+                                  : 'bg-zinc-955 text-zinc-400 border-zinc-850 hover:text-white disabled:opacity-35'
+                              }`}
+                            >
+                              Déb
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSplitChange(index, 'type', 'credit')}
+                              className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${
+                                split.type === 'credit'
+                                  ? 'bg-white text-black border-white'
+                                  : 'bg-zinc-955 text-zinc-400 border-zinc-850 hover:text-white'
+                              }`}
+                            >
+                              Créd
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Parcelas */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Parcelas</label>
+                          {split.type === 'debit' ? (
+                            <div className="w-full bg-zinc-955 border border-zinc-850 text-zinc-500 rounded-lg py-1.5 px-2.5 text-xs">
+                              À Vista
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <select
+                                value={split.installments}
+                                onChange={(e) => handleSplitChange(index, 'installments', parseInt(e.target.value))}
+                                className="w-full appearance-none bg-zinc-955 border border-zinc-850 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer"
+                              >
+                                {availableInsts.map(inst => (
+                                  <option key={inst} value={inst}>{inst}x</option>
+                                ))}
+                              </select>
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Resumo Consolidado das Taxas */}
               {calculationData.isValid && (
-                <div className="flex items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3">
-                  <span>Taxa aplicada nesta transação:</span>
-                  <span className="font-semibold text-white px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
-                    {calculationData.appliedRate}%
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3 gap-2">
+                  <div className="flex gap-4">
+                    <span>Adicional Total: <strong className="text-white">{formatBRL(calculationData.totalValue)}</strong></span>
+                    <span>Líquido Recebido: <strong className="text-emerald-400">{formatBRL(calculationData.netReceived)}</strong></span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded self-start sm:self-auto">
+                    Taxa Média Ponderada: {calculationData.appliedRate}%
                   </span>
                 </div>
               )}
@@ -1090,7 +1186,7 @@ function App() {
                   </div>
                   <div className="mt-3 text-[10px] text-zinc-500 flex items-center gap-1.5 border-t border-zinc-800/80 pt-2.5">
                     <Info className="w-3 h-3 text-zinc-500 shrink-0" />
-                    <span>Custo do Novo + Margem ({formatBRL(parseFloat(profitMargin) || 0)}) + Custo Op ({formatBRL(parseFloat(operationalCost) || 0)}) - Líquido Máquina</span>
+                    <span>Custo Novo + Margem ({formatBRL(parseFloat(profitMargin) || 0)}) + Despesa ({formatBRL(parseFloat(operationalCost) || 0)}) - Líquido Recebido</span>
                   </div>
                 </div>
 
@@ -1286,7 +1382,7 @@ function App() {
                   <button
                     type="button"
                     onClick={() => setCameraStatus('ok')}
-                    className={`py-3 text-xs font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
+                    className={`py-3 text-[11px] font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       cameraStatus === 'ok'
                         ? 'bg-zinc-900 border-white text-white'
                         : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
@@ -1298,7 +1394,7 @@ function App() {
                   <button
                     type="button"
                     onClick={() => setCameraStatus('defeito')}
-                    className={`py-3 text-xs font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
+                    className={`py-3 text-[11px] font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       cameraStatus === 'defeito'
                         ? 'bg-red-950/60 border-red-500/30 text-red-200'
                         : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
@@ -1319,7 +1415,7 @@ function App() {
                   <select
                     value={bodyCondition}
                     onChange={(e) => setBodyCondition(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950/80 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 px-4 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 px-4 text-sm outline-none transition-all duration-150 cursor-pointer"
                   >
                     <option value="Excelente">Excelente (Sem marcas)</option>
                     <option value="Marcas Leves">Marcas Leves (Pequenos riscos)</option>
@@ -1378,7 +1474,7 @@ function App() {
                 <Database className="w-5 h-5 text-emerald-400" />
                 Histórico de Vendas & Trade-ins
               </h2>
-              <p className="text-xs text-zinc-500">Controle completo com lucros e despesas auditados separadamente</p>
+              <p className="text-xs text-zinc-500">Controle completo com múltiplos pagamentos combinados</p>
             </div>
             
             {/* Busca */}
@@ -1403,13 +1499,13 @@ function App() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[1000px]">
+              <table className="w-full text-left border-collapse min-w-[1100px]">
                 <thead>
                   <tr className="border-b border-zinc-800 text-zinc-500 text-xs font-semibold uppercase tracking-wider">
                     <th className="py-3 px-4">Data e Cliente</th>
                     <th className="py-3 px-4">Novo Vendido (Detalhes)</th>
                     <th className="py-3 px-4">Usado Recebido (Detalhes)</th>
-                    <th className="py-3 px-4">Pagamento / Cartão</th>
+                    <th className="py-3 px-4">Formas de Pagamento</th>
                     <th className="py-3 px-4 text-right">Preço Vitrine</th>
                     <th className="py-3 px-4 text-right">Avaliado</th>
                     <th className="py-3 px-4 text-center">Ações</th>
@@ -1475,12 +1571,22 @@ function App() {
                         </div>
                       </td>
 
-                      {/* Pagamento */}
-                      <td className="py-3 px-4">
-                        <span className="text-zinc-300 font-medium block">{formatBRL(record.additional_value || record.additionalValue)}</span>
-                        <span className="text-[10px] text-zinc-500 block">
-                          {record.gateway} ({record.installments === 1 && (record.gateway === 'Dinheiro / Pix' || record.applied_rate === 0) ? 'Débito' : `${record.installments}x`})
-                        </span>
+                      {/* Pagamento Fracionado */}
+                      <td className="py-3 px-4 max-w-[220px]">
+                        <span className="text-zinc-300 font-bold block">{formatBRL(record.additional_value || record.additionalValue)}</span>
+                        {record.payment_splits && Array.isArray(record.payment_splits) ? (
+                          <div className="mt-1 space-y-0.5">
+                            {record.payment_splits.map((s, idx) => (
+                              <span key={idx} className="text-[9px] text-zinc-500 block leading-tight truncate">
+                                • {s.gateway} ({s.type === 'debit' ? 'Déb' : `${s.installments}x`}): {formatBRL(parseFloat(s.value) || 0)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-zinc-500 block truncate">
+                            {record.gateway} ({record.installments === 1 && (record.gateway === 'Dinheiro / Pix' || record.applied_rate === 0) ? 'Débito' : `${record.installments}x`})
+                          </span>
+                        )}
                       </td>
 
                       {/* Vitrine */}
