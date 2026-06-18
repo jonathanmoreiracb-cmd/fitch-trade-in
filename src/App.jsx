@@ -223,7 +223,7 @@ function App() {
       setDbStatus({ 
         connected: false, 
         mode: 'Local (Fallback)', 
-        errorMsg: err.message || JSON.stringify(err) 
+        errorMsg: err.message || String(err) 
       })
     }
   }
