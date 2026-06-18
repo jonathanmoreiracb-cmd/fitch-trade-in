@@ -831,11 +831,12 @@ ${splitsList}
         <div className="max-w-7xl mx-auto px-6 mt-4">
           <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-4 backdrop-blur-md">
             <h4 className="text-sm font-semibold text-red-400">Erro de Conexão com o Supabase</h4>
-            <p className="text-xs text-zinc-400 mt-1 font-mono break-all">
-              {dbStatus.errorMsg}
-            </p>
-            <p className="text-[11px] text-zinc-500 mt-2">
-              Verifique se a URL/chave anon no .env (ou no painel da Vercel) estão corretas, ou se as permissões de acesso ao banco (políticas RLS) foram aplicadas.
+            <div className="text-xs text-zinc-400 mt-2 space-y-1">
+              <p><strong>Detalhe:</strong> <span className="font-mono break-all">{dbStatus.errorMsg}</span></p>
+              <p><strong>URL Usada:</strong> <span className="font-mono break-all">{import.meta.env.VITE_SUPABASE_URL || 'Não configurada'}</span></p>
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-3 border-t border-red-500/10 pt-2">
+              Verifique se a URL exibida acima está idêntica à do seu painel do Supabase. Lembre-se de fazer um <strong>Redeploy</strong> na Vercel após alterar as variáveis de ambiente!
             </p>
           </div>
         </div>
