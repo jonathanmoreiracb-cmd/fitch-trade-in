@@ -3,17 +3,31 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Verifica se as variáveis de ambiente estão devidamente preenchidas
-export const isSupabaseConfigured = !!(
+let isConfigured = false
+let client = null
+let initError = null
+
+if (
   supabaseUrl && 
   supabaseAnonKey && 
   supabaseUrl !== 'seu-supabase-project-url' &&
   supabaseUrl.trim() !== ''
-)
+) {
+  try {
+    // Limpa possíveis espaços em branco ou quebras de linha nas pontas das chaves
+    const cleanUrl = supabaseUrl.trim()
+    const cleanKey = supabaseAnonKey.trim()
+    client = createClient(cleanUrl, cleanKey)
+    isConfigured = true
+  } catch (err) {
+    console.error('Erro ao inicializar o cliente Supabase:', err)
+    initError = err.message || String(err)
+  }
+}
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
+export const isSupabaseConfigured = isConfigured
+export const supabase = client
+export const supabaseInitError = initError
 
 // Mock local database helper para simular o comportamento do Supabase quando desconectado
 const LOCAL_STORAGE_KEY = 'trade_in_evaluations'

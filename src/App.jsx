@@ -25,7 +25,7 @@ import {
   Archive,
   Palette
 } from 'lucide-react'
-import { supabase, isSupabaseConfigured, localDb } from './supabase'
+import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
 
 // Matrix de Taxas do Gateway
 const GATEWAY_RATES = {
@@ -201,6 +201,9 @@ function App() {
   // Carregar Histórico
   const loadEvaluations = async () => {
     try {
+      if (supabaseInitError) {
+        throw new Error(supabaseInitError)
+      }
       if (isSupabaseConfigured) {
         setDbStatus({ connected: false, mode: 'checking', errorMsg: '' })
         const { data, error } = await supabase
