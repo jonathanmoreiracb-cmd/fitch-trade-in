@@ -500,10 +500,9 @@ function App() {
       return
     }
 
-    if (!imeiNew.trim() || !imeiUsed.trim()) {
-      triggerNotification('O preenchimento de ambos os IMEIs é obrigatório para auditoria de segurança.', 'error')
-      return
-    }
+    // IMEIs são opcionais (se vazios, salva como 'Não Informado')
+    const finalImeiNew = imeiNew.trim() || 'Não Informado'
+    const finalImeiUsed = imeiUsed.trim() || 'Não Informado'
 
     if (!newCost || calculationData.totalValue <= 0) {
       triggerNotification('Defina o Custo do Novo e os Valores de Pagamento.', 'error')
@@ -518,8 +517,8 @@ function App() {
     setIsSaving(true)
     const newRecord = {
       client_name: clientName,
-      imei_new: imeiNew,
-      imei_used: imeiUsed,
+      imei_new: finalImeiNew,
+      imei_used: finalImeiUsed,
       new_model: newModel,
       new_storage: newStorage,
       new_color: newColor,
