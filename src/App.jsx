@@ -178,6 +178,7 @@ function App() {
   const [usedModel, setUsedModel] = useState(USED_MODELS[5]) 
   const [usedStorage, setUsedStorage] = useState(STORAGE_OPTIONS[0])
   const [usedColor, setUsedColor] = useState(APPLE_COLORS[0])
+  const [usedCategory, setUsedCategory] = useState('Comum')
 
   // Checklist do Usado
   const [batteryHealth, setBatteryHealth] = useState(85)
@@ -317,6 +318,7 @@ function App() {
           used_model: record.used_model || record.usedModel || USED_MODELS[0],
           used_storage: record.used_storage || record.usedStorage || '128GB',
           used_color: record.used_color || record.usedColor || APPLE_COLORS[0],
+          used_category: record.used_category || record.usedCategory || 'Comum',
           additional_value: parseFloat(record.additional_value || record.additionalValue) || 0,
           gateway: record.gateway || 'Dinheiro / Pix',
           installments: parseInt(record.installments) || 1,
@@ -540,6 +542,7 @@ function App() {
       used_model: usedModel,
       used_storage: usedStorage,
       used_color: usedColor,
+      used_category: usedCategory,
       additional_value: calculationData.totalValue,
       gateway: paymentSplits.map(s => `${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}: R$ ${s.value})`).join(' + '),
       installments: Math.max(...paymentSplits.map(s => s.installments)),
@@ -572,6 +575,7 @@ function App() {
       setImeiNew('')
       setImeiUsed('')
       setPaymentSplits([{ id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }])
+      setUsedCategory('Comum')
     } catch (err) {
       console.error('Error saving:', err)
       try {
@@ -670,6 +674,7 @@ function App() {
     setUsedModel(record.used_model || record.usedModel || USED_MODELS[0])
     setUsedStorage(record.used_storage || record.usedStorage || STORAGE_OPTIONS[0])
     setUsedColor(record.used_color || record.usedColor || APPLE_COLORS[0])
+    setUsedCategory(record.used_category || record.usedCategory || 'Comum')
 
     setBatteryHealth(record.battery_health || record.batteryHealth || 85)
     setOriginalScreen(record.original_screen !== undefined ? record.original_screen : true)
@@ -696,6 +701,8 @@ function App() {
       return `  - ${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}): ${formatCurrency(val)}`
     }).join('\n')
 
+    const usedCategoryTag = usedCategory === 'Saldo' ? ' ⚠️ *[SALDO]*' : ''
+
     const summaryText = `🍎 *AVALIAÇÃO DE TRADE-IN - Fitch*
 --------------------------------------------
 👤 *Cliente:* ${clientName || 'Não Informado'}
@@ -706,7 +713,7 @@ function App() {
 💰 *Margem de Lucro:* ${formatCurrency(parseFloat(profitMargin) || 0)}
 💸 *Despesas Operacionais:* ${formatCurrency(parseFloat(operationalCost) || 0)}
 
-🔄 *Usado de Entrada:* ${usedModel} (${usedStorage}) - Cor: ${usedColor}
+🔄 *Usado de Entrada:* ${usedModel} (${usedStorage}) - Cor: ${usedColor}${usedCategoryTag}
 🆔 *IMEI Usado:* ${imeiUsed || 'Não Informado'}
 🔋 *Bateria:* ${batteryHealth}% (${batteryHealth < 80 ? '⚠️ NECESSITA TROCA' : 'Saúde Ok'})
 🖥️ *Tela Original:* ${originalScreen ? 'Sim' : 'Não (Paralela/Trocada)'}
@@ -1065,7 +1072,36 @@ ${splitsList}
                 </div>
               </div>
 
-              <div className="md:col-span-2 lg:col-span-3 border-t border-zinc-900/60 my-2"></div>
+              {/* Categoria do Usado */}
+              <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                  Categoria do Aparelho Usado
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-850">
+                  <button
+                    type="button"
+                    onClick={() => setUsedCategory('Comum')}
+                    className={`py-2 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
+                      usedCategory === 'Comum'
+                        ? 'bg-zinc-800 text-white shadow-sm font-bold'
+                        : 'text-zinc-500 hover:text-zinc-350'
+                    }`}
+                  >
+                    Usado Comum
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUsedCategory('Saldo')}
+                    className={`py-2 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
+                      usedCategory === 'Saldo'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm font-bold'
+                        : 'text-zinc-500 hover:text-zinc-350 border border-transparent'
+                    }`}
+                  >
+                    iPhone de Saldo
+                  </button>
+                </div>
+              </div>
 
               {/* iPhone Usado de Entrada */}
               <div className="space-y-2">
@@ -1698,9 +1734,16 @@ ${splitsList}
 
                       {/* Usado */}
                       <td className="py-3 px-4">
-                        <span className="font-semibold text-zinc-300 block">
-                          {record.used_model || record.usedModel} ({record.used_storage || record.usedStorage || '128GB'})
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-zinc-300">
+                            {record.used_model || record.usedModel} ({record.used_storage || record.usedStorage || '128GB'})
+                          </span>
+                          {(record.used_category || record.usedCategory) === 'Saldo' && (
+                            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-extrabold px-1.5 py-0.5 rounded leading-none">
+                              SALDO
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-zinc-400 block">
                           Cor: {record.used_color || record.usedColor || 'N/D'}
                         </span>
