@@ -87,6 +87,20 @@ const GATEWAY_RATES = {
   }
 };
 
+// Credenciais de Usuários (Administradores, Gerentes e Vendedores)
+const USER_CREDENTIALS = {
+  "eros99": { name: "Eros", role: "admin" },
+  "jakson99": { name: "Jakson", role: "admin" },
+  "jonathan77": { name: "Jonathan", role: "manager" },
+  "vanessa77": { name: "Vanessa", role: "manager" },
+  "rose123": { name: "Rose", role: "seller" },
+  "ana123": { name: "Ana", role: "seller" },
+  "emely123": { name: "Emely", role: "seller" },
+  "joalison123": { name: "Joalison", role: "seller" },
+  "juliana123": { name: "Juliana", role: "seller" },
+  "jefferson123": { name: "Jefferson", role: "seller" }
+};
+
 // Modelos Padronizados
 const NEW_MODELS = [
   "iPhone 15",
@@ -207,7 +221,12 @@ function App() {
   const [isSyncingLocal, setIsSyncingLocal] = useState(false)
 
   // --- Estados do Checklist de Seminovos (Aba Especial) ---
-  const [activeTab, setActiveTab] = useState('simulator') // simulator | checklist
+  const [activeTab, setActiveTab] = useState('landing') // landing | simulator | checklist
+  const [currentUser, setCurrentUser] = useState(null)
+  const [loginTarget, setLoginTarget] = useState(null)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [activeSection, setActiveSection] = useState('estetica') // estetica | funcional | seguranca
   
   // 1. Identificação
   const [sellerName, setSellerName] = useState('')
@@ -579,6 +598,45 @@ function App() {
       .catch(() => {
         triggerNotification('Erro ao copiar laudo.', 'error')
       })
+  }
+
+  // --- Funções de Autenticação e Acesso ---
+  const requestAccess = (target) => {
+    setLoginTarget(target)
+    setShowLoginModal(true)
+    setPasswordInput('')
+  }
+
+  const handleLogin = (e) => {
+    if (e) e.preventDefault()
+    const trimmedPw = passwordInput.trim()
+    const user = USER_CREDENTIALS[trimmedPw]
+
+    if (!user) {
+      triggerNotification('Senha inválida!', 'error')
+      return
+    }
+
+    if (loginTarget === 'simulator') {
+      if (user.role !== 'admin' && user.role !== 'manager') {
+        triggerNotification('Acesso negado! Apenas Administradores e Gerentes podem acessar o Simulador.', 'error')
+        return
+      }
+    }
+
+    setCurrentUser(user)
+    setSellerName(user.name) // Auto-populate the checklist seller name field
+    setActiveTab(loginTarget)
+    setShowLoginModal(false)
+    setPasswordInput('')
+    triggerNotification(`Bem-vindo, ${user.name}!`, 'success')
+  }
+
+  const handleLogout = () => {
+    setCurrentUser(null)
+    setSellerName('')
+    setActiveTab('landing')
+    triggerNotification('Sessão encerrada.')
   }
 
   // Monitorar se há dados no localStorage quando conectados ao Supabase
@@ -1177,8 +1235,92 @@ ${splitsList}
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
   }
 
+  const getEsteticaStatusBadge = () => {
+    if (
+      esteticaTela === 'defeito' ||
+      esteticaTraseira === 'defeito' ||
+      esteticaLaterais === 'defeito' ||
+      esteticaLentes === 'defeito'
+    ) {
+      return (
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/25 uppercase tracking-wider animate-pulse">
+          Defeito
+        </span>
+      )
+    }
+    if (
+      esteticaTela === 'detalhe' ||
+      esteticaTraseira === 'detalhe' ||
+      esteticaLaterais === 'detalhe' ||
+      esteticaLentes === 'detalhe'
+    ) {
+      return (
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
+          Detalhe
+        </span>
+      )
+    }
+    return (
+      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+        Bom
+      </span>
+    )
+  }
+
+  const getFuncionalStatusBadge = () => {
+    if (
+      funcionalBiometria === 'defeito' ||
+      funcionalCameras === 'defeito' ||
+      funcionalAudio === 'defeito' ||
+      funcionalConectividade === 'defeito' ||
+      funcionalBotoes === 'defeito' ||
+      funcionalPecaDesconhecida === 'sim' ||
+      parseFloat(funcionalBatteryHealth) < 80
+    ) {
+      return (
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/25 uppercase tracking-wider animate-pulse">
+          Problema
+        </span>
+      )
+    }
+    if (parseFloat(funcionalBatteryHealth) < 85) {
+      return (
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
+          Bateria
+        </span>
+      )
+    }
+    return (
+      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+        100% OK
+      </span>
+    )
+  }
+
+  const getSegurancaStatusBadge = () => {
+    if (segurancaIcloud === 'não') {
+      return (
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/25 uppercase tracking-wider animate-pulse">
+          iCloud Ativo
+        </span>
+      )
+    }
+    if (segurancaDemo === 'sim') {
+      return (
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
+          Demo
+        </span>
+      )
+    }
+    return (
+      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+        Liberado
+      </span>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-black text-zinc-100 font-sans antialiased pb-12 relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased pb-12 relative overflow-hidden">
       
       {/* Luzes de Fundo */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
@@ -1215,41 +1357,63 @@ ${splitsList}
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               Fitch Trade-In
-              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v7</span>
+              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v10</span>
             </h1>
             <p className="text-xs text-zinc-500">Mapeamento Comercial de Vendas e IMEI</p>
           </div>
         </div>
 
-        {/* Database Status Widget */}
-        <div className="flex items-center gap-3 self-start md:self-auto bg-zinc-900/50 border border-zinc-800/80 px-4 py-2 rounded-full backdrop-blur-sm">
-          <div className="relative flex h-2 w-2">
-            {dbStatus.connected ? (
-              <>
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </>
-            ) : dbStatus.mode === 'checking' ? (
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500 animate-pulse"></span>
-            ) : (
-              <>
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </>
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* User Status Badge */}
+          {currentUser && (
+            <div className="flex items-center gap-2.5 bg-zinc-900 border border-zinc-800 px-3.5 py-1.5 rounded-xl shadow-inner animate-fade-in">
+              <div className="w-6 h-6 rounded-full bg-blue-500/10 text-blue-400 font-black flex items-center justify-center text-[10px]">
+                {currentUser.name[0]}
+              </div>
+              <div className="text-left">
+                <span className="text-[11px] font-bold text-white block leading-tight">{currentUser.name}</span>
+                <span className="text-[9px] text-zinc-500 block capitalize">{currentUser.role === 'admin' ? 'Administrador' : currentUser.role === 'manager' ? 'Gerente' : 'Vendedor'}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-[10px] font-bold text-red-400 hover:text-red-300 ml-2 transition-colors cursor-pointer border border-red-500/10 hover:border-red-500/30 px-2 py-1 rounded bg-red-950/20"
+              >
+                Sair
+              </button>
+            </div>
+          )}
+
+          {/* Database Status Widget */}
+          <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800/80 px-4 py-2 rounded-full backdrop-blur-sm">
+            <div className="relative flex h-2 w-2">
+              {dbStatus.connected ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </>
+              ) : dbStatus.mode === 'checking' ? (
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500 animate-pulse"></span>
+              ) : (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </>
+              )}
+            </div>
+            <span className="text-xs font-medium text-zinc-400">
+              {dbStatus.mode === 'checking' ? 'Conectando...' : `Banco: ${dbStatus.mode}`}
+            </span>
+            {isSupabaseConfigured && (
+              <button 
+                onClick={loadEvaluations}
+                title="Sincronizar banco"
+                className="text-zinc-500 hover:text-white transition-colors duration-150"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
-          <span className="text-xs font-medium text-zinc-400">
-            {dbStatus.mode === 'checking' ? 'Conectando...' : `Banco: ${dbStatus.mode}`}
-          </span>
-          {isSupabaseConfigured && (
-            <button 
-              onClick={loadEvaluations}
-              title="Sincronizar banco"
-              className="text-zinc-500 hover:text-white transition-colors duration-150"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </header>
 
@@ -1294,36 +1458,100 @@ ${splitsList}
         </div>
       )}
 
-      {/* Navegação por Abas */}
-      <div className="max-w-7xl mx-auto px-6 mt-6 flex gap-6 border-b border-zinc-900">
-        <button
-          type="button"
-          onClick={() => setActiveTab('simulator')}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
-            activeTab === 'simulator' ? 'text-white' : 'text-zinc-550 hover:text-zinc-350'
-          }`}
-        >
-          <Calculator className="w-4 h-4" />
-          Simulador de Trade-in
-          {activeTab === 'simulator' && (
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('checklist')}
-          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
-            activeTab === 'checklist' ? 'text-white' : 'text-zinc-550 hover:text-zinc-355'
-          }`}
-        >
-          <ListTodo className="w-4 h-4" />
-          Checklist de Seminovos
-          <span className="text-[9px] uppercase font-mono tracking-wider bg-blue-500/10 border border-blue-500/30 text-blue-400 px-1.5 py-0.5 rounded">NOVO</span>
-          {activeTab === 'checklist' && (
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
-          )}
-        </button>
-      </div>
+      {/* Tela Inicial de Boas-vindas (Landing Page) */}
+      {activeTab === 'landing' && (
+        <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center justify-center text-center space-y-12 animate-fade-in">
+          
+          <div className="space-y-4 max-w-lg">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-none bg-gradient-to-r from-blue-400 via-zinc-100 to-purple-400 bg-clip-text text-transparent">
+              Fitch Trade-In Manager
+            </h1>
+            <p className="text-sm text-zinc-400">
+              Selecione o módulo que deseja acessar para iniciar os trabalhos.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+            
+            {/* Card 1: Simulador de Trade-in */}
+            <button
+              type="button"
+              onClick={() => requestAccess('simulator')}
+              className="group text-left bg-gradient-to-b from-zinc-900/60 to-zinc-950/80 border border-zinc-800/80 hover:border-blue-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-900/10 cursor-pointer flex flex-col justify-between min-h-[240px]"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                  <Calculator className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
+                  Simulador de Trade-in
+                </h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Cálculo financeiro avançado de taxas, custos operacionais e margens de vitrine. Otimizado para **Notebooks / Desktops**.
+                </p>
+              </div>
+              <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
+                Acesso Gerente / ADM &gt;
+              </span>
+            </button>
+
+            {/* Card 2: Checklist de Seminovos */}
+            <button
+              type="button"
+              onClick={() => requestAccess('checklist')}
+              className="group text-left bg-gradient-to-b from-zinc-900/60 to-zinc-950/80 border border-zinc-800/80 hover:border-emerald-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/10 cursor-pointer flex flex-col justify-between min-h-[240px]"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                  <ListTodo className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
+                  Checklist de Seminovos
+                </h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Inspeção técnica detalhada, anexo de fotos de evidência e classificação automática de grade. Otimizado para **Celulares**.
+                </p>
+              </div>
+              <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
+                Acesso Vendedores &gt;
+              </span>
+            </button>
+
+          </div>
+        </div>
+      )}
+
+      {/* Navegação por Abas (Visível apenas para Administradores e Gerentes Logados) */}
+      {activeTab !== 'landing' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') && (
+        <div className="max-w-7xl mx-auto px-6 mt-6 flex gap-6 border-b border-zinc-900">
+          <button
+            type="button"
+            onClick={() => setActiveTab('simulator')}
+            className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
+              activeTab === 'simulator' ? 'text-white' : 'text-zinc-550 hover:text-zinc-300'
+            }`}
+          >
+            <Calculator className="w-4 h-4" />
+            Simulador de Trade-in
+            {activeTab === 'simulator' && (
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('checklist')}
+            className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
+              activeTab === 'checklist' ? 'text-white' : 'text-zinc-550 hover:text-zinc-355'
+            }`}
+          >
+            <ListTodo className="w-4 h-4" />
+            Checklist de Seminovos
+            {activeTab === 'checklist' && (
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
+            )}
+          </button>
+        </div>
+      )}
 
       {activeTab === 'simulator' && (
         <>
@@ -2336,25 +2564,14 @@ ${splitsList}
                   {/* Nome do Vendedor */}
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
-                      Nome do Vendedor *
+                      Nome do Vendedor
                     </label>
-                    <div className="relative">
-                      <select
-                        value={sellerName}
-                        onChange={(e) => setSellerName(e.target.value)}
-                        className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer"
-                      >
-                        <option value="">Selecione o Vendedor</option>
-                        <option value="Ana Clara">Ana Clara</option>
-                        <option value="Bruno Silva">Bruno Silva</option>
-                        <option value="Carla Souza">Carla Souza</option>
-                        <option value="Diego Costa">Diego Costa</option>
-                        <option value="Outro Vendedor">Outro...</option>
-                      </select>
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                        <ChevronDown className="w-4 h-4" />
-                      </span>
-                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value={currentUser ? currentUser.name : ''}
+                      className="w-full bg-zinc-900 border border-zinc-800 text-zinc-450 rounded-xl py-3 px-4 text-sm outline-none font-semibold cursor-not-allowed select-none"
+                    />
                   </div>
 
                   {/* Nome do Cliente */}
@@ -2409,376 +2626,484 @@ ${splitsList}
               </div>
 
               {/* BLOCO 2: Checklist Técnico */}
-              <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
-                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                   <ListTodo className="w-5 h-5 text-blue-400" />
-                  2. Checklist Técnico do Usado
-                </h2>
-                
-                {/* Seção A: Avaliação Estética */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2 border-b border-zinc-900 pb-2">
-                    <Palette className="w-4 h-4 text-purple-400" />
-                    A. Avaliação Estética (Físico / Visual)
-                  </h3>
+                  <h2 className="text-md sm:text-lg font-bold tracking-tight text-white">
+                    2. Checklist Técnico do Usado
+                  </h2>
+                </div>
+
+                {/* Accordion Item A: Estética */}
+                <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-300">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection(activeSection === 'estetica' ? '' : 'estetica')}
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-zinc-900/20 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+                        <Palette className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">A. Avaliação Estética</h3>
+                        <p className="text-xs text-zinc-500 mt-0.5">Tela, Traseira, Laterais e Lentes</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {getEsteticaStatusBadge()}
+                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${activeSection === 'estetica' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
                   
-                  <div className="space-y-4 divide-y divide-zinc-900/60">
-                    
-                    {/* Tela */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Tela/Display</span>
-                        <span className="text-xs text-zinc-500">Possui riscos profundos, trincados ou lascas?</span>
+                  {activeSection === 'estetica' && (
+                    <div className="p-6 border-t border-zinc-900 bg-zinc-950/20 space-y-5 animate-fade-in">
+                      <div className="space-y-4 divide-y divide-zinc-900/60">
+                        
+                        {/* Tela */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Tela / Display</span>
+                            <span className="text-xs text-zinc-500">Possui riscos profundos, trincados ou lascas?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['bom', 'detalhe', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setEsteticaTela(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  esteticaTela === opt
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 hover:text-zinc-250 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Vidro Traseiro */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Vidro Traseiro</span>
+                            <span className="text-xs text-zinc-500">O vidro traseiro está trincado, quebrado ou riscado?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['bom', 'detalhe', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setEsteticaTraseira(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  esteticaTraseira === opt
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-650/30'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Aro/Laterais */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Laterais / Aro</span>
+                            <span className="text-xs text-zinc-500">Apresenta marcas de queda, amassados ou descascados?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['bom', 'detalhe', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setEsteticaLaterais(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  esteticaLaterais === opt
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Lentes */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Lentes da Câmera</span>
+                            <span className="text-xs text-zinc-500">Estão riscadas, trincadas ou com poeira/sujeira interna?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['bom', 'detalhe', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setEsteticaLentes(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  esteticaLentes === opt
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                       </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['bom', 'detalhe', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setEsteticaTela(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              esteticaTela === opt
-                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-500 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
-                          </button>
-                        ))}
+
+                      {/* Botão de Avanço */}
+                      <div className="flex justify-end pt-4 border-t border-zinc-900/60">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSection('funcional')}
+                          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                        >
+                          Ir para Parte Funcional
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-
-                    {/* Vidro Traseiro */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Vidro Traseiro</span>
-                        <span className="text-xs text-zinc-500">O vidro traseiro está trincado, quebrado ou riscado?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['bom', 'detalhe', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setEsteticaTraseira(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              esteticaTraseira === opt
-                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-550 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Aro/Laterais */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Laterais/Aro</span>
-                        <span className="text-xs text-zinc-500">Apresenta marcas de queda, amassados ou descascados?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['bom', 'detalhe', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setEsteticaLaterais(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              esteticaLaterais === opt
-                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-550 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Lentes */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Lentes da Câmera</span>
-                        <span className="text-xs text-zinc-500">Estão riscadas, trincadas ou com poeira/sujeira interna?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['bom', 'detalhe', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setEsteticaLentes(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              esteticaLentes === opt
-                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-550 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                  </div>
+                  )}
                 </div>
 
-                {/* Seção B: Avaliação Funcional */}
-                <div className="space-y-4 pt-4">
-                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2 border-b border-zinc-900 pb-2">
-                    <Sliders className="w-4 h-4 text-emerald-400" />
-                    B. Avaliação Funcional (Hardware e Software)
-                  </h3>
-
-                  <div className="space-y-4 divide-y divide-zinc-900/60">
-                    
-                    {/* Bateria */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Saúde da Bateria (%)</span>
-                        <span className="text-xs text-zinc-500">Insira a porcentagem indicada nas configurações</span>
+                {/* Accordion Item B: Funcional */}
+                <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-300">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection(activeSection === 'funcional' ? '' : 'funcional')}
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-zinc-900/20 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                        <Sliders className="w-4.5 h-4.5" />
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs font-bold text-zinc-400">🔋</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={funcionalBatteryHealth}
-                          onChange={(e) => setFuncionalBatteryHealth(e.target.value)}
-                          className="w-24 bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 px-3 text-xs outline-none font-bold text-center"
-                        />
-                        {parseFloat(funcionalBatteryHealth) < 80 && (
-                          <span className="bg-red-950/60 text-red-400 border border-red-900/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase shrink-0 animate-pulse">
-                            Requer Troca
-                          </span>
-                        )}
+                      <div>
+                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">B. Avaliação Funcional</h3>
+                        <p className="text-xs text-zinc-500 mt-0.5">Bateria, Componentes, Áudio e Câmeras</p>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {getFuncionalStatusBadge()}
+                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${activeSection === 'funcional' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  
+                  {activeSection === 'funcional' && (
+                    <div className="p-6 border-t border-zinc-900 bg-zinc-950/20 space-y-5 animate-fade-in">
+                      <div className="space-y-4 divide-y divide-zinc-900/60">
+                        
+                        {/* Bateria */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Saúde da Bateria (%)</span>
+                            <span className="text-xs text-zinc-500">Insira a porcentagem indicada nas configurações</span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-xs font-bold text-zinc-400">🔋</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={funcionalBatteryHealth}
+                              onChange={(e) => setFuncionalBatteryHealth(e.target.value)}
+                              className="w-24 bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 px-3 text-xs outline-none font-bold text-center"
+                            />
+                            {parseFloat(funcionalBatteryHealth) < 80 && (
+                              <span className="bg-red-950/60 text-red-400 border border-red-900/30 text-[10px] font-bold px-2 py-1 rounded uppercase shrink-0 animate-pulse">
+                                Requer Troca
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                    {/* Peça Desconhecida */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Mensagem de Peça Desconhecida</span>
-                        <span className="text-xs text-zinc-500">Aparece aviso de tela, bateria ou câmera trocada no Ajustes?</span>
+                        {/* Peça Desconhecida */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Mensagem de Peça Desconhecida</span>
+                            <span className="text-xs text-zinc-500">Aparece aviso de tela, bateria ou câmera trocada no Ajustes?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['não', 'sim'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setFuncionalPecaDesconhecida(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  funcionalPecaDesconhecida === opt
+                                    ? opt === 'sim'
+                                      ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                      : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'sim' ? 'Sim' : 'Não'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Biometria */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Biometria (Face ID / Touch ID)</span>
+                            <span className="text-xs text-zinc-555">O desbloqueio biométrico funciona perfeitamente?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['ok', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setFuncionalBiometria(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  funcionalBiometria === opt
+                                    ? opt === 'ok'
+                                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Câmeras */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Câmeras e Foco (Frente/Verso)</span>
+                            <span className="text-xs text-zinc-500">Foco e alternância de lentes (0.5x, 1x, 3x) funcionando 100%?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['ok', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setFuncionalCameras(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  funcionalCameras === opt
+                                    ? opt === 'ok'
+                                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Áudio */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Áudio e Microfone</span>
+                            <span className="text-xs text-zinc-500">Ligação e alto-falantes estão limpos, nítidos e sem ruído?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['ok', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setFuncionalAudio(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  funcionalAudio === opt
+                                    ? opt === 'ok'
+                                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Conectividade */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Conectividade Celular e Wi-Fi</span>
+                            <span className="text-xs text-zinc-500">Wi-Fi, Bluetooth e leitura do chip (rede celular) funcionando?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['ok', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setFuncionalConectividade(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  funcionalConectividade === opt
+                                    ? opt === 'ok'
+                                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Botões */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Botões Físicos</span>
+                            <span className="text-xs text-zinc-500">Silencioso, volume e power respondem com clique firme?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['ok', 'defeito'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setFuncionalBotoes(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  funcionalBotoes === opt
+                                    ? opt === 'ok'
+                                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                       </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['não', 'sim'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFuncionalPecaDesconhecida(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              funcionalPecaDesconhecida === opt
-                                ? opt === 'sim' ? 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'sim' ? 'Sim' : 'Não'}
-                          </button>
-                        ))}
+
+                      {/* Botões de Navegação */}
+                      <div className="flex justify-between pt-4 border-t border-zinc-900/60 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSection('estetica')}
+                          className="bg-zinc-900 hover:bg-zinc-850 text-zinc-400 text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer border border-zinc-800"
+                        >
+                          Voltar para Estética
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveSection('seguranca')}
+                          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                        >
+                          Ir para Segurança
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-
-                    {/* Biometria */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Biometria (Face ID / Touch ID)</span>
-                        <span className="text-xs text-zinc-500">O desbloqueio biométrico funciona perfeitamente?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['ok', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFuncionalBiometria(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              funcionalBiometria === opt
-                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Câmeras */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Câmeras e Foco (Frente e Verso)</span>
-                        <span className="text-xs text-zinc-500">Foco e alternância de lentes (0.5x, 1x, 3x) funcionando 100%?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['ok', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFuncionalCameras(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              funcionalCameras === opt
-                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Áudio */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Áudio e Microfone</span>
-                        <span className="text-xs text-zinc-500">Ligação e alto-falantes estão limpos, nítidos e sem ruído?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['ok', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFuncionalAudio(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              funcionalAudio === opt
-                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Conectividade */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Conectividade Celular e Wi-Fi</span>
-                        <span className="text-xs text-zinc-500">Wi-Fi, Bluetooth e leitura do chip (rede celular) funcionando?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['ok', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFuncionalConectividade(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              funcionalConectividade === opt
-                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Botões */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Botões Físicos</span>
-                        <span className="text-xs text-zinc-555 font-medium">Silencioso, volume e power respondem com clique firme?</span>
-                      </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['ok', 'defeito'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setFuncionalBotoes(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              funcionalBotoes === opt
-                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                  </div>
+                  )}
                 </div>
 
-                {/* Seção C: Segurança e Procedência */}
-                <div className="space-y-4 pt-4">
-                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2 border-b border-zinc-900 pb-2">
-                    <ShieldCheck className="w-4 h-4 text-blue-400" />
-                    C. Segurança e Procedência
-                  </h3>
-
-                  <div className="space-y-4 divide-y divide-zinc-900/60">
-                    
-                    {/* iCloud */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Buscar iPhone (iCloud)</span>
-                        <span className="text-xs text-zinc-500">A conta do cliente foi removida e desativada?</span>
+                {/* Accordion Item C: Segurança */}
+                <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-300">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection(activeSection === 'seguranca' ? '' : 'seguranca')}
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-zinc-900/20 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-4.5 h-4.5" />
                       </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['sim', 'não'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setSegurancaIcloud(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              segurancaIcloud === opt
-                                ? opt === 'sim' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'sim' ? 'Desativado' : 'Não Desativado'}
-                          </button>
-                        ))}
+                      <div>
+                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">C. Segurança e Procedência</h3>
+                        <p className="text-xs text-zinc-500 mt-0.5">iCloud, Mostruário e Autenticidade</p>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {getSegurancaStatusBadge()}
+                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${activeSection === 'seguranca' ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  
+                  {activeSection === 'seguranca' && (
+                    <div className="p-6 border-t border-zinc-900 bg-zinc-950/20 space-y-5 animate-fade-in">
+                      <div className="space-y-4 divide-y divide-zinc-900/60">
+                        
+                        {/* iCloud */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Buscar iPhone (iCloud)</span>
+                            <span className="text-xs text-zinc-500">A conta do cliente foi removida e desativada?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['sim', 'não'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setSegurancaIcloud(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  segurancaIcloud === opt
+                                    ? opt === 'sim'
+                                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'sim' ? 'Desativado' : 'Não Desativado'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                    {/* Aparelho Vitrine/Demo */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
-                      <div>
-                        <span className="text-sm font-semibold text-zinc-200 block">Aparelho Vitrine / Demo</span>
-                        <span className="text-xs text-zinc-500">É um aparelho de mostruário (loja externa)?</span>
+                        {/* Aparelho Vitrine/Demo */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                          <div>
+                            <span className="text-sm font-semibold text-zinc-200 block">Aparelho Vitrine / Demo</span>
+                            <span className="text-xs text-zinc-555">É um aparelho de mostruário (loja externa)?</span>
+                          </div>
+                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                            {['não', 'sim'].map(opt => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setSegurancaDemo(opt)}
+                                className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                                  segurancaDemo === opt
+                                    ? opt === 'sim'
+                                      ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                                      : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
+                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                }`}
+                              >
+                                {opt === 'sim' ? 'Sim' : 'Não'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                       </div>
-                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
-                        {['não', 'sim'].map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setSegurancaDemo(opt)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                              segurancaDemo === opt
-                                ? opt === 'sim' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
-                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
-                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
-                            }`}
-                          >
-                            {opt === 'sim' ? 'Sim' : 'Não'}
-                          </button>
-                        ))}
+
+                      {/* Botões de Navegação */}
+                      <div className="flex justify-start pt-4 border-t border-zinc-900/60">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSection('funcional')}
+                          className="bg-zinc-900 hover:bg-zinc-850 text-zinc-400 text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer border border-zinc-800"
+                        >
+                          Voltar para Parte Funcional
+                        </button>
                       </div>
                     </div>
-
-                  </div>
+                  )}
                 </div>
-
               </div>
 
               {/* BLOCO 3: Área de Evidências (Anexo de Fotos) */}
@@ -3189,7 +3514,53 @@ ${splitsList}
             )}
 
           </div>
+        </div>
+      )}
 
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md transition-all duration-300">
+          <div className="bg-zinc-950 border border-zinc-850 rounded-3xl p-6 md:p-8 w-full max-w-sm space-y-6 shadow-2xl relative animate-fade-in">
+            
+            <div className="text-center space-y-2">
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h3 className="text-md font-bold text-white">Controle de Acesso</h3>
+              <p className="text-xs text-zinc-500">
+                {loginTarget === 'simulator' 
+                  ? 'Digite a senha do Gerente ou Administrador' 
+                  : 'Digite sua senha pessoal de acesso'}
+              </p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input
+                type="password"
+                placeholder="Senha de Acesso"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 focus:border-zinc-700 rounded-xl py-3 px-4 text-center text-white font-mono text-sm outline-none transition-all placeholder:text-zinc-650"
+                autoFocus
+              />
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(false)}
+                  className="bg-zinc-900 hover:bg-zinc-850 text-zinc-400 text-xs font-semibold py-3 rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-md cursor-pointer"
+                >
+                  Entrar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
