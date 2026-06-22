@@ -70,5 +70,44 @@ export const localDb = {
       console.error('Error deleting from localStorage', e)
       throw e
     }
+  },
+
+  async getChecklists() {
+    try {
+      const data = localStorage.getItem('seminovo_checklists')
+      return data ? JSON.parse(data) : []
+    } catch (e) {
+      console.error('Error reading localStorage for checklists', e)
+      return []
+    }
+  },
+
+  async saveChecklist(checklist) {
+    try {
+      const checklists = await this.getChecklists()
+      const newRecord = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        created_at: new Date().toISOString(),
+        ...checklist
+      }
+      checklists.unshift(newRecord)
+      localStorage.setItem('seminovo_checklists', JSON.stringify(checklists))
+      return newRecord
+    } catch (e) {
+      console.error('Error saving checklist to localStorage', e)
+      throw e
+    }
+  },
+
+  async deleteChecklist(id) {
+    try {
+      const checklists = await this.getChecklists()
+      const filtered = checklists.filter(item => item.id !== id)
+      localStorage.setItem('seminovo_checklists', JSON.stringify(filtered))
+      return true
+    } catch (e) {
+      console.error('Error deleting checklist from localStorage', e)
+      throw e
+    }
   }
 }

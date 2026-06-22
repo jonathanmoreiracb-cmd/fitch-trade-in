@@ -206,6 +206,51 @@ function App() {
   const [localRecordsToSync, setLocalRecordsToSync] = useState([])
   const [isSyncingLocal, setIsSyncingLocal] = useState(false)
 
+  // --- Estados do Checklist de Seminovos (Aba Especial) ---
+  const [activeTab, setActiveTab] = useState('simulator') // simulator | checklist
+  
+  // 1. Identificação
+  const [sellerName, setSellerName] = useState('')
+  const [checklistClientName, setChecklistClientName] = useState('')
+  const [checklistDeviceModel, setChecklistDeviceModel] = useState(USED_MODELS[5])
+  const [checklistSerialImei, setChecklistSerialImei] = useState('')
+
+  // 2. Checklist Técnico
+  // A. Estética
+  const [esteticaTela, setEsteticaTela] = useState('bom') // bom | detalhe | defeito
+  const [esteticaTraseira, setEsteticaTraseira] = useState('bom') // bom | detalhe | defeito
+  const [esteticaLaterais, setEsteticaLaterais] = useState('bom') // bom | detalhe | defeito
+  const [esteticaLentes, setEsteticaLentes] = useState('bom') // bom | detalhe | defeito
+
+  // B. Funcional
+  const [funcionalBatteryHealth, setFuncionalBatteryHealth] = useState(85)
+  const [funcionalPecaDesconhecida, setFuncionalPecaDesconhecida] = useState('não') // não | sim
+  const [funcionalBiometria, setFuncionalBiometria] = useState('ok') // ok | defeito
+  const [funcionalCameras, setFuncionalCameras] = useState('ok') // ok | defeito
+  const [funcionalAudio, setFuncionalAudio] = useState('ok') // ok | defeito
+  const [funcionalConectividade, setFuncionalConectividade] = useState('ok') // ok | defeito
+  const [funcionalBotoes, setFuncionalBotoes] = useState('ok') // ok | defeito
+
+  // C. Segurança
+  const [segurancaIcloud, setSegurancaIcloud] = useState('sim') // sim (desativado) | não
+  const [segurancaDemo, setSegurancaDemo] = useState('não') // não | sim
+
+  // 3. Área de Evidências (Fotos em Base64 ou URL)
+  const [photoTela, setPhotoTela] = useState(null)
+  const [photoTraseira, setPhotoTraseira] = useState(null)
+  const [photoLaterais, setPhotoLaterais] = useState(null)
+  const [photoConector, setPhotoConector] = useState(null)
+
+  // 4. Resumo e Fechamento
+  const [referenceValue, setReferenceValue] = useState('')
+  const [customCreditValue, setCustomCreditValue] = useState('')
+  const [checklistConfirmed, setChecklistConfirmed] = useState(false)
+
+  // Histórico de checklists
+  const [checklistsList, setChecklistsList] = useState([])
+  const [isSavingChecklist, setIsSavingChecklist] = useState(false)
+  const [checklistSearchQuery, setChecklistSearchQuery] = useState('')
+
   // Carregar Histórico
   const loadEvaluations = async () => {
     try {
@@ -239,9 +284,302 @@ function App() {
     }
   }
 
+  const loadChecklists = async () => {
+    try {
+      if (supabaseInitError) {
+        throw new Error(supabaseInitError)
+      }
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('seminovo_checklists')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        if (error) {
+          if (error.code === '42P01') { // Undefined table error
+            const localData = await localDb.getChecklists()
+            setChecklistsList(localData)
+          } else {
+            throw error
+          }
+        } else {
+          setChecklistsList(data || [])
+        }
+      } else {
+        const data = await localDb.getChecklists()
+        setChecklistsList(data)
+      }
+    } catch (err) {
+      console.error('Error loading checklists:', err)
+      const data = await localDb.getChecklists()
+      setChecklistsList(data)
+    }
+  }
+
   useEffect(() => {
     loadEvaluations()
+    loadChecklists()
   }, [])
+
+  // --- Funções de Negócio do Checklist de Seminovos ---
+  const compressChecklistImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(compressedBase64);
+        };
+      };
+    });
+  };
+
+  const handleSaveChecklist = async () => {
+    if (!sellerName.trim()) {
+      triggerNotification('Preencha o Nome do Vendedor.', 'error')
+      return
+    }
+    if (!checklistClientName.trim()) {
+      triggerNotification('Preencha o Nome do Cliente.', 'error')
+      return
+    }
+    if (!checklistSerialImei.trim()) {
+      triggerNotification('Preencha o IMEI ou Número de Série.', 'error')
+      return
+    }
+    if (!checklistConfirmed) {
+      triggerNotification('Você precisa atestar o termo de ciência.', 'error')
+      return
+    }
+
+    setIsSavingChecklist(true)
+    const generatedId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)
+    
+    const esteticaObj = {
+      tela: esteticaTela,
+      traseira: esteticaTraseira,
+      laterais: esteticaLaterais,
+      lentes: esteticaLentes
+    }
+
+    const funcionalObj = {
+      battery_health: parseInt(funcionalBatteryHealth) || 85,
+      peca_desconhecida: funcionalPecaDesconhecida,
+      biometria: funcionalBiometria,
+      cameras: funcionalCameras,
+      audio: funcionalAudio,
+      conectividade: funcionalConectividade,
+      botoes: funcionalBotoes
+    }
+
+    const segurancaObj = {
+      icloud: segurancaIcloud,
+      demo: segurancaDemo
+    }
+
+    const photosObj = {
+      tela: photoTela,
+      traseira: photoTraseira,
+      laterais: photoLaterais,
+      conector: photoConector
+    }
+
+    const newRecord = {
+      id: generatedId,
+      created_at: new Date().toISOString(),
+      seller_name: sellerName.trim(),
+      client_name: checklistClientName.trim(),
+      device_model: checklistDeviceModel,
+      serial_imei: checklistSerialImei.trim(),
+      checklist_estetica: esteticaObj,
+      checklist_funcional: funcionalObj,
+      checklist_seguranca: segurancaObj,
+      battery_health: parseInt(funcionalBatteryHealth) || 85,
+      photos: photosObj,
+      grade: checklistGradeData.grade,
+      reference_value: parseFloat(referenceValue) || 0,
+      evaluation_value: parseFloat(customCreditValue) || checklistGradeData.suggestedValue,
+      confirmed: checklistConfirmed
+    }
+
+    try {
+      if (isSupabaseConfigured && dbStatus.connected) {
+        const { error } = await supabase
+          .from('seminovo_checklists')
+          .insert([newRecord])
+        
+        if (error) {
+          if (error.code === '42P01') {
+            await localDb.saveChecklist(newRecord)
+            triggerNotification('Salvo localmente! Tabela de checklists inexistente na nuvem.', 'warning')
+          } else {
+            throw error
+          }
+        } else {
+          triggerNotification('Checklist salvo no Supabase!')
+        }
+      } else {
+        await localDb.saveChecklist(newRecord)
+        triggerNotification('Checklist salvo localmente!')
+      }
+
+      loadChecklists()
+      
+      setChecklistClientName('')
+      setChecklistSerialImei('')
+      setEsteticaTela('bom')
+      setEsteticaTraseira('bom')
+      setEsteticaLaterais('bom')
+      setEsteticaLentes('bom')
+      setFuncionalBatteryHealth(85)
+      setFuncionalPecaDesconhecida('não')
+      setFuncionalBiometria('ok')
+      setFuncionalCameras('ok')
+      setFuncionalAudio('ok')
+      setFuncionalConectividade('ok')
+      setFuncionalBotoes('ok')
+      setSegurancaIcloud('sim')
+      setSegurancaDemo('não')
+      setPhotoTela(null)
+      setPhotoTraseira(null)
+      setPhotoLaterais(null)
+      setPhotoConector(null)
+      setReferenceValue('')
+      setCustomCreditValue('')
+      setChecklistConfirmed(false)
+    } catch (err) {
+      console.error('Error saving checklist:', err)
+      try {
+        await localDb.saveChecklist(newRecord)
+        triggerNotification(`Erro na nuvem: ${err.message || String(err)}. Salvo localmente!`, 'warning')
+        loadChecklists()
+      } catch (localErr) {
+        triggerNotification(`Erro ao salvar checklist: ${localErr.message || String(localErr)}`, 'error')
+      }
+    } finally {
+      setIsSavingChecklist(false)
+    }
+  }
+
+  const handleDeleteChecklist = async (id) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta inspeção?')) return
+
+    try {
+      if (isSupabaseConfigured && dbStatus.connected) {
+        const { error } = await supabase
+          .from('seminovo_checklists')
+          .delete()
+          .eq('id', id)
+        
+        if (error) {
+          if (error.code === '42P01') {
+            await localDb.deleteChecklist(id)
+            triggerNotification('Registro deletado localmente.')
+          } else {
+            throw error
+          }
+        } else {
+          triggerNotification('Registro excluído no Supabase.')
+        }
+      } else {
+        await localDb.deleteChecklist(id)
+        triggerNotification('Registro deletado localmente.')
+      }
+      loadChecklists()
+    } catch (err) {
+      console.error('Error deleting checklist:', err)
+      triggerNotification('Erro ao excluir do histórico.', 'error')
+    }
+  }
+
+  const handleCopyChecklistSummary = (record) => {
+    const formatCurrency = (val) => {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+    }
+
+    const estetica = record.checklist_estetica || {}
+    const funcional = record.checklist_funcional || {}
+    const seguranca = record.checklist_seguranca || {}
+
+    const text = `📋 *LAUDO DE AVALIAÇÃO DE SEMINOVO - Fitch*
+--------------------------------------------
+👤 *Vendedor:* ${record.seller_name}
+👤 *Cliente:* ${record.client_name}
+📱 *Aparelho:* ${record.device_model}
+🆔 *IMEI/Serial:* ${record.serial_imei}
+
+--------------------------------------------
+🔍 *CHECKLIST TÉCNICO:*
+
+⚠️ *A. Avaliação Estética:*
+- Tela/Display: ${estetica.tela === 'bom' ? '🟢 OK' : estetica.tela === 'detalhe' ? '🟡 Detalhe' : '🔴 Defeito'}
+- Vidro Traseiro: ${estetica.traseira === 'bom' ? '🟢 OK' : estetica.traseira === 'detalhe' ? '🟡 Detalhe' : '🔴 Defeito'}
+- Laterais/Aro: ${estetica.laterais === 'bom' ? '🟢 OK' : estetica.laterais === 'detalhe' ? '🟡 Detalhe' : '🔴 Defeito'}
+- Lentes da Câmera: ${estetica.lentes === 'bom' ? '🟢 OK' : estetica.lentes === 'detalhe' ? '🟡 Detalhe' : '🔴 Defeito'}
+
+⚙️ *B. Avaliação Funcional:*
+- Saúde da Bateria: ${record.battery_health}%
+- Peça Desconhecida: ${funcional.peca_desconhecida === 'sim' ? '⚠️ PEÇA TROCADA/AVISO' : '🟢 Nenhuma'}
+- Biometria (Face ID/Touch ID): ${funcional.biometria === 'ok' ? '🟢 OK' : '🔴 Defeito'}
+- Câmeras e Foco (0.5x, 1x, 3x): ${funcional.cameras === 'ok' ? '🟢 OK' : '🔴 Defeito'}
+- Áudio e Microfone: ${funcional.audio === 'ok' ? '🟢 OK' : '🔴 Defeito'}
+- Conectividade (Wi-Fi/Rede): ${funcional.conectividade === 'ok' ? '🟢 OK' : '🔴 Defeito'}
+- Botões Físicos: ${funcional.botoes === 'ok' ? '🟢 OK' : '🔴 Defeito'}
+
+🛡️ *C. Segurança:*
+- Buscar iPhone (iCloud): ${seguranca.icloud === 'sim' ? '🟢 Desativado' : '🔴 ATIVO'}
+- Aparelho Vitrine/Demo: ${seguranca.demo === 'sim' ? '⚠️ Sim' : '🟢 Não'}
+
+--------------------------------------------
+📸 *EVIDÊNCIAS FOTOGRÁFICAS:*
+- Tela Acesa: ${record.photos?.tela ? '✅ Anexada' : '❌ Não anexada'}
+- Traseira: ${record.photos?.traseira ? '✅ Anexada' : '❌ Não anexada'}
+- Laterais: ${record.photos?.laterais ? '✅ Anexada' : '❌ Não anexada'}
+- Conector/Alto-falante: ${record.photos?.conector ? '✅ Anexada' : '❌ Não anexada'}
+
+--------------------------------------------
+🏆 *VEREDITO:*
+- *Grade de Classificação:* Grade ${record.grade}
+- *Valor de Referência (Vitrine):* ${formatCurrency(record.reference_value)}
+- *Valor Final de Crédito:* ${formatCurrency(record.evaluation_value)}
+
+*Gerado em:* ${new Date(record.created_at).toLocaleDateString('pt-BR')} ${new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+*Sistema Fitch Trade-In Checklist Manager v9*`
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        triggerNotification('Resumo do laudo copiado!')
+      })
+      .catch(() => {
+        triggerNotification('Erro ao copiar laudo.', 'error')
+      })
+  }
 
   // Monitorar se há dados no localStorage quando conectados ao Supabase
   useEffect(() => {
@@ -764,6 +1102,76 @@ ${splitsList}
     })
   }, [evaluations, searchQuery])
 
+  // Cálculo Automático de Grade e Sugestão de Crédito de Seminovos
+  const checklistGradeData = useMemo(() => {
+    // Regras para Defeitos (Grade C)
+    const hasDefect = 
+      esteticaTela === 'defeito' ||
+      esteticaTraseira === 'defeito' ||
+      esteticaLaterais === 'defeito' ||
+      esteticaLentes === 'defeito' ||
+      funcionalBiometria === 'defeito' ||
+      funcionalCameras === 'defeito' ||
+      funcionalAudio === 'defeito' ||
+      funcionalConectividade === 'defeito' ||
+      funcionalBotoes === 'defeito' ||
+      funcionalPecaDesconhecida === 'sim' ||
+      segurancaIcloud === 'não' ||
+      parseFloat(funcionalBatteryHealth) < 80;
+
+    // Regras para Detalhes (Grade B)
+    const hasDetail = 
+      esteticaTela === 'detalhe' ||
+      esteticaTraseira === 'detalhe' ||
+      esteticaLaterais === 'detalhe' ||
+      esteticaLentes === 'detalhe' ||
+      (parseFloat(funcionalBatteryHealth) >= 80 && parseFloat(funcionalBatteryHealth) < 85);
+
+    let grade = 'A'
+    if (hasDefect) {
+      grade = 'C'
+    } else if (hasDetail) {
+      grade = 'B'
+    }
+
+    const refVal = parseFloat(referenceValue) || 0
+    // Grade A base: Preço de Vitrine Referência - Margem Padrão (R$ 800)
+    const baseCreditA = Math.max(0, refVal - 800)
+    
+    let suggestedValue = 0
+    if (grade === 'A') {
+      suggestedValue = baseCreditA
+    } else if (grade === 'B') {
+      suggestedValue = baseCreditA * 0.85
+    } else { // Grade C
+      suggestedValue = baseCreditA * 0.70
+    }
+
+    return {
+      grade,
+      suggestedValue: parseFloat(suggestedValue.toFixed(2))
+    }
+  }, [
+    esteticaTela, esteticaTraseira, esteticaLaterais, esteticaLentes,
+    funcionalBatteryHealth, funcionalPecaDesconhecida, funcionalBiometria,
+    funcionalCameras, funcionalAudio, funcionalConectividade, funcionalBotoes,
+    segurancaIcloud, referenceValue
+  ])
+
+  // Filtragem de checklists do histórico
+  const filteredChecklists = useMemo(() => {
+    if (!checklistSearchQuery.trim()) return checklistsList
+    const query = checklistSearchQuery.toLowerCase()
+    return checklistsList.filter(record => {
+      const seller = (record.seller_name || '').toLowerCase()
+      const client = (record.client_name || '').toLowerCase()
+      const imei = (record.serial_imei || '').toLowerCase()
+      const model = (record.device_model || '').toLowerCase()
+      const grade = (record.grade || '').toLowerCase()
+      return seller.includes(query) || client.includes(query) || imei.includes(query) || model.includes(query) || grade.includes(query)
+    })
+  }, [checklistsList, checklistSearchQuery])
+
   const formatBRL = (val) => {
     if (isNaN(val) || val === null) return 'R$ 0,00'
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -886,8 +1294,41 @@ ${splitsList}
         </div>
       )}
 
-      {/* Grid de Conteúdo Principal */}
-      <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Navegação por Abas */}
+      <div className="max-w-7xl mx-auto px-6 mt-6 flex gap-6 border-b border-zinc-900">
+        <button
+          type="button"
+          onClick={() => setActiveTab('simulator')}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
+            activeTab === 'simulator' ? 'text-white' : 'text-zinc-550 hover:text-zinc-350'
+          }`}
+        >
+          <Calculator className="w-4 h-4" />
+          Simulador de Trade-in
+          {activeTab === 'simulator' && (
+            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('checklist')}
+          className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
+            activeTab === 'checklist' ? 'text-white' : 'text-zinc-550 hover:text-zinc-355'
+          }`}
+        >
+          <ListTodo className="w-4 h-4" />
+          Checklist de Seminovos
+          <span className="text-[9px] uppercase font-mono tracking-wider bg-blue-500/10 border border-blue-500/30 text-blue-400 px-1.5 py-0.5 rounded">NOVO</span>
+          {activeTab === 'checklist' && (
+            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'simulator' && (
+        <>
+          {/* Grid de Conteúdo Principal */}
+          <main className="max-w-7xl mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* COLUNA ESQUERDA: Form de Precificação e Resultados (Col 7) */}
         <section className="lg:col-span-7 space-y-8">
@@ -1873,6 +2314,884 @@ ${splitsList}
           </div>
         </div>
       </footer>
+        </>
+      )}
+
+      {activeTab === 'checklist' && (
+        <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
+          {/* O Checklist principal em 2 colunas: Col 8 (Formulário) e Col 4 (Resultado da Grade / Ações) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* COLUNA ESQUERDA: Formulário da Inspeção (Col 8) */}
+            <div className="lg:col-span-8 space-y-6">
+              
+              {/* BLOCO 1: Cabeçalho de Identificação */}
+              <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
+                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                  <User className="w-5 h-5 text-blue-400" />
+                  1. Identificação do Aparelho e Vendedor
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Nome do Vendedor */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                      Nome do Vendedor *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={sellerName}
+                        onChange={(e) => setSellerName(e.target.value)}
+                        className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer"
+                      >
+                        <option value="">Selecione o Vendedor</option>
+                        <option value="Ana Clara">Ana Clara</option>
+                        <option value="Bruno Silva">Bruno Silva</option>
+                        <option value="Carla Souza">Carla Souza</option>
+                        <option value="Diego Costa">Diego Costa</option>
+                        <option value="Outro Vendedor">Outro...</option>
+                      </select>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                        <ChevronDown className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Nome do Cliente */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                      Nome do Cliente *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nome completo do cliente"
+                      value={checklistClientName}
+                      onChange={(e) => setChecklistClientName(e.target.value)}
+                      className="w-full bg-zinc-955 border border-zinc-800 focus:border-zinc-700 rounded-xl py-3 px-4 text-white text-sm outline-none transition-all placeholder:text-zinc-650"
+                    />
+                  </div>
+
+                  {/* Aparelho Comercializado */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                      Aparelho Comercializado *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={checklistDeviceModel}
+                        onChange={(e) => setChecklistDeviceModel(e.target.value)}
+                        className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer"
+                      >
+                        {USED_MODELS.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                        <ChevronDown className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* IMEI / Número de Série */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                      Número de Série / IMEI *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="IMEI de 15 dígitos ou Nº de Série"
+                      value={checklistSerialImei}
+                      onChange={(e) => setChecklistSerialImei(e.target.value)}
+                      className="w-full bg-zinc-955 border border-zinc-800 focus:border-zinc-700 rounded-xl py-3 px-4 text-white text-sm font-mono outline-none transition-all placeholder:text-zinc-650"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* BLOCO 2: Checklist Técnico */}
+              <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
+                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                  <ListTodo className="w-5 h-5 text-blue-400" />
+                  2. Checklist Técnico do Usado
+                </h2>
+                
+                {/* Seção A: Avaliação Estética */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2 border-b border-zinc-900 pb-2">
+                    <Palette className="w-4 h-4 text-purple-400" />
+                    A. Avaliação Estética (Físico / Visual)
+                  </h3>
+                  
+                  <div className="space-y-4 divide-y divide-zinc-900/60">
+                    
+                    {/* Tela */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Tela/Display</span>
+                        <span className="text-xs text-zinc-500">Possui riscos profundos, trincados ou lascas?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['bom', 'detalhe', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setEsteticaTela(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              esteticaTela === opt
+                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-500 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Vidro Traseiro */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Vidro Traseiro</span>
+                        <span className="text-xs text-zinc-500">O vidro traseiro está trincado, quebrado ou riscado?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['bom', 'detalhe', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setEsteticaTraseira(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              esteticaTraseira === opt
+                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-550 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Aro/Laterais */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Laterais/Aro</span>
+                        <span className="text-xs text-zinc-500">Apresenta marcas de queda, amassados ou descascados?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['bom', 'detalhe', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setEsteticaLaterais(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              esteticaLaterais === opt
+                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-550 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Lentes */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Lentes da Câmera</span>
+                        <span className="text-xs text-zinc-500">Estão riscadas, trincadas ou com poeira/sujeira interna?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['bom', 'detalhe', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setEsteticaLentes(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              esteticaLentes === opt
+                                ? opt === 'bom' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : opt === 'detalhe' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-550 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Seção B: Avaliação Funcional */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2 border-b border-zinc-900 pb-2">
+                    <Sliders className="w-4 h-4 text-emerald-400" />
+                    B. Avaliação Funcional (Hardware e Software)
+                  </h3>
+
+                  <div className="space-y-4 divide-y divide-zinc-900/60">
+                    
+                    {/* Bateria */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Saúde da Bateria (%)</span>
+                        <span className="text-xs text-zinc-500">Insira a porcentagem indicada nas configurações</span>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-xs font-bold text-zinc-400">🔋</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={funcionalBatteryHealth}
+                          onChange={(e) => setFuncionalBatteryHealth(e.target.value)}
+                          className="w-24 bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 px-3 text-xs outline-none font-bold text-center"
+                        />
+                        {parseFloat(funcionalBatteryHealth) < 80 && (
+                          <span className="bg-red-950/60 text-red-400 border border-red-900/30 text-[10px] font-bold px-2 py-0.5 rounded uppercase shrink-0 animate-pulse">
+                            Requer Troca
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Peça Desconhecida */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Mensagem de Peça Desconhecida</span>
+                        <span className="text-xs text-zinc-500">Aparece aviso de tela, bateria ou câmera trocada no Ajustes?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['não', 'sim'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFuncionalPecaDesconhecida(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              funcionalPecaDesconhecida === opt
+                                ? opt === 'sim' ? 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'sim' ? 'Sim' : 'Não'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Biometria */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Biometria (Face ID / Touch ID)</span>
+                        <span className="text-xs text-zinc-500">O desbloqueio biométrico funciona perfeitamente?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['ok', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFuncionalBiometria(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              funcionalBiometria === opt
+                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Câmeras */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Câmeras e Foco (Frente e Verso)</span>
+                        <span className="text-xs text-zinc-500">Foco e alternância de lentes (0.5x, 1x, 3x) funcionando 100%?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['ok', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFuncionalCameras(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              funcionalCameras === opt
+                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Áudio */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Áudio e Microfone</span>
+                        <span className="text-xs text-zinc-500">Ligação e alto-falantes estão limpos, nítidos e sem ruído?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['ok', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFuncionalAudio(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              funcionalAudio === opt
+                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Conectividade */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Conectividade Celular e Wi-Fi</span>
+                        <span className="text-xs text-zinc-500">Wi-Fi, Bluetooth e leitura do chip (rede celular) funcionando?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['ok', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFuncionalConectividade(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              funcionalConectividade === opt
+                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Botões */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Botões Físicos</span>
+                        <span className="text-xs text-zinc-555 font-medium">Silencioso, volume e power respondem com clique firme?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['ok', 'defeito'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setFuncionalBotoes(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              funcionalBotoes === opt
+                                ? opt === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'ok' ? 'Funciona' : 'Defeito'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Seção C: Segurança e Procedência */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2 border-b border-zinc-900 pb-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-400" />
+                    C. Segurança e Procedência
+                  </h3>
+
+                  <div className="space-y-4 divide-y divide-zinc-900/60">
+                    
+                    {/* iCloud */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Buscar iPhone (iCloud)</span>
+                        <span className="text-xs text-zinc-500">A conta do cliente foi removida e desativada?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['sim', 'não'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setSegurancaIcloud(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              segurancaIcloud === opt
+                                ? opt === 'sim' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'sim' ? 'Desativado' : 'Não Desativado'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Aparelho Vitrine/Demo */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block">Aparelho Vitrine / Demo</span>
+                        <span className="text-xs text-zinc-500">É um aparelho de mostruário (loja externa)?</span>
+                      </div>
+                      <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 shrink-0">
+                        {['não', 'sim'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setSegurancaDemo(opt)}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                              segurancaDemo === opt
+                                ? opt === 'sim' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold'
+                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold'
+                                : 'text-zinc-555 border border-transparent hover:text-zinc-300'
+                            }`}
+                          >
+                            {opt === 'sim' ? 'Sim' : 'Não'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+              {/* BLOCO 3: Área de Evidências (Anexo de Fotos) */}
+              <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
+                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                  <Archive className="w-5 h-5 text-blue-400" />
+                  3. Área de Evidências Fotográficas
+                </h2>
+                
+                <p className="text-xs text-zinc-500 -mt-2">
+                  Tire ou anexe fotos nos slots específicos abaixo. As fotos são otimizadas automaticamente no navegador para preservar espaço de armazenamento.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  
+                  {/* Slot 1: Tela Acesa */}
+                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                    {photoTela ? (
+                      <>
+                        <img src={photoTela} className="absolute inset-0 w-full h-full object-cover" alt="Tela Acesa" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoTela(null)}
+                            className="bg-red-600 hover:bg-red-500 text-white rounded-lg p-2 transition-colors cursor-pointer animate-fade-in"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full gap-2 p-2 select-none">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={async (e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const compressed = await compressChecklistImage(e.target.files[0])
+                              setPhotoTela(compressed)
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-2xl">📱</span>
+                        <span className="text-xs font-semibold text-zinc-300">Tela Acesa</span>
+                        <span className="text-[9px] text-zinc-500 leading-tight">Configurações &gt; Sobre (IMEI)</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Slot 2: Traseira */}
+                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                    {photoTraseira ? (
+                      <>
+                        <img src={photoTraseira} className="absolute inset-0 w-full h-full object-cover" alt="Traseira" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoTraseira(null)}
+                            className="bg-red-600 hover:bg-red-500 text-white rounded-lg p-2 transition-colors cursor-pointer animate-fade-in"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full gap-2 p-2 select-none">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={async (e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const compressed = await compressChecklistImage(e.target.files[0])
+                              setPhotoTraseira(compressed)
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-2xl">📸</span>
+                        <span className="text-xs font-semibold text-zinc-300">Traseira</span>
+                        <span className="text-[9px] text-zinc-500 leading-tight">Vidro traseiro e lentes</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Slot 3: Laterais */}
+                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                    {photoLaterais ? (
+                      <>
+                        <img src={photoLaterais} className="absolute inset-0 w-full h-full object-cover" alt="Laterais" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoLaterais(null)}
+                            className="bg-red-600 hover:bg-red-500 text-white rounded-lg p-2 transition-colors cursor-pointer animate-fade-in"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full gap-2 p-2 select-none">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={async (e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const compressed = await compressChecklistImage(e.target.files[0])
+                              setPhotoLaterais(compressed)
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-2xl">📐</span>
+                        <span className="text-xs font-semibold text-zinc-300">Laterais / Aro</span>
+                        <span className="text-[9px] text-zinc-500 leading-tight">Marcas de capinha ou aro</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Slot 4: Conector */}
+                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                    {photoConector ? (
+                      <>
+                        <img src={photoConector} className="absolute inset-0 w-full h-full object-cover" alt="Conector" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoConector(null)}
+                            className="bg-red-600 hover:bg-red-500 text-white rounded-lg p-2 transition-colors cursor-pointer animate-fade-in"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full gap-2 p-2 select-none">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={async (e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const compressed = await compressChecklistImage(e.target.files[0])
+                              setPhotoConector(compressed)
+                            }
+                          }}
+                          className="hidden"
+                        />
+                        <span className="text-2xl">🔌</span>
+                        <span className="text-xs font-semibold text-zinc-300">Conector / Fones</span>
+                        <span className="text-[9px] text-zinc-500 leading-tight">Estado de oxidação/sujeira</span>
+                      </label>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            {/* COLUNA DIREITA: Resumo da Grade, Valores de Avaliação e Ações (Col 4) */}
+            <div className="lg:col-span-4 space-y-6">
+              
+              <div className="glass-panel rounded-2xl p-6 space-y-6 sticky top-6">
+                <h2 className="text-base font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                  4. Resumo e Fechamento
+                </h2>
+
+                {/* Grade Classificada Badge */}
+                <div className="text-center p-5 rounded-2xl bg-zinc-950 border border-zinc-850/80 space-y-2">
+                  <span className="text-xs text-zinc-500 block font-semibold uppercase tracking-wider">Grade Obtida</span>
+                  <div className="flex justify-center items-center">
+                    <span className={`text-6xl font-black px-6 py-2 rounded-2xl border transition-colors duration-200 ${
+                      checklistGradeData.grade === 'A'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/35'
+                        : checklistGradeData.grade === 'B'
+                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/35'
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/35'
+                    }`}>
+                      {checklistGradeData.grade}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 block leading-tight">
+                    {checklistGradeData.grade === 'A' && 'Aparelho Impecável (Sem detalhes/defeitos, bateria saudável)'}
+                    {checklistGradeData.grade === 'B' && 'Aparelho com sinais leves de uso (detalhes estéticos, bateria 80-84%)'}
+                    {checklistGradeData.grade === 'C' && 'Aparelho com defeitos técnicos/estéticos marcantes ou bateria < 80%'}
+                  </span>
+                </div>
+
+                {/* Valores de Avaliação */}
+                <div className="space-y-4 bg-zinc-950/40 p-4 rounded-xl border border-zinc-900">
+                  
+                  {/* Preço de Vitrine do Modelo */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Preço Ref. Vitrine *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">R$</span>
+                      <input
+                        type="number"
+                        placeholder="Ex: 3000"
+                        value={referenceValue}
+                        onChange={(e) => setReferenceValue(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-8 pr-3 text-xs outline-none font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Valor de Crédito Sugerido */}
+                  <div className="flex justify-between items-center text-xs py-1 border-t border-zinc-900 pt-2">
+                    <span className="text-zinc-500">Crédito Sugerido (Grade {checklistGradeData.grade}):</span>
+                    <span className="font-bold text-white">{formatBRL(checklistGradeData.suggestedValue)}</span>
+                  </div>
+
+                  {/* Crédito Ajustado (Ajuste Manual) */}
+                  <div className="space-y-1.5 border-t border-zinc-900 pt-2">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Valor de Crédito Final</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">R$</span>
+                      <input
+                        type="number"
+                        placeholder={`Sugerido: ${formatBRL(checklistGradeData.suggestedValue)}`}
+                        value={customCreditValue}
+                        onChange={(e) => setCustomCreditValue(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-8 pr-3 text-xs outline-none font-bold"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Avisos Críticos baseados nos defeitos */}
+                {segurancaIcloud === 'não' && (
+                  <div className="bg-red-950/40 border border-red-500/20 text-red-200 text-[11px] p-3.5 rounded-xl flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <span><strong>Bloqueio de iCloud:</strong> O recurso Buscar iPhone deve ser desativado antes de aceitar o aparelho.</span>
+                  </div>
+                )}
+
+                {/* Termo de Confirmação */}
+                <label className="flex items-start gap-3 cursor-pointer select-none py-1 group">
+                  <input
+                    type="checkbox"
+                    checked={checklistConfirmed}
+                    onChange={(e) => setChecklistConfirmed(e.target.checked)}
+                    className="mt-0.5 rounded border-zinc-800 text-blue-500 focus:ring-blue-500/20 bg-zinc-950 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-zinc-500 group-hover:text-zinc-400 transition-colors leading-tight">
+                    Confirmo que testei todos os itens acima e as fotos condizem com o estado real do aparelho.
+                  </span>
+                </label>
+
+                {/* Botão Finalizar */}
+                <button
+                  type="button"
+                  disabled={isSavingChecklist}
+                  onClick={handleSaveChecklist}
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isSavingChecklist ? 'Registrando...' : 'Finalizar Avaliação e Gerar Crédito'}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* HISTÓRICO DE CHECKLISTS E INSPEÇÕES */}
+          <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                  <Database className="w-5 h-5 text-blue-400" />
+                  Histórico de Laudos e Inspeções
+                </h2>
+                <p className="text-xs text-zinc-500">Inspeções técnicas e laudos de qualidade arquivados</p>
+              </div>
+              
+              {/* Busca de Checklists */}
+              <div className="relative w-full sm:w-80">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <Search className="w-4 h-4" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Buscar por vendedor, cliente, modelo, grade..."
+                  value={checklistSearchQuery}
+                  onChange={(e) => setChecklistSearchQuery(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-lg py-2 pl-9 pr-4 text-xs text-white outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {filteredChecklists.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-zinc-800 rounded-xl space-y-2">
+                <p className="text-sm text-zinc-500">Nenhum laudo encontrado.</p>
+                <p className="text-xs text-zinc-650">Os laudos registrados aparecerão aqui.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[1100px]">
+                  <thead>
+                    <tr className="border-b border-zinc-800 text-zinc-500 text-xs font-semibold uppercase tracking-wider">
+                      <th className="py-3 px-4">Data / Cliente / Vendedor</th>
+                      <th className="py-3 px-4">Aparelho Inspeção</th>
+                      <th className="py-3 px-4">Saúde Bateria / Detalhes</th>
+                      <th className="py-3 px-4 text-center">Grade</th>
+                      <th className="py-3 px-4 text-right">Preço Vitrine</th>
+                      <th className="py-3 px-4 text-right">Crédito Final</th>
+                      <th className="py-3 px-4 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-900/60 text-sm">
+                    {filteredChecklists.map((record) => (
+                      <tr key={record.id} className="hover:bg-zinc-900/30 transition-colors duration-150 group">
+                        
+                        {/* Data / Cliente / Vendedor */}
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-white block">{record.client_name}</span>
+                          <span className="text-[10px] text-zinc-400 block mt-0.5">Vendedor: {record.seller_name}</span>
+                          <span className="text-[9px] text-zinc-505">
+                            {new Date(record.created_at).toLocaleDateString('pt-BR')} às {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </td>
+
+                        {/* Aparelho */}
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-zinc-300 block">{record.device_model}</span>
+                          <span className="text-[10px] text-zinc-500 font-mono block">IMEI: {record.serial_imei}</span>
+                        </td>
+
+                        {/* Detalhes Técnicos */}
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2 items-center text-[9px] flex-wrap">
+                            <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-bold border border-zinc-800">
+                              🔋 Bateria: {record.battery_health}%
+                            </span>
+                            {record.checklist_funcional?.peca_desconhecida === 'sim' && (
+                              <span className="px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 font-bold border border-red-900/20">
+                                ⚠️ PEÇA TROCADA
+                              </span>
+                            )}
+                            {record.checklist_seguranca?.icloud === 'não' && (
+                              <span className="px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 font-bold border border-red-900/20">
+                                🔒 iCloud Ativo
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Grade */}
+                        <td className="py-3 px-4 text-center">
+                          <span className={`px-2 py-0.5 rounded font-black text-xs border ${
+                            record.grade === 'A'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : record.grade === 'B'
+                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}>
+                            Grade {record.grade}
+                          </span>
+                        </td>
+
+                        {/* Preço Vitrine */}
+                        <td className="py-3 px-4 text-right text-zinc-400 font-semibold">
+                          {formatBRL(record.reference_value)}
+                        </td>
+
+                        {/* Crédito Final */}
+                        <td className="py-3 px-4 text-right text-emerald-400 font-bold">
+                          {formatBRL(record.evaluation_value)}
+                        </td>
+
+                        {/* Ações */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyChecklistSummary(record)}
+                              title="Copiar Laudo completo"
+                              className="text-zinc-400 hover:text-white transition-colors duration-150 p-1.5 rounded hover:bg-zinc-800 cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteChecklist(record.id)}
+                              title="Excluir Laudo"
+                              className="text-zinc-555 hover:text-red-400 transition-colors duration-155 p-1.5 rounded hover:bg-zinc-800 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          </div>
+
+        </div>
+      )}
 
     </div>
   )
