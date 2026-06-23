@@ -192,6 +192,120 @@ const isValidIMEI = (imei) => {
 };
 
 function App() {
+  // Dados do Cliente e IMEI
+  const [clientName, setClientName] = useState('')
+  const [imeiNew, setImeiNew] = useState('')
+  const [imeiUsed, setImeiUsed] = useState('')
+
+  // Inputs de Aparelhos (Novo)
+  const [newModel, setNewModel] = useState(NEW_MODELS[0])
+  const [newStorage, setNewStorage] = useState(STORAGE_OPTIONS[0])
+  const [newColor, setNewColor] = useState(APPLE_COLORS[0])
+  const [newCost, setNewCost] = useState('')
+  
+  // Lucros e Despesas
+  const [profitMargin, setProfitMargin] = useState('800') 
+  const [operationalCost, setOperationalCost] = useState('120') 
+
+  // Múltiplos Splits de Pagamento Adicional
+  const [paymentSplits, setPaymentSplits] = useState([
+    { id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }
+  ])
+
+  // Inputs de Aparelhos (Usado)
+  const [usedModel, setUsedModel] = useState(USED_MODELS[5]) 
+  const [usedStorage, setUsedStorage] = useState(STORAGE_OPTIONS[0])
+  const [usedColor, setUsedColor] = useState(APPLE_COLORS[0])
+  const [usedCategory, setUsedCategory] = useState('Comum')
+
+  // Checklist do Usado
+  const [batteryHealth, setBatteryHealth] = useState(85)
+  const [originalScreen, setOriginalScreen] = useState(true)
+  const [biometricsStatus, setBiometricsStatus] = useState('ok') 
+  const [cameraStatus, setCameraStatus] = useState('ok') 
+  const [bodyCondition, setBodyCondition] = useState('Excelente') 
+
+  // Estados Auxiliares
+  const [copySuccess, setCopySuccess] = useState(false)
+  const [dbStatus, setDbStatus] = useState({ connected: false, mode: 'checking', errorMsg: '' })
+  const [evaluations, setEvaluations] = useState([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
+
+  const triggerNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type })
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }))
+    }, 3000)
+  }
+
+  const vibrateFeedback = (type) => {
+    if ('vibrate' in navigator) {
+      if (type === 'defeito' || type === 'não') {
+        navigator.vibrate([30, 40, 30])
+      } else if (type === 'detalhe' || type === 'sim') {
+        navigator.vibrate(25)
+      } else {
+        navigator.vibrate(15)
+      }
+    }
+  }
+
+  // Controle de Migração de Dados Locais
+  const [localRecordsToSync, setLocalRecordsToSync] = useState([])
+  const [isSyncingLocal, setIsSyncingLocal] = useState(false)
+
+  // --- Estados do Checklist de Seminovos (Aba Especial) ---
+  const [activeTab, setActiveTab] = useState('landing') // landing | simulator | checklist
+  const [currentUser, setCurrentUser] = useState(null)
+  const [loginTarget, setLoginTarget] = useState(null)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [activeSection, setActiveSection] = useState('estetica') // estetica | funcional | seguranca
+  
+  // 1. Identificação
+  const [sellerName, setSellerName] = useState('')
+  const [checklistClientName, setChecklistClientName] = useState('')
+  const [checklistDeviceModel, setChecklistDeviceModel] = useState(USED_MODELS[5])
+  const [checklistSerialImei, setChecklistSerialImei] = useState('')
+
+  // 2. Checklist Técnico
+  // A. Estética
+  const [esteticaTela, setEsteticaTela] = useState('bom') // bom | detalhe | defeito
+  const [esteticaTraseira, setEsteticaTraseira] = useState('bom') // bom | detalhe | defeito
+  const [esteticaLaterais, setEsteticaLaterais] = useState('bom') // bom | detalhe | defeito
+  const [esteticaLentes, setEsteticaLentes] = useState('bom') // bom | detalhe | defeito
+
+  // B. Funcional
+  const [funcionalBatteryHealth, setFuncionalBatteryHealth] = useState(85)
+  const [funcionalPecaDesconhecida, setFuncionalPecaDesconhecida] = useState('não') // não | sim
+  const [funcionalBiometria, setFuncionalBiometria] = useState('ok') // ok | defeito
+  const [funcionalCameras, setFuncionalCameras] = useState('ok') // ok | defeito
+  const [funcionalAudio, setFuncionalAudio] = useState('ok') // ok | defeito
+  const [funcionalConectividade, setFuncionalConectividade] = useState('ok') // ok | defeito
+  const [funcionalBotoes, setFuncionalBotoes] = useState('ok') // ok | defeito
+
+  // C. Segurança
+  const [segurancaIcloud, setSegurancaIcloud] = useState('sim') // sim (desativado) | não
+  const [segurancaDemo, setSegurancaDemo] = useState('não') // não | sim
+
+  // 3. Área de Evidências (Fotos em Base64 ou URL)
+  const [photoTela, setPhotoTela] = useState(null)
+  const [photoTraseira, setPhotoTraseira] = useState(null)
+  const [photoLaterais, setPhotoLaterais] = useState(null)
+  const [photoConector, setPhotoConector] = useState(null)
+
+  // 4. Resumo e Fechamento
+  const [referenceValue, setReferenceValue] = useState('')
+  const [customCreditValue, setCustomCreditValue] = useState('')
+  const [checklistConfirmed, setChecklistConfirmed] = useState(false)
+
+  // Histórico de checklists
+  const [checklistsList, setChecklistsList] = useState([])
+  const [isSavingChecklist, setIsSavingChecklist] = useState(false)
+  const [checklistSearchQuery, setChecklistSearchQuery] = useState('')
+
   // --- Estados e Funções de Recursos Avançados (v12) ---
   const [blacklistStatus, setBlacklistStatus] = useState(null)
   const [blacklistStatusNew, setBlacklistStatusNew] = useState(null)
@@ -423,120 +537,6 @@ function App() {
       totalLaudos: checklistsList.length
     }
   }, [checklistsList])
-
-  // Dados do Cliente e IMEI
-  const [clientName, setClientName] = useState('')
-  const [imeiNew, setImeiNew] = useState('')
-  const [imeiUsed, setImeiUsed] = useState('')
-
-  // Inputs de Aparelhos (Novo)
-  const [newModel, setNewModel] = useState(NEW_MODELS[0])
-  const [newStorage, setNewStorage] = useState(STORAGE_OPTIONS[0])
-  const [newColor, setNewColor] = useState(APPLE_COLORS[0])
-  const [newCost, setNewCost] = useState('')
-  
-  // Lucros e Despesas
-  const [profitMargin, setProfitMargin] = useState('800') 
-  const [operationalCost, setOperationalCost] = useState('120') 
-
-  // Múltiplos Splits de Pagamento Adicional
-  const [paymentSplits, setPaymentSplits] = useState([
-    { id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }
-  ])
-
-  // Inputs de Aparelhos (Usado)
-  const [usedModel, setUsedModel] = useState(USED_MODELS[5]) 
-  const [usedStorage, setUsedStorage] = useState(STORAGE_OPTIONS[0])
-  const [usedColor, setUsedColor] = useState(APPLE_COLORS[0])
-  const [usedCategory, setUsedCategory] = useState('Comum')
-
-  // Checklist do Usado
-  const [batteryHealth, setBatteryHealth] = useState(85)
-  const [originalScreen, setOriginalScreen] = useState(true)
-  const [biometricsStatus, setBiometricsStatus] = useState('ok') 
-  const [cameraStatus, setCameraStatus] = useState('ok') 
-  const [bodyCondition, setBodyCondition] = useState('Excelente') 
-
-  // Estados Auxiliares
-  const [copySuccess, setCopySuccess] = useState(false)
-  const [dbStatus, setDbStatus] = useState({ connected: false, mode: 'checking', errorMsg: '' })
-  const [evaluations, setEvaluations] = useState([])
-  const [isSaving, setIsSaving] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
-
-  const triggerNotification = (message, type = 'success') => {
-    setNotification({ show: true, message, type })
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }))
-    }, 3000)
-  }
-
-  const vibrateFeedback = (type) => {
-    if ('vibrate' in navigator) {
-      if (type === 'defeito' || type === 'não') {
-        navigator.vibrate([30, 40, 30])
-      } else if (type === 'detalhe' || type === 'sim') {
-        navigator.vibrate(25)
-      } else {
-        navigator.vibrate(15)
-      }
-    }
-  }
-
-  // Controle de Migração de Dados Locais
-  const [localRecordsToSync, setLocalRecordsToSync] = useState([])
-  const [isSyncingLocal, setIsSyncingLocal] = useState(false)
-
-  // --- Estados do Checklist de Seminovos (Aba Especial) ---
-  const [activeTab, setActiveTab] = useState('landing') // landing | simulator | checklist
-  const [currentUser, setCurrentUser] = useState(null)
-  const [loginTarget, setLoginTarget] = useState(null)
-  const [passwordInput, setPasswordInput] = useState('')
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [activeSection, setActiveSection] = useState('estetica') // estetica | funcional | seguranca
-  
-  // 1. Identificação
-  const [sellerName, setSellerName] = useState('')
-  const [checklistClientName, setChecklistClientName] = useState('')
-  const [checklistDeviceModel, setChecklistDeviceModel] = useState(USED_MODELS[5])
-  const [checklistSerialImei, setChecklistSerialImei] = useState('')
-
-  // 2. Checklist Técnico
-  // A. Estética
-  const [esteticaTela, setEsteticaTela] = useState('bom') // bom | detalhe | defeito
-  const [esteticaTraseira, setEsteticaTraseira] = useState('bom') // bom | detalhe | defeito
-  const [esteticaLaterais, setEsteticaLaterais] = useState('bom') // bom | detalhe | defeito
-  const [esteticaLentes, setEsteticaLentes] = useState('bom') // bom | detalhe | defeito
-
-  // B. Funcional
-  const [funcionalBatteryHealth, setFuncionalBatteryHealth] = useState(85)
-  const [funcionalPecaDesconhecida, setFuncionalPecaDesconhecida] = useState('não') // não | sim
-  const [funcionalBiometria, setFuncionalBiometria] = useState('ok') // ok | defeito
-  const [funcionalCameras, setFuncionalCameras] = useState('ok') // ok | defeito
-  const [funcionalAudio, setFuncionalAudio] = useState('ok') // ok | defeito
-  const [funcionalConectividade, setFuncionalConectividade] = useState('ok') // ok | defeito
-  const [funcionalBotoes, setFuncionalBotoes] = useState('ok') // ok | defeito
-
-  // C. Segurança
-  const [segurancaIcloud, setSegurancaIcloud] = useState('sim') // sim (desativado) | não
-  const [segurancaDemo, setSegurancaDemo] = useState('não') // não | sim
-
-  // 3. Área de Evidências (Fotos em Base64 ou URL)
-  const [photoTela, setPhotoTela] = useState(null)
-  const [photoTraseira, setPhotoTraseira] = useState(null)
-  const [photoLaterais, setPhotoLaterais] = useState(null)
-  const [photoConector, setPhotoConector] = useState(null)
-
-  // 4. Resumo e Fechamento
-  const [referenceValue, setReferenceValue] = useState('')
-  const [customCreditValue, setCustomCreditValue] = useState('')
-  const [checklistConfirmed, setChecklistConfirmed] = useState(false)
-
-  // Histórico de checklists
-  const [checklistsList, setChecklistsList] = useState([])
-  const [isSavingChecklist, setIsSavingChecklist] = useState(false)
-  const [checklistSearchQuery, setChecklistSearchQuery] = useState('')
 
   // Restaurar rascunho do checklist ao montar
   useEffect(() => {
