@@ -8,31 +8,31 @@
 
 @layer base {
   body {
-    background-color: #09090b;
-    color: #f3f4f6;
+    background-color: #f8fafc;
+    color: #0f172a;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Scrollbar customizado premium no estilo macOS/Apple */
+/* Scrollbar customizado premium no estilo macOS/Apple adaptado para tema claro */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(15, 23, 42, 0.1);
   border-radius: 999px;
   transition: all 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 42, 0.25);
 }
 
 /* Animações premium */
@@ -45,10 +45,11 @@
   animation: float 4s ease-in-out infinite;
 }
 
-/* Glassmorphism base styling override */
+/* Glassmorphism light base styling override */
 .glass-panel {
-  background: rgba(20, 20, 25, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.02), 0 2px 8px -1px rgba(15, 23, 42, 0.01);
 }

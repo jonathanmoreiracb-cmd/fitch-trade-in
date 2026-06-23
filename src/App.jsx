@@ -1243,7 +1243,7 @@ ${splitsList}
       esteticaLentes === 'defeito'
     ) {
       return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/25 uppercase tracking-wider animate-pulse">
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-rose-700 border border-red-500/25 uppercase tracking-wider animate-pulse">
           Defeito
         </span>
       )
@@ -1255,13 +1255,13 @@ ${splitsList}
       esteticaLentes === 'detalhe'
     ) {
       return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-500/25 uppercase tracking-wider">
           Detalhe
         </span>
       )
     }
     return (
-      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-500/25 uppercase tracking-wider">
         Bom
       </span>
     )
@@ -1278,20 +1278,20 @@ ${splitsList}
       parseFloat(funcionalBatteryHealth) < 80
     ) {
       return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/25 uppercase tracking-wider animate-pulse">
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-rose-700 border border-red-500/25 uppercase tracking-wider animate-pulse">
           Problema
         </span>
       )
     }
     if (parseFloat(funcionalBatteryHealth) < 85) {
       return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-500/25 uppercase tracking-wider">
           Bateria
         </span>
       )
     }
     return (
-      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-500/25 uppercase tracking-wider">
         100% OK
       </span>
     )
@@ -1300,48 +1300,48 @@ ${splitsList}
   const getSegurancaStatusBadge = () => {
     if (segurancaIcloud === 'não') {
       return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/25 uppercase tracking-wider animate-pulse">
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/10 text-rose-700 border border-red-500/25 uppercase tracking-wider animate-pulse">
           iCloud Ativo
         </span>
       )
     }
     if (segurancaDemo === 'sim') {
       return (
-        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25 uppercase tracking-wider">
+        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-500/25 uppercase tracking-wider">
           Demo
         </span>
       )
     }
     return (
-      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 uppercase tracking-wider">
+      <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-500/25 uppercase tracking-wider">
         Liberado
       </span>
     )
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased pb-12 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased pb-12 relative overflow-hidden">
       
       {/* Luzes de Fundo */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
       
       {/* Toast Notification */}
       {notification.show && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform animate-bounce">
           <div className={`flex items-center gap-3 px-5 py-3.5 rounded-full shadow-2xl backdrop-blur-xl border ${
             notification.type === 'error' 
-              ? 'bg-red-950/80 border-red-500/30 text-red-200' 
+              ? 'bg-rose-50 border-rose-200 text-rose-800' 
               : notification.type === 'warning'
-              ? 'bg-amber-950/80 border-amber-500/30 text-amber-200'
-              : 'bg-zinc-900/90 border-zinc-800 text-zinc-200'
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-white border-slate-200 text-slate-800'
           }`}>
             {notification.type === 'error' ? (
-              <XCircle className="w-5 h-5 text-red-400" />
+              <XCircle className="w-5 h-5 text-red-600" />
             ) : notification.type === 'warning' ? (
-              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             )}
             <span className="text-sm font-medium tracking-tight">{notification.message}</span>
           </div>
@@ -1349,35 +1349,35 @@ ${splitsList}
       )}
 
       {/* Header Principal */}
-      <header className="max-w-7xl mx-auto px-6 pt-8 pb-4 flex flex-col md:flex-row md:items-center md:justify-between border-b border-zinc-900/80 gap-4">
+      <header className="max-w-7xl mx-auto px-6 pt-8 pb-4 flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200/80 gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-zinc-800 to-zinc-900 flex items-center justify-center border border-zinc-700/50 shadow-inner">
-            <Cpu className="w-5 h-5 text-zinc-100" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-100 to-slate-200 flex items-center justify-center border border-slate-300/50 shadow-inner">
+            <Cpu className="w-5 h-5 text-slate-700" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               Fitch Trade-In
-              <span className="text-[10px] uppercase font-mono tracking-widest bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 border border-zinc-700">PRO v10</span>
+              <span className="text-[10px] uppercase font-mono tracking-widest bg-slate-200 px-2 py-0.5 rounded text-slate-600 border border-slate-300/60">PRO v10</span>
             </h1>
-            <p className="text-xs text-zinc-500">Mapeamento Comercial de Vendas e IMEI</p>
+            <p className="text-xs text-slate-500">Mapeamento Comercial de Vendas e IMEI</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4 flex-wrap">
           {/* User Status Badge */}
           {currentUser && (
-            <div className="flex items-center gap-2.5 bg-zinc-900 border border-zinc-800 px-3.5 py-1.5 rounded-xl shadow-inner animate-fade-in">
-              <div className="w-6 h-6 rounded-full bg-blue-500/10 text-blue-400 font-black flex items-center justify-center text-[10px]">
+            <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-inner animate-fade-in">
+              <div className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 font-black flex items-center justify-center text-[10px]">
                 {currentUser.name[0]}
               </div>
               <div className="text-left">
-                <span className="text-[11px] font-bold text-white block leading-tight">{currentUser.name}</span>
-                <span className="text-[9px] text-zinc-500 block capitalize">{currentUser.role === 'admin' ? 'Administrador' : currentUser.role === 'manager' ? 'Gerente' : 'Vendedor'}</span>
+                <span className="text-[11px] font-bold text-slate-900 block leading-tight">{currentUser.name}</span>
+                <span className="text-[9px] text-slate-500 block capitalize">{currentUser.role === 'admin' ? 'Administrador' : currentUser.role === 'manager' ? 'Gerente' : 'Vendedor'}</span>
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="text-[10px] font-bold text-red-400 hover:text-red-300 ml-2 transition-colors cursor-pointer border border-red-500/10 hover:border-red-500/30 px-2 py-1 rounded bg-red-950/20"
+                className="text-[10px] font-bold text-rose-700 hover:text-red-300 ml-2 transition-colors cursor-pointer border border-red-500/10 hover:border-red-500/30 px-2 py-1 rounded bg-red-950/20"
               >
                 Sair
               </button>
@@ -1385,7 +1385,7 @@ ${splitsList}
           )}
 
           {/* Database Status Widget */}
-          <div className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800/80 px-4 py-2 rounded-full backdrop-blur-sm">
+          <div className="flex items-center gap-3 bg-slate-100/50 border border-slate-200/80 px-4 py-2 rounded-full backdrop-blur-sm">
             <div className="relative flex h-2 w-2">
               {dbStatus.connected ? (
                 <>
@@ -1393,7 +1393,7 @@ ${splitsList}
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </>
               ) : dbStatus.mode === 'checking' ? (
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500 animate-pulse"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-400 animate-pulse"></span>
               ) : (
                 <>
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -1401,14 +1401,14 @@ ${splitsList}
                 </>
               )}
             </div>
-            <span className="text-xs font-medium text-zinc-400">
+            <span className="text-xs font-medium text-slate-500">
               {dbStatus.mode === 'checking' ? 'Conectando...' : `Banco: ${dbStatus.mode}`}
             </span>
             {isSupabaseConfigured && (
               <button 
                 onClick={loadEvaluations}
                 title="Sincronizar banco"
-                className="text-zinc-500 hover:text-white transition-colors duration-150"
+                className="text-slate-500 hover:text-slate-800 transition-colors duration-150"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
@@ -1421,12 +1421,12 @@ ${splitsList}
       {dbStatus.errorMsg && (
         <div className="max-w-7xl mx-auto px-6 mt-4">
           <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-4 backdrop-blur-md">
-            <h4 className="text-sm font-semibold text-red-400">Erro de Conexão com o Supabase</h4>
-            <div className="text-xs text-zinc-400 mt-2 space-y-1">
+            <h4 className="text-sm font-semibold text-rose-700">Erro de Conexão com o Supabase</h4>
+            <div className="text-xs text-slate-500 mt-2 space-y-1">
               <p><strong>Detalhe:</strong> <span className="font-mono break-all">{dbStatus.errorMsg}</span></p>
               <p><strong>URL Usada:</strong> <span className="font-mono break-all">{import.meta.env.VITE_SUPABASE_URL || 'Não configurada'}</span></p>
             </div>
-            <p className="text-[11px] text-zinc-500 mt-3 border-t border-red-500/10 pt-2">
+            <p className="text-[11px] text-slate-500 mt-3 border-t border-red-500/10 pt-2">
               Verifique se a URL exibida acima está idêntica à do seu painel do Supabase. Lembre-se de fazer um <strong>Redeploy</strong> na Vercel após alterar as variáveis de ambiente!
             </p>
           </div>
@@ -1438,10 +1438,10 @@ ${splitsList}
         <div className="max-w-7xl mx-auto px-6 mt-4">
           <div className="bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md">
             <div className="flex items-center gap-3">
-              <Info className="w-5 h-5 text-blue-400 shrink-0 animate-bounce" />
+              <Info className="w-5 h-5 text-blue-600 shrink-0 animate-bounce" />
               <div>
-                <h4 className="text-sm font-semibold text-white">Sincronização Pendente de Histórico</h4>
-                <p className="text-xs text-zinc-400">
+                <h4 className="text-sm font-bold text-slate-900">Sincronização Pendente de Histórico</h4>
+                <p className="text-xs text-slate-500">
                   Encontramos {localRecordsToSync.length} avaliação(ões) salva(s) no seu navegador anterior. Deseja importá-las para a nuvem do Supabase?
                 </p>
               </div>
@@ -1463,10 +1463,10 @@ ${splitsList}
         <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center justify-center text-center space-y-12 animate-fade-in">
           
           <div className="space-y-4 max-w-lg">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-none bg-gradient-to-r from-blue-400 via-zinc-100 to-purple-400 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none bg-gradient-to-r from-blue-600 via-slate-800 to-purple-600 bg-clip-text text-transparent">
               Fitch Trade-In Manager
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-slate-600 font-medium">
               Selecione o módulo que deseja acessar para iniciar os trabalhos.
             </p>
           </div>
@@ -1477,20 +1477,20 @@ ${splitsList}
             <button
               type="button"
               onClick={() => requestAccess('simulator')}
-              className="group text-left bg-gradient-to-b from-zinc-900/60 to-zinc-950/80 border border-zinc-800/80 hover:border-blue-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-900/10 cursor-pointer flex flex-col justify-between min-h-[240px]"
+              className="group text-left bg-white border border-slate-200 hover:border-blue-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/5 cursor-pointer flex flex-col justify-between min-h-[240px]"
             >
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                   <Calculator className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
+                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                   Simulador de Trade-in
                 </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   Cálculo financeiro avançado de taxas, custos operacionais e margens de vitrine. Otimizado para **Notebooks / Desktops**.
                 </p>
               </div>
-              <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
+              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
                 Acesso Gerente / ADM &gt;
               </span>
             </button>
@@ -1499,20 +1499,20 @@ ${splitsList}
             <button
               type="button"
               onClick={() => requestAccess('checklist')}
-              className="group text-left bg-gradient-to-b from-zinc-900/60 to-zinc-950/80 border border-zinc-800/80 hover:border-emerald-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/10 cursor-pointer flex flex-col justify-between min-h-[240px]"
+              className="group text-left bg-white border border-slate-200 hover:border-emerald-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/5 cursor-pointer flex flex-col justify-between min-h-[240px]"
             >
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                   <ListTodo className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
+                <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
                   Checklist de Seminovos
                 </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   Inspeção técnica detalhada, anexo de fotos de evidência e classificação automática de grade. Otimizado para **Celulares**.
                 </p>
               </div>
-              <span className="text-[10px] text-zinc-500 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
+              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
                 Acesso Vendedores &gt;
               </span>
             </button>
@@ -1523,31 +1523,31 @@ ${splitsList}
 
       {/* Navegação por Abas (Visível apenas para Administradores e Gerentes Logados) */}
       {activeTab !== 'landing' && currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') && (
-        <div className="max-w-7xl mx-auto px-6 mt-6 flex gap-6 border-b border-zinc-900">
+        <div className="max-w-7xl mx-auto px-6 mt-6 flex gap-6 border-b border-slate-200">
           <button
             type="button"
             onClick={() => setActiveTab('simulator')}
             className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
-              activeTab === 'simulator' ? 'text-white' : 'text-zinc-550 hover:text-zinc-300'
+              activeTab === 'simulator' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             <Calculator className="w-4 h-4" />
             Simulador de Trade-in
             {activeTab === 'simulator' && (
-              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-t-full"></div>
             )}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('checklist')}
             className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
-              activeTab === 'checklist' ? 'text-white' : 'text-zinc-550 hover:text-zinc-355'
+              activeTab === 'checklist' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <ListTodo className="w-4 h-4" />
             Checklist de Seminovos
             {activeTab === 'checklist' && (
-              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-t-full"></div>
             )}
           </button>
         </div>
@@ -1563,8 +1563,8 @@ ${splitsList}
           
           {/* Form de Entrada de Dados */}
           <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
-            <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
-              <Calculator className="w-5 h-5 text-blue-400" />
+            <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-3">
+              <Calculator className="w-5 h-5 text-blue-600" />
               1. Dados da Venda e Dispositivos
             </h2>
 
@@ -1572,11 +1572,11 @@ ${splitsList}
               
               {/* Nome do Cliente */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Nome Completo do Cliente *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
                     <User className="w-4 h-4" />
                   </span>
                   <input
@@ -1584,30 +1584,30 @@ ${splitsList}
                     placeholder="Nome do cliente para rastreabilidade"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
 
               {/* iPhone Novo Vendido */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Modelo do Novo *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
                     <Smartphone className="w-4 h-4" />
                   </span>
                   <select
                     value={newModel}
                     onChange={(e) => setNewModel(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     {NEW_MODELS.map(model => (
                       <option key={model} value={model}>{model}</option>
                     ))}
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -1615,23 +1615,23 @@ ${splitsList}
 
               {/* Capacidade do Novo */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Capacidade (Novo) *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
                     <Sliders className="w-4 h-4" />
                   </span>
                   <select
                     value={newStorage}
                     onChange={(e) => setNewStorage(e.target.value)}
-                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     {STORAGE_OPTIONS.map(opt => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -1639,23 +1639,23 @@ ${splitsList}
 
               {/* Cor do Novo */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Cor do Novo *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
                     <Palette className="w-4 h-4" />
                   </span>
                   <select
                     value={newColor}
                     onChange={(e) => setNewColor(e.target.value)}
-                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     {APPLE_COLORS.map(color => (
                       <option key={color} value={color}>{color}</option>
                     ))}
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -1663,11 +1663,11 @@ ${splitsList}
 
               {/* Custo Real do Novo */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Custo Real do Novo (Tabela) *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-medium text-sm">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
                     R$
                   </span>
                   <input
@@ -1676,18 +1676,18 @@ ${splitsList}
                     placeholder="Custo do novo"
                     value={newCost}
                     onChange={(e) => setNewCost(e.target.value)}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
                   />
                 </div>
               </div>
 
               {/* Margem de Lucro Combinada */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Margem de Lucro Combinada
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-medium text-sm">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
                     R$
                   </span>
                   <input
@@ -1696,18 +1696,18 @@ ${splitsList}
                     placeholder="Padrão: 800.00"
                     value={profitMargin}
                     onChange={(e) => setProfitMargin(e.target.value)}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600 font-semibold"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
                   />
                 </div>
               </div>
 
               {/* Custos Operacionais / Despesas */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Custos Operacionais / Despesas
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-medium text-sm">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
                     R$
                   </span>
                   <input
@@ -1716,18 +1716,18 @@ ${splitsList}
                     placeholder="Padrão: 120.00"
                     value={operationalCost}
                     onChange={(e) => setOperationalCost(e.target.value)}
-                    className="w-full bg-zinc-955 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650 placeholder:text-zinc-600 font-medium"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
 
               {/* IMEI Novo */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   IMEI do Novo *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">
                     #
                   </span>
                   <input
@@ -1736,24 +1736,24 @@ ${splitsList}
                     placeholder="IMEI de 15 dígitos"
                     value={imeiNew}
                     onChange={(e) => setImeiNew(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-655 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm font-mono outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
                   />
                 </div>
               </div>
 
               {/* Categoria do Usado */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Categoria do Aparelho Usado
                 </label>
-                <div className="grid grid-cols-2 gap-2 bg-zinc-950/80 p-1.5 rounded-xl border border-zinc-850">
+                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setUsedCategory('Comum')}
                     className={`py-2 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
                       usedCategory === 'Comum'
-                        ? 'bg-zinc-800 text-white shadow-sm font-bold'
-                        : 'text-zinc-500 hover:text-zinc-350'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200 font-bold'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     Usado Comum
@@ -1763,8 +1763,8 @@ ${splitsList}
                     onClick={() => setUsedCategory('Saldo')}
                     className={`py-2 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
                       usedCategory === 'Saldo'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm font-bold'
-                        : 'text-zinc-500 hover:text-zinc-350 border border-transparent'
+                        ? 'bg-amber-500 text-white shadow-sm font-bold'
+                        : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     iPhone de Saldo
@@ -1774,23 +1774,23 @@ ${splitsList}
 
               {/* iPhone Usado de Entrada */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   iPhone Usado de Entrada *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
-                    <Smartphone className="w-4 h-4 text-zinc-400" />
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                    <Smartphone className="w-4 h-4 text-slate-500" />
                   </span>
                   <select
                     value={usedModel}
                     onChange={(e) => setUsedModel(e.target.value)}
-                    className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     {USED_MODELS.map(model => (
                       <option key={model} value={model}>{model}</option>
                     ))}
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -1798,23 +1798,23 @@ ${splitsList}
 
               {/* Capacidade do Usado */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Capacidade (Usado) *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
                     <Sliders className="w-4 h-4" />
                   </span>
                   <select
                     value={usedStorage}
                     onChange={(e) => setUsedStorage(e.target.value)}
-                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     {STORAGE_OPTIONS.map(opt => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -1822,23 +1822,23 @@ ${splitsList}
 
               {/* Cor do Usado */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Cor do Usado *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
                     <Palette className="w-4 h-4" />
                   </span>
                   <select
                     value={usedColor}
                     onChange={(e) => setUsedColor(e.target.value)}
-                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     {APPLE_COLORS.map(color => (
                       <option key={color} value={color}>{color}</option>
                     ))}
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -1846,11 +1846,11 @@ ${splitsList}
 
               {/* IMEI Usado */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   IMEI do Usado *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">
                     #
                   </span>
                   <input
@@ -1859,7 +1859,7 @@ ${splitsList}
                     placeholder="IMEI de 15 dígitos"
                     value={imeiUsed}
                     onChange={(e) => setImeiUsed(e.target.value.replace(/\D/g, ''))}
-                    className="w-full bg-zinc-950/80 border border-zinc-850 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm font-mono outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
                   />
                 </div>
               </div>
@@ -1867,15 +1867,15 @@ ${splitsList}
             </div>
 
             {/* SELEÇÃO DE PAGAMENTOS MÚLTIPLOS (SPLITS) */}
-            <div className="bg-zinc-950/60 border border-zinc-855 rounded-xl p-4 md:p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+            <div className="bg-white/60 border border-slate-200 rounded-xl p-4 md:p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Formas de Pagamento Combinadas *
                 </span>
                 <button
                   type="button"
                   onClick={addPaymentSplit}
-                  className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors duration-155 flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-300 transition-colors duration-155 flex items-center gap-1 cursor-pointer"
                 >
                   + Adicionar Pagamento
                 </button>
@@ -1888,13 +1888,13 @@ ${splitsList}
                     : []
                   
                   return (
-                    <div key={split.id} className="relative bg-zinc-900/40 border border-zinc-850 rounded-xl p-4 space-y-3.5 group/split">
+                    <div key={split.id} className="relative bg-slate-100/40 border border-slate-200 rounded-xl p-4 space-y-3.5 group/split">
                       {/* Botão Remover Split */}
                       {paymentSplits.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removePaymentSplit(index)}
-                          className="absolute top-2.5 right-2.5 text-zinc-500 hover:text-red-400 transition-colors duration-150 p-1 rounded hover:bg-zinc-800"
+                          className="absolute top-2.5 right-2.5 text-slate-500 hover:text-rose-700 transition-colors duration-150 p-1 rounded hover:bg-slate-100"
                           title="Remover esta forma de pagamento"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1905,34 +1905,34 @@ ${splitsList}
                         
                         {/* Valor do Split */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Valor (R$)</label>
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Valor (R$)</label>
                           <div className="relative">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">R$</span>
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">R$</span>
                             <input
                               type="number"
                               step="0.01"
                               placeholder="Valor"
                               value={split.value}
                               onChange={(e) => handleSplitChange(index, 'value', e.target.value)}
-                              className="w-full bg-zinc-950 border border-zinc-850 focus:border-zinc-700 rounded-lg py-1.5 pl-7 pr-2.5 text-white text-xs outline-none transition-all placeholder:text-zinc-655"
+                              className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-lg py-1.5 pl-7 pr-2.5 text-slate-900 text-xs outline-none transition-all placeholder:text-slate-400 font-semibold"
                             />
                           </div>
                         </div>
 
                         {/* Canal / Gateway */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Canal</label>
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Canal</label>
                           <div className="relative">
                             <select
                               value={split.gateway}
                               onChange={(e) => handleSplitChange(index, 'gateway', e.target.value)}
-                              className="w-full appearance-none bg-zinc-950 border border-zinc-855 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer"
+                              className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer font-semibold"
                             >
                               {Object.keys(GATEWAY_RATES).map(gw => (
                                 <option key={gw} value={gw}>{gw}</option>
                               ))}
                             </select>
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                               <ChevronDown className="w-3.5 h-3.5" />
                             </span>
                           </div>
@@ -1940,16 +1940,16 @@ ${splitsList}
 
                         {/* Tipo */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Tipo</label>
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Tipo</label>
                           <div className="grid grid-cols-2 gap-1">
                             <button
                               type="button"
                               disabled={!GATEWAY_RATES[split.gateway]?.hasDebit}
                               onClick={() => handleSplitChange(index, 'type', 'debit')}
-                              className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${
+                              className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
                                 split.type === 'debit'
-                                  ? 'bg-white text-black border-white'
-                                  : 'bg-zinc-955 border-zinc-850 text-zinc-400 hover:text-white disabled:opacity-35'
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                  : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-35'
                               }`}
                             >
                               Déb
@@ -1957,10 +1957,10 @@ ${splitsList}
                             <button
                               type="button"
                               onClick={() => handleSplitChange(index, 'type', 'credit')}
-                              className={`py-1.5 text-[10px] font-semibold rounded-lg border transition-all ${
+                              className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
                                 split.type === 'credit'
-                                  ? 'bg-white text-black border-white'
-                                  : 'bg-zinc-955 border-zinc-850 text-zinc-400 hover:text-white'
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                  : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
                               }`}
                             >
                               Créd
@@ -1970,9 +1970,9 @@ ${splitsList}
 
                         {/* Parcelas */}
                         <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Parcelas</label>
+                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Parcelas</label>
                           {split.type === 'debit' ? (
-                            <div className="w-full bg-zinc-955 border border-zinc-850 text-zinc-500 rounded-lg py-1.5 px-2.5 text-xs">
+                            <div className="w-full bg-white border border-slate-200 text-slate-500 rounded-lg py-1.5 px-2.5 text-xs">
                               À Vista
                             </div>
                           ) : (
@@ -1980,13 +1980,13 @@ ${splitsList}
                               <select
                                 value={split.installments}
                                 onChange={(e) => handleSplitChange(index, 'installments', parseInt(e.target.value))}
-                                className="w-full appearance-none bg-zinc-955 border border-zinc-850 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer"
+                                className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer font-semibold"
                               >
                                 {availableInsts.map(inst => (
                                   <option key={inst} value={inst}>{inst}x</option>
                                 ))}
                               </select>
-                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                                 <ChevronDown className="w-3.5 h-3.5" />
                               </span>
                             </div>
@@ -2001,12 +2001,12 @@ ${splitsList}
 
               {/* Resumo Consolidado das Taxas */}
               {calculationData.isValid && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3 gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 border-t border-slate-200 pt-3 gap-2">
                   <div className="flex gap-4">
-                    <span>Adicional Total: <strong className="text-white">{formatBRL(calculationData.totalValue)}</strong></span>
-                    <span>Líquido Recebido: <strong className="text-emerald-400">{formatBRL(calculationData.netReceived)}</strong></span>
+                    <span>Adicional Total: <strong className="text-slate-900">{formatBRL(calculationData.totalValue)}</strong></span>
+                    <span>Líquido Recebido: <strong className="text-emerald-700">{formatBRL(calculationData.netReceived)}</strong></span>
                   </div>
-                  <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded self-start sm:self-auto">
+                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded self-start sm:self-auto">
                     Taxa Média Ponderada: {calculationData.appliedRate}%
                   </span>
                 </div>
@@ -2020,9 +2020,9 @@ ${splitsList}
             {/* Erro de Gateway */}
             {!calculationData.isValid ? (
               <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4">
-                <AlertTriangle className="w-6 h-6 text-red-400 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-6 h-6 text-rose-700 shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-red-200 font-semibold text-sm">Opção Indisponível</h3>
+                  <h3 className="text-rose-800 font-semibold text-sm">Opção Indisponível</h3>
                   <p className="text-xs text-red-300/80 mt-1">{calculationData.errorMsg}</p>
                 </div>
               </div>
@@ -2030,57 +2030,57 @@ ${splitsList}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Preço de Vitrine */}
-                <div className="bg-gradient-to-br from-blue-950/40 to-zinc-900/60 border border-blue-500/20 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-blue-500/30 group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all duration-300"></div>
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/80 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-blue-300 group shadow-sm shadow-blue-500/5">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-100/30 transition-all duration-300"></div>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-semibold text-blue-400 uppercase tracking-widest">
+                    <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">
                       Preço de Vitrine
                     </span>
-                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
                   </div>
                   <div className="mt-4">
-                    <h3 className="text-xs text-zinc-400 font-medium">Preço de Venda do Usado</h3>
-                    <p className="text-3xl font-extrabold text-white mt-1 tracking-tight">
+                    <h3 className="text-xs text-slate-500 font-medium">Preço de Venda do Usado</h3>
+                    <p className="text-3xl font-extrabold text-blue-900 mt-1 tracking-tight">
                       {formatBRL(calculationData.vitrinePrice)}
                     </p>
                   </div>
-                  <div className="mt-3 text-[10px] text-zinc-500 flex items-center gap-1.5 border-t border-zinc-800/80 pt-2.5">
-                    <Info className="w-3 h-3 text-zinc-500 shrink-0" />
+                  <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-slate-200/85 pt-2.5">
+                    <Info className="w-3 h-3 text-slate-500 shrink-0" />
                     <span>Custo Novo + Margem ({formatBRL(parseFloat(profitMargin) || 0)}) + Despesa ({formatBRL(parseFloat(operationalCost) || 0)}) - Líquido Recebido</span>
                   </div>
                 </div>
 
                 {/* Avaliação Máxima do Usado */}
-                <div className="bg-gradient-to-br from-zinc-900/80 to-zinc-950 border border-zinc-850 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-zinc-700 group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-500/5 rounded-full blur-2xl group-hover:bg-zinc-500/10 transition-all duration-300"></div>
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200/80 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-emerald-300 group shadow-sm shadow-emerald-500/5">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-100/30 transition-all duration-300"></div>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
                       Proposta ao Cliente
                     </span>
-                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                    <DollarSign className="w-4 h-4 text-emerald-600" />
                   </div>
                   <div className="mt-4">
-                    <h3 className="text-xs text-zinc-400 font-medium">Avaliação Máxima do Usado</h3>
-                    <p className="text-3xl font-extrabold text-white mt-1 tracking-tight">
+                    <h3 className="text-xs text-slate-500 font-medium">Avaliação Máxima do Usado</h3>
+                    <p className="text-3xl font-extrabold text-emerald-900 mt-1 tracking-tight">
                       {formatBRL(calculationData.maxEvaluation)}
                     </p>
                   </div>
                   
                   {/* Badge Inteligente */}
                   {currentModelAverage ? (
-                    <div className="mt-3 text-[10px] text-blue-400 bg-blue-950/20 border border-blue-900/30 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
+                    <div className="mt-3 text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
                       <div className="flex items-center gap-1.5 font-semibold">
-                        <Archive className="w-3.5 h-3.5 text-blue-400" />
+                        <Archive className="w-3.5 h-3.5 text-blue-755 text-blue-700" />
                         <span>Estoque Histórico: {currentModelAverage.count} unidades</span>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between text-[9px] text-zinc-400 border-t border-zinc-900/60 pt-1 gap-1">
-                        <span>Médio Pago: <strong className="text-emerald-400">{formatBRL(currentModelAverage.avgCost)}</strong></span>
-                        <span>Média Vitrine: <strong className="text-white">{formatBRL(currentModelAverage.avgVitrine)}</strong></span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between text-[9px] text-slate-500 border-t border-slate-200 pt-1 gap-1">
+                        <span>Médio Pago: <strong className="text-emerald-700">{formatBRL(currentModelAverage.avgCost)}</strong></span>
+                        <span>Média Vitrine: <strong className="text-slate-950">{formatBRL(currentModelAverage.avgVitrine)}</strong></span>
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-3 text-[10px] text-zinc-500 flex items-center gap-1.5 border-t border-zinc-800/80 pt-2.5">
-                      <Info className="w-3 h-3 text-zinc-500 shrink-0" />
+                    <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
+                      <Info className="w-3 h-3 text-slate-400 shrink-0" />
                       <span>Primeira entrada deste modelo na base.</span>
                     </div>
                   )}
@@ -2094,9 +2094,9 @@ ${splitsList}
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="flex-1 bg-white hover:bg-zinc-200 text-black py-3.5 px-6 rounded-xl text-sm font-semibold tracking-tight transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg"
+                className="flex-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 py-3.5 px-6 rounded-xl text-sm font-semibold tracking-tight transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm"
               >
-                <Copy className="w-4 h-4" />
+                <Copy className="w-4 h-4 text-slate-600" />
                 {copySuccess ? 'Copiado!' : 'Copiar Resumo da Avaliação'}
               </button>
               
@@ -2104,9 +2104,9 @@ ${splitsList}
                 type="button"
                 disabled={isSaving}
                 onClick={handleSaveEvaluation}
-                className="flex-1 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 py-3.5 px-6 rounded-xl text-sm font-semibold tracking-tight transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3.5 px-6 rounded-xl text-sm font-semibold tracking-tight transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg shadow-blue-600/10"
               >
-                <Database className="w-4 h-4 text-zinc-400" />
+                <Database className="w-4 h-4" />
                 {isSaving ? 'Salvando...' : 'Confirmar & Salvar Venda'}
               </button>
             </div>
@@ -2120,8 +2120,8 @@ ${splitsList}
           
           {/* Painel do Checklist */}
           <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
-            <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
-              <ListTodo className="w-5 h-5 text-purple-400" />
+            <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-3">
+              <ListTodo className="w-5 h-5 text-purple-600" />
               2. Checklist Técnico do Usado
             </h2>
 
@@ -2130,22 +2130,22 @@ ${splitsList}
               {/* Saúde da Bateria */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                     Saúde da Bateria
                   </label>
                   {batteryHealth < 80 ? (
-                    <span className="text-[10px] uppercase font-bold tracking-wider bg-red-950 border border-red-500/30 text-red-400 px-2 py-0.5 rounded animate-pulse">
+                    <span className="text-[10px] uppercase font-bold tracking-wider bg-red-950 border border-red-500/30 text-rose-700 px-2 py-0.5 rounded animate-pulse">
                       Necessita Troca
                     </span>
                   ) : (
-                    <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-950 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded">
+                    <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-950 border border-emerald-500/30 text-emerald-700 px-2 py-0.5 rounded">
                       Bateria OK
                     </span>
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
-                    <Battery className={`w-4 h-4 ${batteryHealth < 80 ? 'text-red-400' : 'text-emerald-400'}`} />
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                    <Battery className={`w-4 h-4 ${batteryHealth < 80 ? 'text-rose-700' : 'text-emerald-700'}`} />
                   </span>
                   <input
                     type="number"
@@ -2154,7 +2154,7 @@ ${splitsList}
                     placeholder="Saúde em %"
                     value={batteryHealth}
                     onChange={(e) => setBatteryHealth(Math.min(100, Math.max(1, parseInt(e.target.value) || 0)))}
-                    className="w-full bg-zinc-950/80 border border-zinc-800 focus:border-zinc-650 rounded-xl py-3 pl-10 pr-4 text-white text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-zinc-650"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-blue-600/20 font-semibold"
                   />
                 </div>
                 <input
@@ -2163,13 +2163,13 @@ ${splitsList}
                   max="100"
                   value={batteryHealth}
                   onChange={(e) => setBatteryHealth(parseInt(e.target.value))}
-                  className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-white mt-2"
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2"
                 />
               </div>
 
               {/* Tela Original */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Tela Original?
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -2178,11 +2178,11 @@ ${splitsList}
                     onClick={() => setOriginalScreen(true)}
                     className={`py-3 text-xs font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       originalScreen
-                        ? 'bg-zinc-900 border-white text-white'
-                        : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    <CheckCircle2 className={`w-4 h-4 ${originalScreen ? 'text-white' : 'text-zinc-600'}`} />
+                    <CheckCircle2 className={`w-4 h-4 ${originalScreen ? 'text-white' : 'text-slate-400'}`} />
                     Sim
                   </button>
                   <button
@@ -2190,11 +2190,11 @@ ${splitsList}
                     onClick={() => setOriginalScreen(false)}
                     className={`py-3 text-xs font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       !originalScreen
-                        ? 'bg-red-950/60 border-red-500/30 text-red-200'
-                        : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
+                        ? 'bg-rose-600 border-rose-600 text-white shadow-sm shadow-rose-600/10'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    <XCircle className={`w-4 h-4 ${!originalScreen ? 'text-red-400' : 'text-zinc-600'}`} />
+                    <XCircle className={`w-4 h-4 ${!originalScreen ? 'text-white' : 'text-slate-400'}`} />
                     Não / Paralela
                   </button>
                 </div>
@@ -2202,7 +2202,7 @@ ${splitsList}
 
               {/* Face ID / Touch ID */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Face ID / Touch ID
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -2211,11 +2211,11 @@ ${splitsList}
                     onClick={() => setBiometricsStatus('ok')}
                     className={`py-3 text-xs font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       biometricsStatus === 'ok'
-                        ? 'bg-zinc-900 border-white text-white'
-                        : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    <CheckCircle2 className={`w-4 h-4 ${biometricsStatus === 'ok' ? 'text-white' : 'text-zinc-600'}`} />
+                    <CheckCircle2 className={`w-4 h-4 ${biometricsStatus === 'ok' ? 'text-white' : 'text-slate-400'}`} />
                     OK Funcionando
                   </button>
                   <button
@@ -2223,11 +2223,11 @@ ${splitsList}
                     onClick={() => setBiometricsStatus('defeito')}
                     className={`py-3 text-xs font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       biometricsStatus === 'defeito'
-                        ? 'bg-red-950/60 border-red-500/30 text-red-200'
-                        : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
+                        ? 'bg-rose-600 border-rose-600 text-white shadow-sm shadow-rose-600/10'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    <XCircle className={`w-4 h-4 ${biometricsStatus === 'defeito' ? 'text-red-400' : 'text-zinc-600'}`} />
+                    <XCircle className={`w-4 h-4 ${biometricsStatus === 'defeito' ? 'text-white' : 'text-slate-400'}`} />
                     Com Defeito
                   </button>
                 </div>
@@ -2235,7 +2235,7 @@ ${splitsList}
 
               {/* Câmeras e Foco */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Câmeras e Foco
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -2244,11 +2244,11 @@ ${splitsList}
                     onClick={() => setCameraStatus('ok')}
                     className={`py-3 text-[11px] font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       cameraStatus === 'ok'
-                        ? 'bg-zinc-900 border-white text-white'
-                        : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
+                        ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    <CheckCircle2 className={`w-4 h-4 ${cameraStatus === 'ok' ? 'text-white' : 'text-zinc-600'}`} />
+                    <CheckCircle2 className={`w-4 h-4 ${cameraStatus === 'ok' ? 'text-white' : 'text-slate-400'}`} />
                     OK Funcionando
                   </button>
                   <button
@@ -2256,11 +2256,11 @@ ${splitsList}
                     onClick={() => setCameraStatus('defeito')}
                     className={`py-3 text-[11px] font-semibold rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 ${
                       cameraStatus === 'defeito'
-                        ? 'bg-red-950/60 border-red-500/30 text-red-200'
-                        : 'bg-zinc-950/80 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:border-zinc-800'
+                        ? 'bg-rose-600 border-rose-600 text-white shadow-sm shadow-rose-600/10'
+                        : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    <XCircle className={`w-4 h-4 ${cameraStatus === 'defeito' ? 'text-red-400' : 'text-zinc-600'}`} />
+                    <XCircle className={`w-4 h-4 ${cameraStatus === 'defeito' ? 'text-white' : 'text-slate-400'}`} />
                     Com Defeito
                   </button>
                 </div>
@@ -2268,20 +2268,20 @@ ${splitsList}
 
               {/* Estado da Carcaça */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Estado da Carcaça
                 </label>
                 <div className="relative">
                   <select
                     value={bodyCondition}
                     onChange={(e) => setBodyCondition(e.target.value)}
-                    className="w-full appearance-none bg-zinc-955 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 px-4 text-sm outline-none transition-all duration-150 cursor-pointer"
+                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 px-4 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
                     <option value="Excelente">Excelente (Sem marcas)</option>
                     <option value="Marcas Leves">Marcas Leves (Pequenos riscos)</option>
                     <option value="Trincado/Quebrado">Trincado / Quebrado (Danos fisicos)</option>
                   </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <ChevronDown className="w-4 h-4" />
                   </span>
                 </div>
@@ -2292,27 +2292,27 @@ ${splitsList}
 
           {/* Painel de Inventário */}
           <div className="glass-panel rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2 border-b border-zinc-800 pb-2">
-              <Archive className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-2">
+              <Archive className="w-4 h-4 text-blue-600" />
               Estoque Recebido & Médias de Preço
             </h3>
             
             {inventoryStats.length === 0 ? (
-              <p className="text-xs text-zinc-500 py-4 text-center">Nenhum estoque no histórico para calcular médias.</p>
+              <p className="text-xs text-slate-500 py-4 text-center">Nenhum estoque no histórico para calcular médias.</p>
             ) : (
               <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2.5">
                 {inventoryStats.map((item) => (
-                  <div key={`${item.model}-${item.storage}`} className="flex justify-between items-center bg-zinc-950/50 border border-zinc-900 rounded-lg p-3 hover:border-zinc-800 transition-colors">
+                  <div key={`${item.model}-${item.storage}`} className="flex justify-between items-center bg-white/50 border border-slate-200 rounded-lg p-3 hover:border-slate-200 transition-colors">
                     <div>
-                      <span className="text-xs font-bold text-white block">{item.model}</span>
-                      <span className="text-[10px] text-zinc-400 font-mono block">{item.storage} • {item.count} unidade(s)</span>
-                      <span className="text-[9px] text-zinc-550 block mt-0.5">
+                      <span className="text-xs font-bold text-slate-900 block">{item.model}</span>
+                      <span className="text-[10px] text-slate-500 font-mono block">{item.storage} • {item.count} unidade(s)</span>
+                      <span className="text-[9px] text-slate-500 block mt-0.5">
                         Médio Pago (Custo): <strong className="text-emerald-500">{formatBRL(item.avgCost)}</strong>
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs font-black text-blue-400 block">{formatBRL(item.avgVitrine)}</span>
-                      <span className="text-[9px] text-zinc-500 block">Médio Vitrine (Venda)</span>
+                      <span className="text-xs font-black text-blue-600 block">{formatBRL(item.avgVitrine)}</span>
+                      <span className="text-[9px] text-slate-500 block">Médio Vitrine (Venda)</span>
                     </div>
                   </div>
                 ))}
@@ -2328,18 +2328,18 @@ ${splitsList}
       <section className="max-w-7xl mx-auto px-6 mt-12">
         <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
             <div>
-              <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                <Database className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                <Database className="w-5 h-5 text-emerald-700" />
                 Histórico de Vendas & Trade-ins
               </h2>
-              <p className="text-xs text-zinc-500">Controle completo com múltiplos pagamentos combinados</p>
+              <p className="text-xs text-slate-500">Controle completo com múltiplos pagamentos combinados</p>
             </div>
             
             {/* Busca */}
             <div className="relative w-full sm:w-80">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                 <Search className="w-4 h-4" />
               </span>
               <input
@@ -2347,21 +2347,21 @@ ${splitsList}
                 placeholder="Buscar por cliente, IMEI, cor ou modelo..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-lg py-2 pl-9 pr-4 text-xs text-white outline-none transition-all"
+                className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium placeholder:text-slate-400"
               />
             </div>
           </div>
 
           {filteredEvaluations.length === 0 ? (
-            <div className="text-center py-10 border border-dashed border-zinc-800 rounded-xl space-y-2">
-              <p className="text-sm text-zinc-500">Nenhum registro encontrado.</p>
-              <p className="text-xs text-zinc-650">Tente buscar por um termo diferente.</p>
+            <div className="text-center py-10 border border-dashed border-slate-300 rounded-xl space-y-2">
+              <p className="text-sm text-slate-500">Nenhum registro encontrado.</p>
+              <p className="text-xs text-slate-400">Tente buscar por um termo diferente.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[1100px]">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-500 text-xs font-semibold uppercase tracking-wider">
+                  <tr className="border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <th className="py-3 px-4">Data e Cliente</th>
                     <th className="py-3 px-4">Novo Vendido (Detalhes)</th>
                     <th className="py-3 px-4">Usado Recebido (Detalhes)</th>
@@ -2371,30 +2371,30 @@ ${splitsList}
                     <th className="py-3 px-4 text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-900/60 text-sm">
+                <tbody className="divide-y divide-slate-100 text-sm">
                   {filteredEvaluations.map((record) => (
-                    <tr key={record.id} className="hover:bg-zinc-900/30 transition-colors duration-150 group">
+                    <tr key={record.id} className="hover:bg-slate-55 transition-colors duration-155 group">
                       
                       {/* Cliente e Data */}
                       <td className="py-3 px-4">
-                        <span className="font-semibold text-white block">{record.client_name || record.clientName || 'Cliente Geral'}</span>
-                        <span className="text-[10px] text-zinc-500">
+                        <span className="font-semibold text-slate-900 block">{record.client_name || record.clientName || 'Cliente Geral'}</span>
+                        <span className="text-[10px] text-slate-500">
                           {new Date(record.created_at).toLocaleDateString('pt-BR')} às {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
 
                       {/* Novo Vendido */}
                       <td className="py-3 px-4">
-                        <span className="font-medium text-zinc-300 block font-semibold">
+                        <span className="font-medium text-slate-700 block font-semibold">
                           {record.new_model || record.newModel} ({record.new_storage || record.newStorage || '128GB'})
                         </span>
-                        <div className="text-[10px] text-zinc-400 space-y-0.5">
+                        <div className="text-[10px] text-slate-500 space-y-0.5">
                           <span>Cor: {record.new_color || record.newColor || 'N/D'}</span>
-                          <span className="block font-mono text-zinc-500">IMEI: {record.imei_new || record.imeiNew || 'N/D'}</span>
+                          <span className="block font-mono text-slate-500">IMEI: {record.imei_new || record.imeiNew || 'N/D'}</span>
                         </div>
-                        <div className="text-[10px] text-zinc-500 block mt-1">
+                        <div className="text-[10px] text-slate-500 block mt-1">
                           <span>Custo: {formatBRL(record.new_cost || record.newCost)}</span>
-                          <div className="text-[9px] text-zinc-550 space-y-0.5 mt-0.5">
+                          <div className="text-[9px] text-slate-500 space-y-0.5 mt-0.5">
                             <span>Margem Lucro: {formatBRL(record.profit_margin !== undefined ? record.profit_margin : (record.profitMargin !== undefined ? record.profitMargin : 800))}</span>
                             <span className="block">Despesa Op: {formatBRL(record.operational_cost !== undefined ? record.operational_cost : (record.operationalCost !== undefined ? record.operationalCost : 120))}</span>
                           </div>
@@ -2404,65 +2404,65 @@ ${splitsList}
                       {/* Usado */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-semibold text-zinc-300">
+                          <span className="font-semibold text-slate-700">
                             {record.used_model || record.usedModel} ({record.used_storage || record.usedStorage || '128GB'})
                           </span>
                           {(record.used_category || record.usedCategory) === 'Saldo' && (
-                            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-extrabold px-1.5 py-0.5 rounded leading-none">
+                            <span className="bg-amber-50 text-amber-800 border border-amber-500/20 text-[9px] font-extrabold px-1.5 py-0.5 rounded leading-none">
                               SALDO
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-zinc-400 block">
+                        <span className="text-[10px] text-slate-500 block">
                           Cor: {record.used_color || record.usedColor || 'N/D'}
                         </span>
-                        <span className="text-[10px] text-zinc-500 font-mono block">
+                        <span className="text-[10px] text-slate-500 font-mono block">
                           IMEI: {record.imei_used || record.imeiUsed || 'N/D'}
                         </span>
                         <div className="flex gap-2 items-center mt-1 text-[9px]">
                           <span className={`px-1 rounded-sm ${
                             (record.battery_health || record.batteryHealth) < 80 
-                              ? 'bg-red-950/50 text-red-400 border border-red-900/20' 
-                              : 'bg-zinc-900 text-zinc-400'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-250' 
+                              : 'bg-slate-100 text-slate-500'
                           }`}>
                             🔋 {record.battery_health || record.batteryHealth}%
                           </span>
                           <span className={`px-1 rounded-sm ${
                             (record.original_screen !== undefined ? record.original_screen : record.originalScreen)
-                              ? 'bg-zinc-900 text-zinc-400'
-                              : 'bg-red-950/50 text-red-400 border border-red-900/20'
+                              ? 'bg-slate-100 text-slate-500'
+                              : 'bg-rose-50 text-rose-700 border border-rose-250'
                           }`}>
                             🖥️ {(record.original_screen !== undefined ? record.original_screen : record.originalScreen) ? 'Orig' : 'Alt'}
                           </span>
-                          <span className="text-zinc-550 font-medium">Carcaça: {record.body_condition || 'Excelente'}</span>
+                          <span className="text-slate-500 font-medium">Carcaça: {record.body_condition || 'Excelente'}</span>
                         </div>
                       </td>
 
                       {/* Pagamento Fracionado */}
                       <td className="py-3 px-4 max-w-[220px]">
-                        <span className="text-zinc-300 font-bold block">{formatBRL(record.additional_value || record.additionalValue)}</span>
+                        <span className="text-slate-700 font-bold block">{formatBRL(record.additional_value || record.additionalValue)}</span>
                         {record.payment_splits && Array.isArray(record.payment_splits) ? (
                           <div className="mt-1 space-y-0.5">
                             {record.payment_splits.map((s, idx) => (
-                              <span key={idx} className="text-[9px] text-zinc-500 block leading-tight truncate">
+                              <span key={idx} className="text-[9px] text-slate-500 block leading-tight truncate">
                                 • {s.gateway} ({s.type === 'debit' ? 'Déb' : `${s.installments}x`}): {formatBRL(parseFloat(s.value) || 0)}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-[10px] text-zinc-500 block truncate">
+                          <span className="text-[10px] text-slate-500 block truncate">
                             {record.gateway} ({record.installments === 1 && (record.gateway === 'Dinheiro / Pix' || record.applied_rate === 0) ? 'Débito' : `${record.installments}x`})
                           </span>
                         )}
                       </td>
 
                       {/* Vitrine */}
-                      <td className="py-3 px-4 text-right font-bold text-blue-400">
+                      <td className="py-3 px-4 text-right font-bold text-blue-600">
                         {formatBRL(record.vitrine_price || record.vitrinePrice)}
                       </td>
 
                       {/* Avaliação Usado */}
-                      <td className="py-3 px-4 text-right font-bold text-emerald-400">
+                      <td className="py-3 px-4 text-right font-bold text-emerald-700">
                         {formatBRL(record.max_evaluation || record.maxEvaluation)}
                       </td>
 
@@ -2472,14 +2472,14 @@ ${splitsList}
                           <button
                             onClick={() => handleLoadRecord(record)}
                             title="Recarregar venda no painel"
-                            className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition-colors"
                           >
                             <RefreshCw className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteEvaluation(record.id)}
                             title="Excluir venda"
-                            className="p-1.5 hover:bg-zinc-800 rounded text-zinc-400 hover:text-red-400 transition-colors"
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-rose-700 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -2497,47 +2497,47 @@ ${splitsList}
 
       {/* DISCREET PANEL: Auditoria Interna do Gerente (Rodapé) */}
       <footer className="max-w-7xl mx-auto px-6 mt-12">
-        <div className="bg-zinc-950/90 border border-zinc-900 rounded-2xl p-6 md:p-8 space-y-4">
-          <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-            <ShieldCheck className="w-5 h-5 text-zinc-400" />
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
+        <div className="bg-white/90 border border-slate-200 rounded-2xl p-6 md:p-8 space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+            <ShieldCheck className="w-5 h-5 text-slate-500" />
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
               Painel de Auditoria Interna (Exclusivo Gerente)
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-zinc-400">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-slate-500">
             <div>
               <span className="text-[10px] uppercase font-bold tracking-widest block">Retenção de Taxa</span>
-              <p className="text-lg font-bold text-white mt-1">
+              <p className="text-lg font-bold text-slate-900 mt-1">
                 {calculationData.isValid ? formatBRL(calculationData.machineFee) : 'R$ 0,00'}
               </p>
-              <span className="text-[10px] text-zinc-650">Comissão retida pela maquininha</span>
+              <span className="text-[10px] text-slate-400">Comissão retida pela maquininha</span>
             </div>
 
             <div>
               <span className="text-[10px] uppercase font-bold tracking-widest block">Custos / Despesas Op</span>
-              <p className="text-lg font-bold text-red-400 mt-1">
+              <p className="text-lg font-bold text-rose-700 mt-1">
                 {calculationData.isValid ? formatBRL(calculationData.giftCost) : 'R$ 0,00'}
               </p>
-              <span className="text-[10px] text-zinc-650">Brindes, reparos e custos adicionais</span>
+              <span className="text-[10px] text-slate-400">Brindes, reparos e custos adicionais</span>
             </div>
 
             <div>
               <span className="text-[10px] uppercase font-bold tracking-widest block">Líquido Recebido</span>
-              <p className="text-lg font-bold text-white mt-1">
+              <p className="text-lg font-bold text-slate-900 mt-1">
                 {calculationData.isValid ? formatBRL(calculationData.netReceived) : 'R$ 0,00'}
               </p>
-              <span className="text-[10px] text-zinc-650">Valor líquido na conta da loja</span>
+              <span className="text-[10px] text-slate-400">Valor líquido na conta da loja</span>
             </div>
 
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-3 flex flex-col justify-center">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 block">
+            <div className="bg-slate-100/60 border border-slate-200 rounded-xl p-3 flex flex-col justify-center">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-700 block">
                 Lucro Combinado Garantido
               </span>
-              <p className="text-xl font-black text-white mt-0.5">
+              <p className="text-xl font-black text-slate-900 mt-0.5">
                 {calculationData.isValid ? formatBRL(calculationData.totalProfit) : 'R$ 800,00'}
               </p>
-              <span className="text-[9px] text-zinc-500">Lucro líquido livre de despesas</span>
+              <span className="text-[9px] text-slate-500">Lucro líquido livre de despesas</span>
             </div>
           </div>
         </div>
@@ -2555,28 +2555,28 @@ ${splitsList}
               
               {/* BLOCO 1: Cabeçalho de Identificação */}
               <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
-                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
-                  <User className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-3">
+                  <User className="w-5 h-5 text-blue-600" />
                   1. Identificação do Aparelho e Vendedor
                 </h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Nome do Vendedor */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                       Nome do Vendedor
                     </label>
                     <input
                       type="text"
                       disabled
                       value={currentUser ? currentUser.name : ''}
-                      className="w-full bg-zinc-900 border border-zinc-800 text-zinc-450 rounded-xl py-3 px-4 text-sm outline-none font-semibold cursor-not-allowed select-none"
+                      className="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-xl py-3 px-4 text-sm outline-none font-semibold cursor-not-allowed select-none"
                     />
                   </div>
 
                   {/* Nome do Cliente */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                       Nome do Cliente *
                     </label>
                     <input
@@ -2584,26 +2584,26 @@ ${splitsList}
                       placeholder="Nome completo do cliente"
                       value={checklistClientName}
                       onChange={(e) => setChecklistClientName(e.target.value)}
-                      className="w-full bg-zinc-955 border border-zinc-800 focus:border-zinc-700 rounded-xl py-3 px-4 text-white text-sm outline-none transition-all placeholder:text-zinc-650"
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 px-4 text-slate-900 text-sm outline-none transition-all placeholder:text-slate-400 font-medium"
                     />
                   </div>
 
                   {/* Aparelho Comercializado */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                       Aparelho Comercializado *
                     </label>
                     <div className="relative">
                       <select
                         value={checklistDeviceModel}
                         onChange={(e) => setChecklistDeviceModel(e.target.value)}
-                        className="w-full appearance-none bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer"
+                        className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                       >
                         {USED_MODELS.map(model => (
                           <option key={model} value={model}>{model}</option>
                         ))}
                       </select>
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                         <ChevronDown className="w-4 h-4" />
                       </span>
                     </div>
@@ -2611,7 +2611,7 @@ ${splitsList}
 
                   {/* IMEI / Número de Série */}
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                       Número de Série / IMEI *
                     </label>
                     <input
@@ -2619,7 +2619,7 @@ ${splitsList}
                       placeholder="IMEI de 15 dígitos ou Nº de Série"
                       value={checklistSerialImei}
                       onChange={(e) => setChecklistSerialImei(e.target.value)}
-                      className="w-full bg-zinc-955 border border-zinc-800 focus:border-zinc-700 rounded-xl py-3 px-4 text-white text-sm font-mono outline-none transition-all placeholder:text-zinc-650"
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 px-4 text-slate-900 text-sm font-mono outline-none transition-all placeholder:text-slate-400 font-semibold"
                     />
                   </div>
                 </div>
@@ -2627,9 +2627,9 @@ ${splitsList}
 
               {/* BLOCO 2: Checklist Técnico */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                  <ListTodo className="w-5 h-5 text-blue-400" />
-                  <h2 className="text-md sm:text-lg font-bold tracking-tight text-white">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+                  <ListTodo className="w-5 h-5 text-blue-600" />
+                  <h2 className="text-md sm:text-lg font-bold tracking-tight text-slate-900">
                     2. Checklist Técnico do Usado
                   </h2>
                 </div>
@@ -2639,34 +2639,34 @@ ${splitsList}
                   <button
                     type="button"
                     onClick={() => setActiveSection(activeSection === 'estetica' ? '' : 'estetica')}
-                    className="w-full text-left p-5 flex items-center justify-between hover:bg-zinc-900/20 transition-colors cursor-pointer"
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-655 flex items-center justify-center shrink-0">
                         <Palette className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">A. Avaliação Estética</h3>
-                        <p className="text-xs text-zinc-500 mt-0.5">Tela, Traseira, Laterais e Lentes</p>
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">A. Avaliação Estética</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Tela, Traseira, Laterais e Lentes</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       {getEsteticaStatusBadge()}
-                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${activeSection === 'estetica' ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${activeSection === 'estetica' ? 'rotate-180' : ''}`} />
                     </div>
                   </button>
                   
                   {activeSection === 'estetica' && (
-                    <div className="p-6 border-t border-zinc-900 bg-zinc-950/20 space-y-5 animate-fade-in">
-                      <div className="space-y-4 divide-y divide-zinc-900/60">
+                    <div className="p-6 border-t border-slate-250 bg-white space-y-5 animate-fade-in">
+                      <div className="space-y-4 divide-y divide-slate-100">
                         
                         {/* Tela */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Tela / Display</span>
-                            <span className="text-xs text-zinc-500">Possui riscos profundos, trincados ou lascas?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Tela / Display</span>
+                            <span className="text-xs text-slate-500">Possui riscos profundos, trincados ou lascas?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['bom', 'detalhe', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2674,10 +2674,10 @@ ${splitsList}
                                 onClick={() => setEsteticaTela(opt)}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaTela === opt
-                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
-                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 hover:text-zinc-250 hover:bg-zinc-900/50'
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-slate-900 shadow-sm shadow-amber-500/15'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/10'
+                                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
@@ -2689,10 +2689,10 @@ ${splitsList}
                         {/* Vidro Traseiro */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Vidro Traseiro</span>
-                            <span className="text-xs text-zinc-500">O vidro traseiro está trincado, quebrado ou riscado?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Vidro Traseiro</span>
+                            <span className="text-xs text-slate-500">O vidro traseiro está trincado, quebrado ou riscado?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['bom', 'detalhe', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2700,10 +2700,10 @@ ${splitsList}
                                 onClick={() => setEsteticaTraseira(opt)}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaTraseira === opt
-                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-650/30'
-                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
-                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-slate-900 shadow-sm shadow-amber-500/15'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/10'
+                                    : 'text-slate-500 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
@@ -2715,10 +2715,10 @@ ${splitsList}
                         {/* Aro/Laterais */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Laterais / Aro</span>
-                            <span className="text-xs text-zinc-500">Apresenta marcas de queda, amassados ou descascados?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Laterais / Aro</span>
+                            <span className="text-xs text-slate-500">Apresenta marcas de queda, amassados ou descascados?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['bom', 'detalhe', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2726,10 +2726,10 @@ ${splitsList}
                                 onClick={() => setEsteticaLaterais(opt)}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaLaterais === opt
-                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
-                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-slate-900 shadow-sm shadow-amber-500/15'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/10'
+                                    : 'text-slate-555 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
@@ -2741,10 +2741,10 @@ ${splitsList}
                         {/* Lentes */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Lentes da Câmera</span>
-                            <span className="text-xs text-zinc-500">Estão riscadas, trincadas ou com poeira/sujeira interna?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Lentes da Câmera</span>
+                            <span className="text-xs text-slate-500">Estão riscadas, trincadas ou com poeira/sujeira interna?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['bom', 'detalhe', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2752,10 +2752,10 @@ ${splitsList}
                                 onClick={() => setEsteticaLentes(opt)}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaLentes === opt
-                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                                      : opt === 'detalhe' ? 'bg-amber-500 text-zinc-950 shadow-sm shadow-amber-500/35'
-                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
+                                      : opt === 'detalhe' ? 'bg-amber-500 text-slate-900 shadow-sm shadow-amber-500/15'
+                                      : 'bg-rose-600 text-white shadow-sm shadow-rose-600/10'
+                                    : 'text-slate-555 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'bom' ? 'Bom' : opt === 'detalhe' ? 'Detalhe' : 'Defeito'}
@@ -2767,7 +2767,7 @@ ${splitsList}
                       </div>
 
                       {/* Botão de Avanço */}
-                      <div className="flex justify-end pt-4 border-t border-zinc-900/60">
+                      <div className="flex justify-end pt-4 border-t border-slate-200">
                         <button
                           type="button"
                           onClick={() => setActiveSection('funcional')}
@@ -2786,45 +2786,45 @@ ${splitsList}
                   <button
                     type="button"
                     onClick={() => setActiveSection(activeSection === 'funcional' ? '' : 'funcional')}
-                    className="w-full text-left p-5 flex items-center justify-between hover:bg-zinc-900/20 transition-colors cursor-pointer"
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-655 flex items-center justify-center shrink-0">
                         <Sliders className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">B. Avaliação Funcional</h3>
-                        <p className="text-xs text-zinc-500 mt-0.5">Bateria, Componentes, Áudio e Câmeras</p>
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">B. Avaliação Funcional</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Bateria, Componentes, Áudio e Câmeras</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       {getFuncionalStatusBadge()}
-                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${activeSection === 'funcional' ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${activeSection === 'funcional' ? 'rotate-180' : ''}`} />
                     </div>
                   </button>
                   
                   {activeSection === 'funcional' && (
-                    <div className="p-6 border-t border-zinc-900 bg-zinc-950/20 space-y-5 animate-fade-in">
-                      <div className="space-y-4 divide-y divide-zinc-900/60">
+                    <div className="p-6 border-t border-slate-250 bg-white space-y-5 animate-fade-in">
+                      <div className="space-y-4 divide-y divide-slate-100">
                         
                         {/* Bateria */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Saúde da Bateria (%)</span>
-                            <span className="text-xs text-zinc-500">Insira a porcentagem indicada nas configurações</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Saúde da Bateria (%)</span>
+                            <span className="text-xs text-slate-500">Insira a porcentagem indicada nas configurações</span>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xs font-bold text-zinc-400">🔋</span>
+                            <span className="text-xs font-bold text-slate-500">🔋</span>
                             <input
                               type="number"
                               min="0"
                               max="100"
                               value={funcionalBatteryHealth}
                               onChange={(e) => setFuncionalBatteryHealth(e.target.value)}
-                              className="w-24 bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 px-3 text-xs outline-none font-bold text-center"
+                              className="w-24 bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 px-3 text-xs outline-none font-bold text-center focus:ring-1 focus:ring-blue-600/20"
                             />
                             {parseFloat(funcionalBatteryHealth) < 80 && (
-                              <span className="bg-red-950/60 text-red-400 border border-red-900/30 text-[10px] font-bold px-2 py-1 rounded uppercase shrink-0 animate-pulse">
+                              <span className="bg-rose-50 text-rose-700 border border-rose-200/85 text-[10px] font-bold px-2 py-1 rounded uppercase shrink-0 animate-pulse">
                                 Requer Troca
                               </span>
                             )}
@@ -2834,10 +2834,10 @@ ${splitsList}
                         {/* Peça Desconhecida */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Mensagem de Peça Desconhecida</span>
-                            <span className="text-xs text-zinc-500">Aparece aviso de tela, bateria ou câmera trocada no Ajustes?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Mensagem de Peça Desconhecida</span>
+                            <span className="text-xs text-slate-500">Aparece aviso de tela, bateria ou câmera trocada no Ajustes?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['não', 'sim'].map(opt => (
                               <button
                                 key={opt}
@@ -2848,7 +2848,7 @@ ${splitsList}
                                     ? opt === 'sim'
                                       ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
                                       : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'sim' ? 'Sim' : 'Não'}
@@ -2860,10 +2860,10 @@ ${splitsList}
                         {/* Biometria */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Biometria (Face ID / Touch ID)</span>
-                            <span className="text-xs text-zinc-555">O desbloqueio biométrico funciona perfeitamente?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Biometria (Face ID / Touch ID)</span>
+                            <span className="text-xs text-slate-500">O desbloqueio biométrico funciona perfeitamente?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['ok', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2874,7 +2874,7 @@ ${splitsList}
                                     ? opt === 'ok'
                                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                       : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'ok' ? 'Funciona' : 'Defeito'}
@@ -2886,10 +2886,10 @@ ${splitsList}
                         {/* Câmeras */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Câmeras e Foco (Frente/Verso)</span>
-                            <span className="text-xs text-zinc-500">Foco e alternância de lentes (0.5x, 1x, 3x) funcionando 100%?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Câmeras e Foco (Frente/Verso)</span>
+                            <span className="text-xs text-slate-500">Foco e alternância de lentes (0.5x, 1x, 3x) funcionando 100%?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['ok', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2900,7 +2900,7 @@ ${splitsList}
                                     ? opt === 'ok'
                                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                       : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'ok' ? 'Funciona' : 'Defeito'}
@@ -2912,10 +2912,10 @@ ${splitsList}
                         {/* Áudio */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Áudio e Microfone</span>
-                            <span className="text-xs text-zinc-500">Ligação e alto-falantes estão limpos, nítidos e sem ruído?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Áudio e Microfone</span>
+                            <span className="text-xs text-slate-500">Ligação e alto-falantes estão limpos, nítidos e sem ruído?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['ok', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2926,7 +2926,7 @@ ${splitsList}
                                     ? opt === 'ok'
                                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                       : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'ok' ? 'Funciona' : 'Defeito'}
@@ -2938,10 +2938,10 @@ ${splitsList}
                         {/* Conectividade */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Conectividade Celular e Wi-Fi</span>
-                            <span className="text-xs text-zinc-500">Wi-Fi, Bluetooth e leitura do chip (rede celular) funcionando?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Conectividade Celular e Wi-Fi</span>
+                            <span className="text-xs text-slate-500">Wi-Fi, Bluetooth e leitura do chip (rede celular) funcionando?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['ok', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2952,7 +2952,7 @@ ${splitsList}
                                     ? opt === 'ok'
                                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                       : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'ok' ? 'Funciona' : 'Defeito'}
@@ -2964,10 +2964,10 @@ ${splitsList}
                         {/* Botões */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Botões Físicos</span>
-                            <span className="text-xs text-zinc-500">Silencioso, volume e power respondem com clique firme?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Botões Físicos</span>
+                            <span className="text-xs text-slate-500">Silencioso, volume e power respondem com clique firme?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['ok', 'defeito'].map(opt => (
                               <button
                                 key={opt}
@@ -2978,7 +2978,7 @@ ${splitsList}
                                     ? opt === 'ok'
                                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                       : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'ok' ? 'Funciona' : 'Defeito'}
@@ -2990,11 +2990,11 @@ ${splitsList}
                       </div>
 
                       {/* Botões de Navegação */}
-                      <div className="flex justify-between pt-4 border-t border-zinc-900/60 gap-3">
+                      <div className="flex justify-between pt-4 border-t border-slate-200 gap-3">
                         <button
                           type="button"
                           onClick={() => setActiveSection('estetica')}
-                          className="bg-zinc-900 hover:bg-zinc-850 text-zinc-400 text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer border border-zinc-800"
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer border border-slate-200"
                         >
                           Voltar para Estética
                         </button>
@@ -3016,34 +3016,34 @@ ${splitsList}
                   <button
                     type="button"
                     onClick={() => setActiveSection(activeSection === 'seguranca' ? '' : 'seguranca')}
-                    className="w-full text-left p-5 flex items-center justify-between hover:bg-zinc-900/20 transition-colors cursor-pointer"
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                         <ShieldCheck className="w-4.5 h-4.5" />
                       </div>
                       <div>
-                        <h3 className="text-sm sm:text-base font-bold text-white leading-tight">C. Segurança e Procedência</h3>
-                        <p className="text-xs text-zinc-500 mt-0.5">iCloud, Mostruário e Autenticidade</p>
+                        <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">C. Segurança e Procedência</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">iCloud, Mostruário e Autenticidade</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       {getSegurancaStatusBadge()}
-                      <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-300 ${activeSection === 'seguranca' ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${activeSection === 'seguranca' ? 'rotate-180' : ''}`} />
                     </div>
                   </button>
                   
                   {activeSection === 'seguranca' && (
-                    <div className="p-6 border-t border-zinc-900 bg-zinc-950/20 space-y-5 animate-fade-in">
-                      <div className="space-y-4 divide-y divide-zinc-900/60">
+                    <div className="p-6 border-t border-slate-250 bg-white space-y-5 animate-fade-in">
+                      <div className="space-y-4 divide-y divide-slate-100">
                         
                         {/* iCloud */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Buscar iPhone (iCloud)</span>
-                            <span className="text-xs text-zinc-500">A conta do cliente foi removida e desativada?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Buscar iPhone (iCloud)</span>
+                            <span className="text-xs text-slate-500">A conta do cliente foi removida e desativada?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['sim', 'não'].map(opt => (
                               <button
                                 key={opt}
@@ -3054,7 +3054,7 @@ ${splitsList}
                                     ? opt === 'sim'
                                       ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
                                       : 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'sim' ? 'Desativado' : 'Não Desativado'}
@@ -3066,10 +3066,10 @@ ${splitsList}
                         {/* Aparelho Vitrine/Demo */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2 pt-4 gap-3">
                           <div>
-                            <span className="text-sm font-semibold text-zinc-200 block">Aparelho Vitrine / Demo</span>
-                            <span className="text-xs text-zinc-555">É um aparelho de mostruário (loja externa)?</span>
+                            <span className="text-sm font-semibold text-slate-800 block">Aparelho Vitrine / Demo</span>
+                            <span className="text-xs text-slate-500">É um aparelho de mostruário (loja externa)?</span>
                           </div>
-                          <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-zinc-800 shrink-0 gap-1">
+                          <div className="flex bg-slate-55 p-1 rounded-xl border border-slate-200 shrink-0 gap-1">
                             {['não', 'sim'].map(opt => (
                               <button
                                 key={opt}
@@ -3080,7 +3080,7 @@ ${splitsList}
                                     ? opt === 'sim'
                                       ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
                                       : 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                                    : 'text-zinc-400 border border-transparent hover:text-zinc-200 hover:bg-zinc-900/50'
+                                    : 'text-slate-550 border border-transparent hover:text-slate-800 hover:bg-slate-100'
                                 }`}
                               >
                                 {opt === 'sim' ? 'Sim' : 'Não'}
@@ -3092,11 +3092,11 @@ ${splitsList}
                       </div>
 
                       {/* Botões de Navegação */}
-                      <div className="flex justify-start pt-4 border-t border-zinc-900/60">
+                      <div className="flex justify-start pt-4 border-t border-slate-200">
                         <button
                           type="button"
                           onClick={() => setActiveSection('funcional')}
-                          className="bg-zinc-900 hover:bg-zinc-850 text-zinc-400 text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer border border-zinc-800"
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 px-4 rounded-xl transition-all cursor-pointer border border-slate-200"
                         >
                           Voltar para Parte Funcional
                         </button>
@@ -3108,23 +3108,23 @@ ${splitsList}
 
               {/* BLOCO 3: Área de Evidências (Anexo de Fotos) */}
               <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
-                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
-                  <Archive className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-3">
+                  <Archive className="w-5 h-5 text-blue-600" />
                   3. Área de Evidências Fotográficas
                 </h2>
                 
-                <p className="text-xs text-zinc-500 -mt-2">
+                <p className="text-xs text-slate-500 -mt-2">
                   Tire ou anexe fotos nos slots específicos abaixo. As fotos são otimizadas automaticamente no navegador para preservar espaço de armazenamento.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   
                   {/* Slot 1: Tela Acesa */}
-                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                  <div className="relative group/photo border border border-dashed border-slate-300 rounded-xl overflow-hidden bg-slate-50 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
                     {photoTela ? (
                       <>
                         <img src={photoTela} className="absolute inset-0 w-full h-full object-cover" alt="Tela Acesa" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => setPhotoTela(null)}
@@ -3149,18 +3149,18 @@ ${splitsList}
                           className="hidden"
                         />
                         <span className="text-2xl">📱</span>
-                        <span className="text-xs font-semibold text-zinc-300">Tela Acesa</span>
-                        <span className="text-[9px] text-zinc-500 leading-tight">Configurações &gt; Sobre (IMEI)</span>
+                        <span className="text-xs font-semibold text-slate-700">Tela Acesa</span>
+                        <span className="text-[9px] text-slate-500 leading-tight">Configurações &gt; Sobre (IMEI)</span>
                       </label>
                     )}
                   </div>
 
                   {/* Slot 2: Traseira */}
-                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                  <div className="relative group/photo border border border-dashed border-slate-300 rounded-xl overflow-hidden bg-slate-50 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
                     {photoTraseira ? (
                       <>
                         <img src={photoTraseira} className="absolute inset-0 w-full h-full object-cover" alt="Traseira" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => setPhotoTraseira(null)}
@@ -3185,18 +3185,18 @@ ${splitsList}
                           className="hidden"
                         />
                         <span className="text-2xl">📸</span>
-                        <span className="text-xs font-semibold text-zinc-300">Traseira</span>
-                        <span className="text-[9px] text-zinc-500 leading-tight">Vidro traseiro e lentes</span>
+                        <span className="text-xs font-semibold text-slate-700">Traseira</span>
+                        <span className="text-[9px] text-slate-500 leading-tight">Vidro traseiro e lentes</span>
                       </label>
                     )}
                   </div>
 
                   {/* Slot 3: Laterais */}
-                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                  <div className="relative group/photo border border border-dashed border-slate-300 rounded-xl overflow-hidden bg-slate-50 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
                     {photoLaterais ? (
                       <>
                         <img src={photoLaterais} className="absolute inset-0 w-full h-full object-cover" alt="Laterais" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => setPhotoLaterais(null)}
@@ -3221,18 +3221,18 @@ ${splitsList}
                           className="hidden"
                         />
                         <span className="text-2xl">📐</span>
-                        <span className="text-xs font-semibold text-zinc-300">Laterais / Aro</span>
-                        <span className="text-[9px] text-zinc-500 leading-tight">Marcas de capinha ou aro</span>
+                        <span className="text-xs font-semibold text-slate-700">Laterais / Aro</span>
+                        <span className="text-[9px] text-slate-500 leading-tight">Marcas de capinha ou aro</span>
                       </label>
                     )}
                   </div>
 
                   {/* Slot 4: Conector */}
-                  <div className="relative group/photo border border-dashed border-zinc-850 rounded-xl overflow-hidden bg-zinc-950/60 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
+                  <div className="relative group/photo border border border-dashed border-slate-300 rounded-xl overflow-hidden bg-slate-50 min-h-[160px] flex flex-col items-center justify-center p-3 text-center">
                     {photoConector ? (
                       <>
                         <img src={photoConector} className="absolute inset-0 w-full h-full object-cover" alt="Conector" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-150 flex items-center justify-center gap-2">
                           <button
                             type="button"
                             onClick={() => setPhotoConector(null)}
@@ -3257,8 +3257,8 @@ ${splitsList}
                           className="hidden"
                         />
                         <span className="text-2xl">🔌</span>
-                        <span className="text-xs font-semibold text-zinc-300">Conector / Fones</span>
-                        <span className="text-[9px] text-zinc-500 leading-tight">Estado de oxidação/sujeira</span>
+                        <span className="text-xs font-semibold text-slate-700">Conector / Fones</span>
+                        <span className="text-[9px] text-slate-500 leading-tight">Estado de oxidação/sujeira</span>
                       </label>
                     )}
                   </div>
@@ -3272,26 +3272,26 @@ ${splitsList}
             <div className="lg:col-span-4 space-y-6">
               
               <div className="glass-panel rounded-2xl p-6 space-y-6 sticky top-6">
-                <h2 className="text-base font-bold tracking-tight text-white flex items-center gap-2 border-b border-zinc-800 pb-3">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                <h2 className="text-base font-bold tracking-tight text-slate-900 flex items-center gap-2 border-b border-slate-200 pb-3">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
                   4. Resumo e Fechamento
                 </h2>
 
                 {/* Grade Classificada Badge */}
-                <div className="text-center p-5 rounded-2xl bg-zinc-950 border border-zinc-850/80 space-y-2">
-                  <span className="text-xs text-zinc-500 block font-semibold uppercase tracking-wider">Grade Obtida</span>
+                <div className="text-center p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <span className="text-xs text-slate-500 block font-semibold uppercase tracking-wider">Grade Obtida</span>
                   <div className="flex justify-center items-center">
                     <span className={`text-6xl font-black px-6 py-2 rounded-2xl border transition-colors duration-200 ${
                       checklistGradeData.grade === 'A'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/35'
+                        ? 'bg-emerald-55 bg-emerald-50 text-emerald-700 border-emerald-200'
                         : checklistGradeData.grade === 'B'
-                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/35'
-                        : 'bg-amber-500/10 text-amber-400 border-amber-500/35'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-amber-50 text-amber-800 border-amber-200'
                     }`}>
                       {checklistGradeData.grade}
                     </span>
                   </div>
-                  <span className="text-[11px] text-zinc-500 block leading-tight">
+                  <span className="text-[11px] text-slate-500 block leading-tight">
                     {checklistGradeData.grade === 'A' && 'Aparelho Impecável (Sem detalhes/defeitos, bateria saudável)'}
                     {checklistGradeData.grade === 'B' && 'Aparelho com sinais leves de uso (detalhes estéticos, bateria 80-84%)'}
                     {checklistGradeData.grade === 'C' && 'Aparelho com defeitos técnicos/estéticos marcantes ou bateria < 80%'}
@@ -3299,40 +3299,40 @@ ${splitsList}
                 </div>
 
                 {/* Valores de Avaliação */}
-                <div className="space-y-4 bg-zinc-950/40 p-4 rounded-xl border border-zinc-900">
+                <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                   
                   {/* Preço de Vitrine do Modelo */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Preço Ref. Vitrine *</label>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Preço Ref. Vitrine *</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">R$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">R$</span>
                       <input
                         type="number"
                         placeholder="Ex: 3000"
                         value={referenceValue}
                         onChange={(e) => setReferenceValue(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-8 pr-3 text-xs outline-none font-bold"
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-8 pr-3 text-xs outline-none font-bold focus:ring-1 focus:ring-blue-600/20"
                       />
                     </div>
                   </div>
 
                   {/* Valor de Crédito Sugerido */}
-                  <div className="flex justify-between items-center text-xs py-1 border-t border-zinc-900 pt-2">
-                    <span className="text-zinc-500">Crédito Sugerido (Grade {checklistGradeData.grade}):</span>
-                    <span className="font-bold text-white">{formatBRL(checklistGradeData.suggestedValue)}</span>
+                  <div className="flex justify-between items-center text-xs py-1 border-t border-slate-200 pt-2">
+                    <span className="text-slate-500">Crédito Sugerido (Grade {checklistGradeData.grade}):</span>
+                    <span className="font-bold text-slate-900">{formatBRL(checklistGradeData.suggestedValue)}</span>
                   </div>
 
                   {/* Crédito Ajustado (Ajuste Manual) */}
-                  <div className="space-y-1.5 border-t border-zinc-900 pt-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Valor de Crédito Final</label>
+                  <div className="space-y-1.5 border-t border-slate-200 pt-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Valor de Crédito Final</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">R$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">R$</span>
                       <input
                         type="number"
                         placeholder={`Sugerido: ${formatBRL(checklistGradeData.suggestedValue)}`}
                         value={customCreditValue}
                         onChange={(e) => setCustomCreditValue(e.target.value)}
-                        className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 text-white rounded-lg py-1.5 pl-8 pr-3 text-xs outline-none font-bold"
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-8 pr-3 text-xs outline-none font-bold focus:ring-1 focus:ring-blue-600/20"
                       />
                     </div>
                   </div>
@@ -3341,8 +3341,8 @@ ${splitsList}
 
                 {/* Avisos Críticos baseados nos defeitos */}
                 {segurancaIcloud === 'não' && (
-                  <div className="bg-red-950/40 border border-red-500/20 text-red-200 text-[11px] p-3.5 rounded-xl flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div className="bg-rose-50 border border-rose-200/80 text-rose-800 text-[11px] p-3.5 rounded-xl flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                     <span><strong>Bloqueio de iCloud:</strong> O recurso Buscar iPhone deve ser desativado antes de aceitar o aparelho.</span>
                   </div>
                 )}
@@ -3353,9 +3353,9 @@ ${splitsList}
                     type="checkbox"
                     checked={checklistConfirmed}
                     onChange={(e) => setChecklistConfirmed(e.target.checked)}
-                    className="mt-0.5 rounded border-zinc-800 text-blue-500 focus:ring-blue-500/20 bg-zinc-950 w-4 h-4 cursor-pointer"
+                    className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-600/20 bg-white w-4 h-4 cursor-pointer"
                   />
-                  <span className="text-[11px] text-zinc-500 group-hover:text-zinc-400 transition-colors leading-tight">
+                  <span className="text-[11px] text-slate-500 group-hover:text-slate-500 transition-colors leading-tight">
                     Confirmo que testei todos os itens acima e as fotos condizem com o estado real do aparelho.
                   </span>
                 </label>
@@ -3380,18 +3380,18 @@ ${splitsList}
           {/* HISTÓRICO DE CHECKLISTS E INSPEÇÕES */}
           <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
               <div>
-                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                  <Database className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <Database className="w-5 h-5 text-blue-600" />
                   Histórico de Laudos e Inspeções
                 </h2>
-                <p className="text-xs text-zinc-500">Inspeções técnicas e laudos de qualidade arquivados</p>
+                <p className="text-xs text-slate-500">Inspeções técnicas e laudos de qualidade arquivados</p>
               </div>
               
               {/* Busca de Checklists */}
               <div className="relative w-full sm:w-80">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                   <Search className="w-4 h-4" />
                 </span>
                 <input
@@ -3399,21 +3399,21 @@ ${splitsList}
                   placeholder="Buscar por vendedor, cliente, modelo, grade..."
                   value={checklistSearchQuery}
                   onChange={(e) => setChecklistSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-lg py-2 pl-9 pr-4 text-xs text-white outline-none transition-all"
+                  className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium placeholder:text-slate-400"
                 />
               </div>
             </div>
 
             {filteredChecklists.length === 0 ? (
-              <div className="text-center py-10 border border-dashed border-zinc-800 rounded-xl space-y-2">
-                <p className="text-sm text-zinc-500">Nenhum laudo encontrado.</p>
-                <p className="text-xs text-zinc-650">Os laudos registrados aparecerão aqui.</p>
+              <div className="text-center py-10 border border-dashed border-slate-300 rounded-xl space-y-2">
+                <p className="text-sm text-slate-500">Nenhum laudo encontrado.</p>
+                <p className="text-xs text-slate-400">Os laudos registrados aparecerão aqui.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[1100px]">
                   <thead>
-                    <tr className="border-b border-zinc-800 text-zinc-500 text-xs font-semibold uppercase tracking-wider">
+                    <tr className="border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                       <th className="py-3 px-4">Data / Cliente / Vendedor</th>
                       <th className="py-3 px-4">Aparelho Inspeção</th>
                       <th className="py-3 px-4">Saúde Bateria / Detalhes</th>
@@ -3423,38 +3423,38 @@ ${splitsList}
                       <th className="py-3 px-4 text-center">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/60 text-sm">
+                  <tbody className="divide-y divide-slate-100 text-sm">
                     {filteredChecklists.map((record) => (
-                      <tr key={record.id} className="hover:bg-zinc-900/30 transition-colors duration-150 group">
+                      <tr key={record.id} className="hover:bg-slate-55 transition-colors duration-155 group">
                         
                         {/* Data / Cliente / Vendedor */}
                         <td className="py-3 px-4">
-                          <span className="font-semibold text-white block">{record.client_name}</span>
-                          <span className="text-[10px] text-zinc-400 block mt-0.5">Vendedor: {record.seller_name}</span>
-                          <span className="text-[9px] text-zinc-505">
+                          <span className="font-semibold text-slate-900 block">{record.client_name}</span>
+                          <span className="text-[10px] text-slate-500 block mt-0.5">Vendedor: {record.seller_name}</span>
+                          <span className="text-[9px] text-slate-400">
                             {new Date(record.created_at).toLocaleDateString('pt-BR')} às {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </td>
 
                         {/* Aparelho */}
                         <td className="py-3 px-4">
-                          <span className="font-semibold text-zinc-300 block">{record.device_model}</span>
-                          <span className="text-[10px] text-zinc-500 font-mono block">IMEI: {record.serial_imei}</span>
+                          <span className="font-semibold text-slate-800 block">{record.device_model}</span>
+                          <span className="text-[10px] text-slate-500 font-mono block">IMEI: {record.serial_imei}</span>
                         </td>
 
                         {/* Detalhes Técnicos */}
                         <td className="py-3 px-4">
                           <div className="flex gap-2 items-center text-[9px] flex-wrap">
-                            <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 font-bold border border-zinc-800">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold border border-slate-200/80">
                               🔋 Bateria: {record.battery_health}%
                             </span>
                             {record.checklist_funcional?.peca_desconhecida === 'sim' && (
-                              <span className="px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 font-bold border border-red-900/20">
+                              <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-bold border border-rose-200/80">
                                 ⚠️ PEÇA TROCADA
                               </span>
                             )}
                             {record.checklist_seguranca?.icloud === 'não' && (
-                              <span className="px-1.5 py-0.5 rounded bg-red-950/50 text-red-400 font-bold border border-red-900/20">
+                              <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-bold border border-rose-200/80">
                                 🔒 iCloud Ativo
                               </span>
                             )}
@@ -3465,22 +3465,22 @@ ${splitsList}
                         <td className="py-3 px-4 text-center">
                           <span className={`px-2 py-0.5 rounded font-black text-xs border ${
                             record.grade === 'A'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              ? 'bg-emerald-55 bg-emerald-50 text-emerald-700 border-emerald-200'
                               : record.grade === 'B'
-                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
                           }`}>
                             Grade {record.grade}
                           </span>
                         </td>
 
                         {/* Preço Vitrine */}
-                        <td className="py-3 px-4 text-right text-zinc-400 font-semibold">
+                        <td className="py-3 px-4 text-right text-slate-600 font-semibold">
                           {formatBRL(record.reference_value)}
                         </td>
 
                         {/* Crédito Final */}
-                        <td className="py-3 px-4 text-right text-emerald-400 font-bold">
+                        <td className="py-3 px-4 text-right text-emerald-600 font-bold">
                           {formatBRL(record.evaluation_value)}
                         </td>
 
@@ -3491,7 +3491,7 @@ ${splitsList}
                               type="button"
                               onClick={() => handleCopyChecklistSummary(record)}
                               title="Copiar Laudo completo"
-                              className="text-zinc-400 hover:text-white transition-colors duration-150 p-1.5 rounded hover:bg-zinc-800 cursor-pointer"
+                              className="text-slate-400 hover:text-slate-800 transition-colors duration-150 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
                             >
                               <Copy className="w-3.5 h-3.5" />
                             </button>
@@ -3499,7 +3499,7 @@ ${splitsList}
                               type="button"
                               onClick={() => handleDeleteChecklist(record.id)}
                               title="Excluir Laudo"
-                              className="text-zinc-555 hover:text-red-400 transition-colors duration-155 p-1.5 rounded hover:bg-zinc-800 cursor-pointer"
+                              className="text-slate-500 hover:text-rose-700 transition-colors duration-155 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -3519,15 +3519,15 @@ ${splitsList}
 
       {/* Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md transition-all duration-300">
-          <div className="bg-zinc-950 border border-zinc-850 rounded-3xl p-6 md:p-8 w-full max-w-sm space-y-6 shadow-2xl relative animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md transition-all duration-300">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-sm space-y-6 shadow-2xl relative animate-fade-in">
             
             <div className="text-center space-y-2">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto">
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <h3 className="text-md font-bold text-white">Controle de Acesso</h3>
-              <p className="text-xs text-zinc-500">
+              <h3 className="text-md font-bold text-slate-900">Controle de Acesso</h3>
+              <p className="text-xs text-slate-500">
                 {loginTarget === 'simulator' 
                   ? 'Digite a senha do Gerente ou Administrador' 
                   : 'Digite sua senha pessoal de acesso'}
@@ -3540,7 +3540,7 @@ ${splitsList}
                 placeholder="Senha de Acesso"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 focus:border-zinc-700 rounded-xl py-3 px-4 text-center text-white font-mono text-sm outline-none transition-all placeholder:text-zinc-650"
+                className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-3 px-4 text-center text-slate-900 font-mono text-sm outline-none transition-all placeholder:text-slate-400 focus:ring-1 focus:ring-blue-600/20"
                 autoFocus
               />
 
@@ -3548,7 +3548,7 @@ ${splitsList}
                 <button
                   type="button"
                   onClick={() => setShowLoginModal(false)}
-                  className="bg-zinc-900 hover:bg-zinc-850 text-zinc-400 text-xs font-semibold py-3 rounded-xl transition-all cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-3 rounded-xl transition-all cursor-pointer border border-slate-200"
                 >
                   Cancelar
                 </button>
