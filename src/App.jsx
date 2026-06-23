@@ -169,6 +169,46 @@ const APPLE_COLORS = [
   "Vermelho (Product RED)"
 ];
 
+// Função para mapear cores oficiais por modelo de iPhone
+const getColorsForModel = (modelName) => {
+  const model = String(modelName || '').toLowerCase();
+  
+  if (model.includes('16 pro') || model.includes('17 pro')) {
+    return ["Titânio Natural", "Titânio Deserto", "Titânio Preto", "Titânio Branco"];
+  }
+  if (model.includes('15 pro')) {
+    return ["Titânio Natural", "Titânio Preto", "Titânio Branco", "Titânio Azul"];
+  }
+  if (model.includes('14 pro')) {
+    return ["Roxo Profundo", "Preto Espacial", "Prata", "Dourado"];
+  }
+  if (model.includes('13 pro')) {
+    return ["Azul Sierra", "Grafite", "Dourado", "Prata", "Verde Alpino"];
+  }
+  if (model.includes('12 pro')) {
+    return ["Azul", "Grafite", "Dourado", "Prata"];
+  }
+  
+  // Modelos regulares
+  if (model.includes('16') || model.includes('17')) {
+    return ["Preto Espacial", "Branco", "Rosa", "Verde", "Azul"];
+  }
+  if (model.includes('15')) {
+    return ["Meia-noite", "Azul", "Verde", "Amarelo", "Rosa"];
+  }
+  if (model.includes('14')) {
+    return ["Meia-noite", "Estelar", "Azul", "Roxo Profundo", "Amarelo", "Vermelho (Product RED)"];
+  }
+  if (model.includes('13')) {
+    return ["Meia-noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho (Product RED)"];
+  }
+  if (model.includes('12')) {
+    return ["Meia-noite", "Branco", "Azul", "Verde", "Vermelho (Product RED)"];
+  }
+
+  return ["Meia-noite", "Estelar", "Preto Espacial", "Titânio Natural", "Prata", "Dourado", "Azul", "Verde"];
+}
+
 // Validação de IMEI com o Algoritmo de Luhn
 const isValidIMEI = (imei) => {
   const clean = String(imei).trim().replace(/\D/g, '');
@@ -542,6 +582,33 @@ function App() {
       totalLaudos: checklistsList.length
     }
   }, [checklistsList])
+
+  // Sincronizar cores do simulador (Novo)
+  useEffect(() => {
+    const availableColors = getColorsForModel(newModel);
+    if (!availableColors.includes(newColor)) {
+      setNewColor(availableColors[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newModel]);
+
+  // Sincronizar cores do simulador (Usado)
+  useEffect(() => {
+    const availableColors = getColorsForModel(usedModel);
+    if (!availableColors.includes(usedColor)) {
+      setUsedColor(availableColors[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usedModel]);
+
+  // Sincronizar cores do checklist
+  useEffect(() => {
+    const availableColors = getColorsForModel(checklistDeviceModel);
+    if (!availableColors.includes(checklistDeviceColor)) {
+      setChecklistDeviceColor(availableColors[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checklistDeviceModel]);
 
   // Restaurar rascunho do checklist ao montar
   useEffect(() => {
@@ -2035,7 +2102,7 @@ ${splitsList}
                     onChange={(e) => setNewColor(e.target.value)}
                     className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
-                    {APPLE_COLORS.map(color => (
+                    {getColorsForModel(newModel).map(color => (
                       <option key={color} value={color}>{color}</option>
                     ))}
                   </select>
@@ -2228,7 +2295,7 @@ ${splitsList}
                     onChange={(e) => setUsedColor(e.target.value)}
                     className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                   >
-                    {APPLE_COLORS.map(color => (
+                    {getColorsForModel(usedModel).map(color => (
                       <option key={color} value={color}>{color}</option>
                     ))}
                   </select>
@@ -3085,7 +3152,7 @@ ${splitsList}
                         onChange={(e) => setChecklistDeviceColor(e.target.value)}
                         className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
                       >
-                        {APPLE_COLORS.map(color => (
+                        {getColorsForModel(checklistDeviceModel).map(color => (
                           <option key={color} value={color}>{color}</option>
                         ))}
                       </select>
