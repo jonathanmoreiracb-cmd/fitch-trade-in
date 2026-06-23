@@ -404,7 +404,8 @@ function App() {
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; padding: 30px; line-height: 1.5; background-color: #ffffff; }
             .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
-            .logo { height: 40px; }
+            .logo-container { width: 44px; height: 44px; border-radius: 50%; background-color: #0f172a; display: flex; align-items: center; justify-content: center; padding: 6px; box-sizing: border-box; }
+            .logo { max-height: 100%; max-width: 100%; object-fit: contain; }
             .title { font-size: 20px; font-weight: bold; margin: 0; color: #0f172a; }
             .meta { font-size: 11px; color: #64748b; margin-top: 5px; }
             .section { margin-bottom: 25px; }
@@ -435,7 +436,9 @@ function App() {
               <h1 class="title">🍎 LAUDO TÉCNICO DE TRADE-IN</h1>
               <div class="meta">FITCH INVESTIMENTOS • Data: ${new Date(record.created_at).toLocaleDateString('pt-BR')} ${new Date(record.created_at).toLocaleTimeString('pt-BR')}</div>
             </div>
-            <img class="logo" src="${logo}" alt="Fitch Logo" />
+            <div class="logo-container">
+              <img class="logo" src="${logo}" alt="Fitch Logo" />
+            </div>
           </div>
 
           <div class="grade-box">
@@ -1722,7 +1725,9 @@ ${splitsList}
       {/* Header Principal */}
       <header className="max-w-7xl mx-auto px-6 pt-8 pb-4 flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200/80 gap-4">
         <div className="flex items-center gap-3">
-          <img src={logo} className="h-10 w-auto object-contain select-none mr-1" alt="Fitch Logo" />
+          <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center p-1.5 shrink-0 shadow-sm mr-1">
+            <img src={logo} className="h-full w-full object-contain select-none" alt="Fitch Logo" />
+          </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               Fitch Trade-In
@@ -1832,7 +1837,9 @@ ${splitsList}
         <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center justify-center text-center space-y-12 animate-fade-in">
           
           <div className="space-y-6 max-w-lg flex flex-col items-center">
-            <img src={logo} className="h-16 w-auto object-contain select-none mb-2 animate-fade-in" alt="Fitch Logo" />
+            <div className="w-24 h-24 rounded-full bg-slate-900 flex items-center justify-center p-4 mb-4 shadow-md shrink-0">
+              <img src={logo} className="h-full w-full object-contain select-none animate-fade-in" alt="Fitch Logo" />
+            </div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none bg-gradient-to-r from-blue-600 via-slate-800 to-purple-600 bg-clip-text text-transparent">
               Fitch Trade-In Manager
             </h1>
@@ -4028,7 +4035,9 @@ ${splitsList}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-sm space-y-6 shadow-2xl relative animate-fade-in">
             
             <div className="text-center space-y-4">
-              <img src={logo} className="h-12 w-auto object-contain select-none mx-auto" alt="Fitch Logo" />
+              <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center p-3.5 mx-auto shadow-md shrink-0">
+                <img src={logo} className="h-full w-full object-contain select-none" alt="Fitch Logo" />
+              </div>
               <div className="space-y-1">
                 <h3 className="text-md font-bold text-slate-900">Controle de Acesso</h3>
                 <p className="text-xs text-slate-500">
