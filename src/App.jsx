@@ -26,6 +26,7 @@ import {
   Palette
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
+import logo from './assets/logo.png'
 
 // Matrix de Taxas do Gateway
 const GATEWAY_RATES = {
@@ -1351,9 +1352,7 @@ ${splitsList}
       {/* Header Principal */}
       <header className="max-w-7xl mx-auto px-6 pt-8 pb-4 flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200/80 gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-100 to-slate-200 flex items-center justify-center border border-slate-300/50 shadow-inner">
-            <Cpu className="w-5 h-5 text-slate-700" />
-          </div>
+          <img src={logo} className="h-10 w-auto object-contain select-none mr-1" alt="Fitch Logo" />
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
               Fitch Trade-In
@@ -1462,7 +1461,8 @@ ${splitsList}
       {activeTab === 'landing' && (
         <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center justify-center text-center space-y-12 animate-fade-in">
           
-          <div className="space-y-4 max-w-lg">
+          <div className="space-y-6 max-w-lg flex flex-col items-center">
+            <img src={logo} className="h-16 w-auto object-contain select-none mb-2 animate-fade-in" alt="Fitch Logo" />
             <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-none bg-gradient-to-r from-blue-600 via-slate-800 to-purple-600 bg-clip-text text-transparent">
               Fitch Trade-In Manager
             </h1>
@@ -3522,16 +3522,16 @@ ${splitsList}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md transition-all duration-300">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-sm space-y-6 shadow-2xl relative animate-fade-in">
             
-            <div className="text-center space-y-2">
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-                <ShieldCheck className="w-5 h-5" />
+            <div className="text-center space-y-4">
+              <img src={logo} className="h-12 w-auto object-contain select-none mx-auto" alt="Fitch Logo" />
+              <div className="space-y-1">
+                <h3 className="text-md font-bold text-slate-900">Controle de Acesso</h3>
+                <p className="text-xs text-slate-500">
+                  {loginTarget === 'simulator' 
+                    ? 'Digite a senha do Gerente ou Administrador' 
+                    : 'Digite sua senha pessoal de acesso'}
+                </p>
               </div>
-              <h3 className="text-md font-bold text-slate-900">Controle de Acesso</h3>
-              <p className="text-xs text-slate-500">
-                {loginTarget === 'simulator' 
-                  ? 'Digite a senha do Gerente ou Administrador' 
-                  : 'Digite sua senha pessoal de acesso'}
-              </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
