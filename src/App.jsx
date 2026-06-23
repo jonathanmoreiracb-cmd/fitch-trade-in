@@ -171,6 +171,11 @@ const APPLE_COLORS = [
   "Roxo",
   "Verde-azulado",
   "Ultramar",
+  "Laranja Cósmico",
+  "Azul Profundo",
+  "Lavanda",
+  "Azul Névoa",
+  "Sálvia",
   "Vermelho (Product RED)"
 ];
 
@@ -178,7 +183,10 @@ const APPLE_COLORS = [
 const getColorsForModel = (modelName) => {
   const model = String(modelName || '').toLowerCase();
   
-  if (model.includes('16 pro') || model.includes('17 pro')) {
+  if (model.includes('17 pro')) {
+    return ["Laranja Cósmico", "Azul Profundo", "Prata"];
+  }
+  if (model.includes('16 pro')) {
     return ["Titânio Natural", "Titânio Deserto", "Titânio Preto", "Titânio Branco"];
   }
   if (model.includes('15 pro')) {
@@ -195,7 +203,10 @@ const getColorsForModel = (modelName) => {
   }
   
   // Modelos regulares
-  if (model.includes('16') || model.includes('17')) {
+  if (model.includes('17')) {
+    return ["Preto", "Branco", "Lavanda", "Azul Névoa", "Sálvia"];
+  }
+  if (model.includes('16')) {
     return ["Preto", "Branco", "Rosa", "Verde-azulado", "Ultramar"];
   }
   if (model.includes('15')) {
