@@ -1,10 +1,11 @@
-const CACHE_NAME = 'fitch-trade-in-v12';
+const CACHE_NAME = 'fitch-trade-in-v13';
 const ASSETS = [
   '/',
   '/index.html'
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
@@ -22,7 +23,7 @@ self.addEventListener('activate', (e) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
