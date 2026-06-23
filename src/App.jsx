@@ -168,6 +168,28 @@ const APPLE_COLORS = [
   "Vermelho (Product RED)"
 ];
 
+// Validação de IMEI com o Algoritmo de Luhn
+const isValidIMEI = (imei) => {
+  const clean = String(imei).trim().replace(/\D/g, '');
+  if (clean.length !== 15) return false;
+  
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    let digit = parseInt(clean[i], 10);
+    if (i % 2 !== 0) {
+      digit *= 2;
+      if (digit > 9) {
+        digit = (digit % 10) + 1;
+      }
+    }
+    sum += digit;
+  }
+  
+  const checkDigit = parseInt(clean[14], 10);
+  const calculatedCheckDigit = (10 - (sum % 10)) % 10;
+  return checkDigit === calculatedCheckDigit;
+};
+
 function App() {
   // Dados do Cliente e IMEI
   const [clientName, setClientName] = useState('')
@@ -215,6 +237,18 @@ function App() {
     setTimeout(() => {
       setNotification(prev => ({ ...prev, show: false }))
     }, 3000)
+  }
+
+  const vibrateFeedback = (type) => {
+    if ('vibrate' in navigator) {
+      if (type === 'defeito' || type === 'não') {
+        navigator.vibrate([30, 40, 30])
+      } else if (type === 'detalhe' || type === 'sim') {
+        navigator.vibrate(25)
+      } else {
+        navigator.vibrate(15)
+      }
+    }
   }
 
   // Controle de Migração de Dados Locais
@@ -270,6 +304,80 @@ function App() {
   const [checklistsList, setChecklistsList] = useState([])
   const [isSavingChecklist, setIsSavingChecklist] = useState(false)
   const [checklistSearchQuery, setChecklistSearchQuery] = useState('')
+
+  // Restaurar rascunho do checklist ao montar
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem('fitch_checklist_draft');
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        if (draft.checklistClientName) setChecklistClientName(draft.checklistClientName);
+        if (draft.checklistDeviceModel) setChecklistDeviceModel(draft.checklistDeviceModel);
+        if (draft.checklistSerialImei) setChecklistSerialImei(draft.checklistSerialImei);
+        if (draft.esteticaTela) setEsteticaTela(draft.esteticaTela);
+        if (draft.esteticaTraseira) setEsteticaTraseira(draft.esteticaTraseira);
+        if (draft.esteticaLaterais) setEsteticaLaterais(draft.esteticaLaterais);
+        if (draft.esteticaLentes) setEsteticaLentes(draft.esteticaLentes);
+        if (draft.funcionalBatteryHealth) setFuncionalBatteryHealth(draft.funcionalBatteryHealth);
+        if (draft.funcionalPecaDesconhecida) setFuncionalPecaDesconhecida(draft.funcionalPecaDesconhecida);
+        if (draft.funcionalBiometria) setFuncionalBiometria(draft.funcionalBiometria);
+        if (draft.funcionalCameras) setFuncionalCameras(draft.funcionalCameras);
+        if (draft.funcionalAudio) setFuncionalAudio(draft.funcionalAudio);
+        if (draft.funcionalConectividade) setFuncionalConectividade(draft.funcionalConectividade);
+        if (draft.funcionalBotoes) setFuncionalBotoes(draft.funcionalBotoes);
+        if (draft.segurancaIcloud) setSegurancaIcloud(draft.segurancaIcloud);
+        if (draft.segurancaDemo) setSegurancaDemo(draft.segurancaDemo);
+        if (draft.referenceValue) setReferenceValue(draft.referenceValue);
+        if (draft.customCreditValue) setCustomCreditValue(draft.customCreditValue);
+      }
+    } catch (e) {
+      console.error('Error loading checklist draft:', e);
+    }
+  }, []);
+
+  // Salvar rascunho do checklist a cada alteração
+  useEffect(() => {
+    const draft = {
+      checklistClientName,
+      checklistDeviceModel,
+      checklistSerialImei,
+      esteticaTela,
+      esteticaTraseira,
+      esteticaLaterais,
+      esteticaLentes,
+      funcionalBatteryHealth,
+      funcionalPecaDesconhecida,
+      funcionalBiometria,
+      funcionalCameras,
+      funcionalAudio,
+      funcionalConectividade,
+      funcionalBotoes,
+      segurancaIcloud,
+      segurancaDemo,
+      referenceValue,
+      customCreditValue
+    };
+    localStorage.setItem('fitch_checklist_draft', JSON.stringify(draft));
+  }, [
+    checklistClientName,
+    checklistDeviceModel,
+    checklistSerialImei,
+    esteticaTela,
+    esteticaTraseira,
+    esteticaLaterais,
+    esteticaLentes,
+    funcionalBatteryHealth,
+    funcionalPecaDesconhecida,
+    funcionalBiometria,
+    funcionalCameras,
+    funcionalAudio,
+    funcionalConectividade,
+    funcionalBotoes,
+    segurancaIcloud,
+    segurancaDemo,
+    referenceValue,
+    customCreditValue
+  ]);
 
   // Carregar Histórico
   const loadEvaluations = async () => {
@@ -373,7 +481,7 @@ function App() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          const compressedBase64 = canvas.toDataURL('image/webp', 0.7);
           resolve(compressedBase64);
         };
       };
@@ -392,6 +500,13 @@ function App() {
     if (!checklistSerialImei.trim()) {
       triggerNotification('Preencha o IMEI ou Número de Série.', 'error')
       return
+    }
+    const cleanImei = checklistSerialImei.trim();
+    if (/^\d+$/.test(cleanImei) && cleanImei.length === 15) {
+      if (!isValidIMEI(cleanImei)) {
+        triggerNotification('O IMEI de 15 dígitos inserido é inválido!', 'error')
+        return
+      }
     }
     if (!checklistConfirmed) {
       triggerNotification('Você precisa atestar o termo de ciência.', 'error')
@@ -826,6 +941,15 @@ function App() {
     return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count } : null
   }, [usedModel, usedStorage, inventoryStats])
 
+  // Ajuste de margem dinâmico baseado em estoque crítico (giro rápido)
+  useEffect(() => {
+    if (currentModelAverage && currentModelAverage.count >= 5) {
+      setProfitMargin('600') // Reduz margem de lucro sugerida em 25% (de R$ 800 para R$ 600)
+    } else {
+      setProfitMargin('800') // Restaura margem padrão
+    }
+  }, [usedModel, usedStorage, currentModelAverage])
+
   // Lógica Matemática e Agregação de Pagamentos Combinados
   const calculationData = useMemo(() => {
     const cost = parseFloat(newCost) || 0
@@ -909,6 +1033,15 @@ function App() {
     // IMEIs são opcionais (se vazios, salva como 'Não Informado')
     const finalImeiNew = imeiNew.trim() || 'Não Informado'
     const finalImeiUsed = imeiUsed.trim() || 'Não Informado'
+
+    if (imeiNew.trim() && imeiNew.trim() !== 'Não Informado' && !isValidIMEI(imeiNew)) {
+      triggerNotification('O IMEI do Novo é inválido! Por favor verifique.', 'error')
+      return
+    }
+    if (imeiUsed.trim() && imeiUsed.trim() !== 'Não Informado' && !isValidIMEI(imeiUsed)) {
+      triggerNotification('O IMEI do Usado é inválido! Por favor verifique.', 'error')
+      return
+    }
 
     if (!newCost || calculationData.totalValue <= 0) {
       triggerNotification('Defina o Custo do Novo e os Valores de Pagamento.', 'error')
@@ -1749,7 +1882,7 @@ ${splitsList}
                 <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                   <button
                     type="button"
-                    onClick={() => setUsedCategory('Comum')}
+                    onClick={() => { setUsedCategory('Comum'); vibrateFeedback('Comum'); }}
                     className={`py-2 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
                       usedCategory === 'Comum'
                         ? 'bg-white text-slate-900 shadow-sm border border-slate-200 font-bold'
@@ -1760,7 +1893,7 @@ ${splitsList}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setUsedCategory('Saldo')}
+                    onClick={() => { setUsedCategory('Saldo'); vibrateFeedback('Saldo'); }}
                     className={`py-2 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer ${
                       usedCategory === 'Saldo'
                         ? 'bg-amber-500 text-white shadow-sm font-bold'
@@ -2067,6 +2200,15 @@ ${splitsList}
                   </div>
                   
                   {/* Badge Inteligente */}
+                  {/* Badge Inteligente */}
+                  {currentModelAverage && currentModelAverage.count >= 5 && (
+                    <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] p-2.5 rounded-xl flex items-start gap-2 animate-pulse mb-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Estoque Crítico ({currentModelAverage.count} unid.):</strong> Margem sugerida reduzida automaticamente em 25% para acelerar o giro.
+                      </span>
+                    </div>
+                  )}
                   {currentModelAverage ? (
                     <div className="mt-3 text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
                       <div className="flex items-center gap-1.5 font-semibold">
@@ -2671,7 +2813,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setEsteticaTela(opt)}
+                                onClick={() => { setEsteticaTela(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaTela === opt
                                     ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
@@ -2697,7 +2839,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setEsteticaTraseira(opt)}
+                                onClick={() => { setEsteticaTraseira(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaTraseira === opt
                                     ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
@@ -2723,7 +2865,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setEsteticaLaterais(opt)}
+                                onClick={() => { setEsteticaLaterais(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaLaterais === opt
                                     ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
@@ -2749,7 +2891,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setEsteticaLentes(opt)}
+                                onClick={() => { setEsteticaLentes(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   esteticaLentes === opt
                                     ? opt === 'bom' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/10'
@@ -2842,7 +2984,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setFuncionalPecaDesconhecida(opt)}
+                                onClick={() => { setFuncionalPecaDesconhecida(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   funcionalPecaDesconhecida === opt
                                     ? opt === 'sim'
@@ -2868,7 +3010,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setFuncionalBiometria(opt)}
+                                onClick={() => { setFuncionalBiometria(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   funcionalBiometria === opt
                                     ? opt === 'ok'
@@ -2894,7 +3036,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setFuncionalCameras(opt)}
+                                onClick={() => { setFuncionalCameras(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   funcionalCameras === opt
                                     ? opt === 'ok'
@@ -2920,7 +3062,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setFuncionalAudio(opt)}
+                                onClick={() => { setFuncionalAudio(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   funcionalAudio === opt
                                     ? opt === 'ok'
@@ -2946,7 +3088,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setFuncionalConectividade(opt)}
+                                onClick={() => { setFuncionalConectividade(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   funcionalConectividade === opt
                                     ? opt === 'ok'
@@ -2972,7 +3114,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setFuncionalBotoes(opt)}
+                                onClick={() => { setFuncionalBotoes(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   funcionalBotoes === opt
                                     ? opt === 'ok'
@@ -3048,7 +3190,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setSegurancaIcloud(opt)}
+                                onClick={() => { setSegurancaIcloud(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   segurancaIcloud === opt
                                     ? opt === 'sim'
@@ -3074,7 +3216,7 @@ ${splitsList}
                               <button
                                 key={opt}
                                 type="button"
-                                onClick={() => setSegurancaDemo(opt)}
+                                onClick={() => { setSegurancaDemo(opt); vibrateFeedback(opt); }}
                                 className={`px-4 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                                   segurancaDemo === opt
                                     ? opt === 'sim'
