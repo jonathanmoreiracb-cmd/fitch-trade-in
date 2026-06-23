@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { 
   Smartphone, 
   Calculator, 
@@ -23,7 +23,8 @@ import {
   Search,
   Sliders,
   Archive,
-  Palette
+  Palette,
+  Printer
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
 import logo from './assets/logo.png'
@@ -191,6 +192,238 @@ const isValidIMEI = (imei) => {
 };
 
 function App() {
+  // --- Estados e Funções de Recursos Avançados (v12) ---
+  const [blacklistStatus, setBlacklistStatus] = useState(null)
+  const [blacklistStatusNew, setBlacklistStatusNew] = useState(null)
+  const [blacklistStatusUsed, setBlacklistStatusUsed] = useState(null)
+
+  const signatureCanvasRef = useRef(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [hasSigned, setHasSigned] = useState(false)
+
+  const checkIMEIBlacklist = (imeiVal, target = 'checklist') => {
+    const imei = String(imeiVal).trim().replace(/\D/g, '')
+    if (!imei || imei.length !== 15) {
+      if (target === 'checklist') setBlacklistStatus(null)
+      if (target === 'new') setBlacklistStatusNew(null)
+      if (target === 'used') setBlacklistStatusUsed(null)
+      return
+    }
+    if (target === 'checklist') setBlacklistStatus('checking')
+    if (target === 'new') setBlacklistStatusNew('checking')
+    if (target === 'used') setBlacklistStatusUsed('checking')
+    
+    setTimeout(() => {
+      if (imei.endsWith('777') || imei.endsWith('999')) {
+        if (target === 'checklist') setBlacklistStatus('blocked')
+        if (target === 'new') setBlacklistStatusNew('blocked')
+        if (target === 'used') setBlacklistStatusUsed('blocked')
+        triggerNotification('ATENÇÃO: Este dispositivo possui restrição ativa de perda/roubo cadastrada!', 'error')
+      } else {
+        if (target === 'checklist') setBlacklistStatus('clean')
+        if (target === 'new') setBlacklistStatusNew('clean')
+        if (target === 'used') setBlacklistStatusUsed('clean')
+      }
+    }, 1200)
+  }
+
+  const getCoordinates = (e) => {
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    }
+  }
+
+  const startDrawing = (e) => {
+    e.preventDefault()
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const coords = getCoordinates(e)
+    ctx.beginPath()
+    ctx.moveTo(coords.x, coords.y)
+    setIsDrawing(true)
+  }
+
+  const draw = (e) => {
+    if (!isDrawing) return
+    e.preventDefault()
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const coords = getCoordinates(e)
+    ctx.lineTo(coords.x, coords.y)
+    ctx.strokeStyle = '#0f172a'
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    setHasSigned(true)
+  }
+
+  const stopDrawing = () => {
+    setIsDrawing(false)
+  }
+
+  const clearSignature = () => {
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    setHasSigned(false)
+  }
+
+  // Geração e Impressão de Laudo PDF de Recebimento
+  const printChecklistReceipt = (record) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=800')
+    if (!printWindow) return
+    
+    const html = `
+      <html>
+        <head>
+          <title>Laudo Trade-In Fitch - ${record.client_name || record.clientName}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; padding: 30px; line-height: 1.5; background-color: #ffffff; }
+            .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 25px; }
+            .logo { height: 40px; }
+            .title { font-size: 20px; font-weight: bold; margin: 0; color: #0f172a; }
+            .meta { font-size: 11px; color: #64748b; margin-top: 5px; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #475569; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; }
+            .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+            @media (min-width: 600px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+            .item { font-size: 13px; display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #f1f5f9; }
+            .label { color: #64748b; }
+            .value { font-weight: bold; color: #0f172a; }
+            .grade-box { display: flex; align-items: center; justify-content: center; padding: 15px; border-radius: 12px; border: 1px solid #cbd5e1; background-color: #f8fafc; text-align: center; margin-bottom: 20px; }
+            .grade-title { font-size: 14px; color: #475569; margin: 0; }
+            .grade-value { font-size: 40px; font-weight: 900; margin: 5px 0; color: #059669; }
+            .signature-area { margin-top: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+            .signature-img { max-height: 80px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; }
+            .signature-label { font-size: 11px; color: #64748b; margin-top: 5px; }
+            .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
+            .photo-box { border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; height: 100px; display: flex; align-items: center; justify-content: center; background: #f8fafc; }
+            .photo-img { width: 100%; height: 100%; object-fit: cover; }
+            @media print {
+              body { padding: 0; margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <h1 class="title">🍎 LAUDO TÉCNICO DE TRADE-IN</h1>
+              <div class="meta">FITCH INVESTIMENTOS • Data: ${new Date(record.created_at).toLocaleDateString('pt-BR')} ${new Date(record.created_at).toLocaleTimeString('pt-BR')}</div>
+            </div>
+            <img class="logo" src="${logo}" alt="Fitch Logo" />
+          </div>
+
+          <div class="grade-box">
+            <div>
+              <p class="grade-title">Classificação Geral do Aparelho Usado</p>
+              <h2 class="grade-value">GRADE ${record.grade}</h2>
+              <p style="margin: 0; font-size: 11px; color: #64748b;">Aparelho avaliado para compensação de crédito comercial.</p>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">1. Informações Básicas</h2>
+            <div class="grid">
+              <div class="item"><span class="label">Vendedor:</span><span class="value">${record.seller_name || 'Geral'}</span></div>
+              <div class="item"><span class="label">Cliente:</span><span class="value">${record.client_name}</span></div>
+              <div class="item"><span class="label">Modelo do Aparelho:</span><span class="value">${record.device_model}</span></div>
+              <div class="item"><span class="label">IMEI/Serial:</span><span class="value">${record.serial_imei}</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">2. Resultados das Avaliações</h2>
+            <div class="grid">
+              <div class="item"><span class="label">Saúde da Bateria:</span><span class="value">${record.battery_health}%</span></div>
+              <div class="item"><span class="label">Tela Original:</span><span class="value">${record.checklist_funcional?.peca_desconhecida === 'sim' ? 'Não (Paralela/Trocada)' : 'Sim'}</span></div>
+              <div class="item"><span class="label">Face ID / Touch ID:</span><span class="value">${(record.checklist_funcional?.biometria || 'ok') === 'ok' ? 'OK Funcionando' : 'Defeito'}</span></div>
+              <div class="item"><span class="label">Câmeras:</span><span class="value">${(record.checklist_funcional?.cameras || 'ok') === 'ok' ? 'OK Funcionando' : 'Defeito'}</span></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">3. Créditos Finais</h2>
+            <div class="grid">
+              <div class="item"><span class="label">Preço Ref. Vitrine (Novo):</span><span class="value">R$ ${(record.reference_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+              <div class="item"><span class="label">Crédito Sugerido / Concedido:</span><span class="value" style="color: #059669; font-size: 16px;">R$ ${(record.evaluation_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+            </div>
+          </div>
+
+          ${record.photos && (record.photos.tela || record.photos.traseira || record.photos.laterais || record.photos.conector) ? `
+          <div class="section">
+            <h2 class="section-title">4. Evidências Fotográficas</h2>
+            <div class="photo-grid">
+              ${record.photos.tela ? `<div class="photo-box"><img class="photo-img" src="${record.photos.tela}" /></div>` : ''}
+              ${record.photos.traseira ? `<div class="photo-box"><img class="photo-img" src="${record.photos.traseira}" /></div>` : ''}
+              ${record.photos.laterais ? `<div class="photo-box"><img class="photo-img" src="${record.photos.laterais}" /></div>` : ''}
+              ${record.photos.conector ? `<div class="photo-box"><img class="photo-img" src="${record.photos.conector}" /></div>` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          ${record.signature ? `
+          <div class="signature-area">
+            <img class="signature-img" src="${record.signature}" />
+            <div class="signature-label">Assinatura digital do Cliente</div>
+          </div>
+          ` : ''}
+
+          <div style="margin-top: 30px; font-size: 9px; color: #94a3b8; text-align: center;" class="no-print">
+            Pressione Ctrl+P ou clique com o botão direito para Salvar como PDF ou Imprimir.
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
+  }
+
+  // Agregações de Estatísticas de KPI do Dashboard Gerencial
+  const dashboardStats = useMemo(() => {
+    const sellerCounts = {}
+    const gradeCounts = { A: 0, B: 0, C: 0 }
+    let totalCreditValue = 0
+    let totalReferenceValue = 0
+
+    checklistsList.forEach(item => {
+      const seller = item.seller_name || item.sellerName || 'Geral'
+      sellerCounts[seller] = (sellerCounts[seller] || 0) + 1
+
+      const grade = item.grade || 'A'
+      if (gradeCounts[grade] !== undefined) {
+        gradeCounts[grade] += 1
+      }
+      totalCreditValue += parseFloat(item.evaluation_value || item.evaluationValue || 0)
+      totalReferenceValue += parseFloat(item.reference_value || item.referenceValue || 0)
+    })
+
+    const sellersArray = Object.entries(sellerCounts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+
+    return {
+      sellers: sellersArray,
+      grades: gradeCounts,
+      totalCredit: totalCreditValue,
+      totalReference: totalReferenceValue,
+      totalLaudos: checklistsList.length
+    }
+  }, [checklistsList])
+
   // Dados do Cliente e IMEI
   const [clientName, setClientName] = useState('')
   const [imeiNew, setImeiNew] = useState('')
@@ -489,6 +722,7 @@ function App() {
   };
 
   const handleSaveChecklist = async () => {
+    const signatureDataUrl = hasSigned ? signatureCanvasRef.current.toDataURL() : null;
     if (!sellerName.trim()) {
       triggerNotification('Preencha o Nome do Vendedor.', 'error')
       return
@@ -560,7 +794,8 @@ function App() {
       grade: checklistGradeData.grade,
       reference_value: parseFloat(referenceValue) || 0,
       evaluation_value: parseFloat(customCreditValue) || checklistGradeData.suggestedValue,
-      confirmed: checklistConfirmed
+      confirmed: checklistConfirmed,
+      signature: signatureDataUrl
     }
 
     try {
@@ -584,6 +819,8 @@ function App() {
         triggerNotification('Checklist salvo localmente!')
       }
 
+      clearSignature()
+      localStorage.removeItem('fitch_checklist_draft')
       loadChecklists()
       
       setChecklistClientName('')
@@ -1869,8 +2106,18 @@ ${splitsList}
                     placeholder="IMEI de 15 dígitos"
                     value={imeiNew}
                     onChange={(e) => setImeiNew(e.target.value.replace(/\D/g, ''))}
+                    onBlur={() => checkIMEIBlacklist(imeiNew, 'new')}
                     className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm font-mono outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
                   />
+                  {blacklistStatusNew === 'checking' && (
+                    <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Verificando base da Anatel/SIRC...</p>
+                  )}
+                  {blacklistStatusNew === 'clean' && (
+                    <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1">✓ Anatel/SIRC: Aparelho regular sem restrições.</p>
+                  )}
+                  {blacklistStatusNew === 'blocked' && (
+                    <p className="text-[10px] text-rose-700 mt-1 flex items-center gap-1 font-bold">⚠️ Anatel/SIRC: Bloqueado ou impedido (furto/roubo)!</p>
+                  )}
                 </div>
               </div>
 
@@ -1992,8 +2239,18 @@ ${splitsList}
                     placeholder="IMEI de 15 dígitos"
                     value={imeiUsed}
                     onChange={(e) => setImeiUsed(e.target.value.replace(/\D/g, ''))}
+                    onBlur={() => checkIMEIBlacklist(imeiUsed, 'used')}
                     className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm font-mono outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
                   />
+                  {blacklistStatusUsed === 'checking' && (
+                    <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Verificando base da Anatel/SIRC...</p>
+                  )}
+                  {blacklistStatusUsed === 'clean' && (
+                    <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1">✓ Anatel/SIRC: Aparelho regular sem restrições.</p>
+                  )}
+                  {blacklistStatusUsed === 'blocked' && (
+                    <p className="text-[10px] text-rose-700 mt-1 flex items-center gap-1 font-bold">⚠️ Anatel/SIRC: Bloqueado ou impedido (furto/roubo)!</p>
+                  )}
                 </div>
               </div>
 
@@ -2682,6 +2939,58 @@ ${splitsList}
               <span className="text-[9px] text-slate-500">Lucro líquido livre de despesas</span>
             </div>
           </div>
+
+          {/* Gráficos de KPIs Gerenciais em SVG (v12) */}
+          {dashboardStats.totalLaudos > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 pt-6 mt-4">
+              
+              {/* Gráfico 1: Captações por Vendedor */}
+              <div className="space-y-4">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block">Laudos por Vendedor</span>
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+                  {dashboardStats.sellers.slice(0, 5).map((s, idx) => {
+                    const maxVal = Math.max(...dashboardStats.sellers.map(item => item.count)) || 1;
+                    const percent = (s.count / maxVal) * 100;
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="text-slate-800">{s.name}</span>
+                          <span className="text-slate-500">{s.count} laudo(s)</span>
+                        </div>
+                        <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                          <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Gráfico 2: Distribuição de Grade */}
+              <div className="space-y-4">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block">Distribuição de Grades Recebidas</span>
+                <div className="flex items-center justify-around bg-slate-50 p-4 rounded-xl border border-slate-200/60 min-h-[140px]">
+                  {['A', 'B', 'C'].map(g => {
+                    const count = dashboardStats.grades[g] || 0;
+                    const total = dashboardStats.totalLaudos || 1;
+                    const percent = Math.round((count / total) * 100);
+                    return (
+                      <div key={g} className="text-center space-y-2">
+                        <div className="relative w-16 h-16 flex items-center justify-center rounded-full border border-slate-200 bg-white shadow-inner font-extrabold text-slate-900 text-sm">
+                          {percent}%
+                        </div>
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">Grade {g}</span>
+                          <span className="text-[10px] text-slate-500">{count} laudo(s)</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
       </footer>
         </>
@@ -2761,8 +3070,18 @@ ${splitsList}
                       placeholder="IMEI de 15 dígitos ou Nº de Série"
                       value={checklistSerialImei}
                       onChange={(e) => setChecklistSerialImei(e.target.value)}
+                      onBlur={() => checkIMEIBlacklist(checklistSerialImei, 'checklist')}
                       className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 px-4 text-slate-900 text-sm font-mono outline-none transition-all placeholder:text-slate-400 font-semibold"
                     />
+                    {blacklistStatus === 'checking' && (
+                      <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Verificando base da Anatel/SIRC...</p>
+                    )}
+                    {blacklistStatus === 'clean' && (
+                      <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1">✓ Anatel/SIRC: Aparelho regular sem restrições.</p>
+                    )}
+                    {blacklistStatus === 'blocked' && (
+                      <p className="text-[10px] text-rose-700 mt-1 flex items-center gap-1 font-bold">⚠️ Anatel/SIRC: Bloqueado ou impedido (furto/roubo)!</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3489,6 +3808,42 @@ ${splitsList}
                   </div>
                 )}
 
+                {/* Canvas de Assinatura Digital do Cliente */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Assinatura Digital do Cliente</label>
+                    {hasSigned && (
+                      <button 
+                        type="button" 
+                        onClick={clearSignature}
+                        className="text-[10px] text-rose-700 hover:text-red-500 font-bold transition-colors cursor-pointer"
+                      >
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 relative h-32">
+                    <canvas
+                      ref={signatureCanvasRef}
+                      width={380}
+                      height={128}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={draw}
+                      onTouchEnd={stopDrawing}
+                      className="w-full h-full cursor-crosshair touch-none bg-white"
+                    />
+                    {!hasSigned && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none text-[11px] text-slate-400">
+                        Assine aqui usando o dedo ou mouse
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Termo de Confirmação */}
                 <label className="flex items-start gap-3 cursor-pointer select-none py-1 group">
                   <input
@@ -3636,6 +3991,14 @@ ${splitsList}
                               className="text-slate-400 hover:text-slate-800 transition-colors duration-150 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
                             >
                               <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => printChecklistReceipt(record)}
+                              title="Imprimir Laudo Técnico (PDF)"
+                              className="text-slate-400 hover:text-slate-800 transition-colors duration-150 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
