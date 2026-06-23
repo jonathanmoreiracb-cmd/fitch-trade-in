@@ -158,14 +158,19 @@ const APPLE_COLORS = [
   "Grafite",
   "Dourado",
   "Azul Sierra",
+  "Azul Pacífico",
   "Verde Alpino",
   "Roxo Profundo",
   "Laranja",
   "Branco",
+  "Preto",
   "Azul",
   "Verde",
   "Rosa",
   "Amarelo",
+  "Roxo",
+  "Verde-azulado",
+  "Ultramar",
   "Vermelho (Product RED)"
 ];
 
@@ -186,24 +191,24 @@ const getColorsForModel = (modelName) => {
     return ["Azul Sierra", "Grafite", "Dourado", "Prata", "Verde Alpino"];
   }
   if (model.includes('12 pro')) {
-    return ["Azul", "Grafite", "Dourado", "Prata"];
+    return ["Azul Pacífico", "Grafite", "Dourado", "Prata"];
   }
   
   // Modelos regulares
   if (model.includes('16') || model.includes('17')) {
-    return ["Preto Espacial", "Branco", "Rosa", "Verde", "Azul"];
+    return ["Preto", "Branco", "Rosa", "Verde-azulado", "Ultramar"];
   }
   if (model.includes('15')) {
-    return ["Meia-noite", "Azul", "Verde", "Amarelo", "Rosa"];
+    return ["Preto", "Azul", "Verde", "Amarelo", "Rosa"];
   }
   if (model.includes('14')) {
-    return ["Meia-noite", "Estelar", "Azul", "Roxo Profundo", "Amarelo", "Vermelho (Product RED)"];
+    return ["Meia-noite", "Estelar", "Azul", "Roxo", "Amarelo", "Vermelho (Product RED)"];
   }
   if (model.includes('13')) {
     return ["Meia-noite", "Estelar", "Azul", "Rosa", "Verde", "Vermelho (Product RED)"];
   }
   if (model.includes('12')) {
-    return ["Meia-noite", "Branco", "Azul", "Verde", "Vermelho (Product RED)"];
+    return ["Preto", "Branco", "Azul", "Verde", "Roxo", "Vermelho (Product RED)"];
   }
 
   return ["Meia-noite", "Estelar", "Preto Espacial", "Titânio Natural", "Prata", "Dourado", "Azul", "Verde"];
