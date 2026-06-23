@@ -309,6 +309,7 @@ function App() {
   const [checklistClientName, setChecklistClientName] = useState('')
   const [checklistDeviceModel, setChecklistDeviceModel] = useState(USED_MODELS[5])
   const [checklistDeviceColor, setChecklistDeviceColor] = useState(APPLE_COLORS[0])
+  const [checklistDeviceStorage, setChecklistDeviceStorage] = useState(STORAGE_OPTIONS[0])
   const [checklistSerialImei, setChecklistSerialImei] = useState('')
 
   // 2. Checklist Técnico
@@ -495,7 +496,7 @@ function App() {
             <div class="grid">
               <div class="item"><span class="label">Vendedor:</span><span class="value">${record.seller_name || 'Geral'}</span></div>
               <div class="item"><span class="label">Cliente:</span><span class="value">${record.client_name}</span></div>
-              <div class="item"><span class="label">Modelo do Aparelho:</span><span class="value">${record.device_model}</span></div>
+              <div class="item"><span class="label">Modelo do Aparelho:</span><span class="value">${record.device_model} ${record.device_storage || ''}</span></div>
               <div class="item"><span class="label">Cor do Aparelho:</span><span class="value">${record.device_color || 'Não especificada'}</span></div>
               <div class="item"><span class="label">IMEI/Serial:</span><span class="value">${record.serial_imei}</span></div>
             </div>
@@ -619,6 +620,7 @@ function App() {
         if (draft.checklistClientName) setChecklistClientName(draft.checklistClientName);
         if (draft.checklistDeviceModel) setChecklistDeviceModel(draft.checklistDeviceModel);
         if (draft.checklistDeviceColor) setChecklistDeviceColor(draft.checklistDeviceColor);
+        if (draft.checklistDeviceStorage) setChecklistDeviceStorage(draft.checklistDeviceStorage);
         if (draft.checklistSerialImei) setChecklistSerialImei(draft.checklistSerialImei);
         if (draft.esteticaTela) setEsteticaTela(draft.esteticaTela);
         if (draft.esteticaTraseira) setEsteticaTraseira(draft.esteticaTraseira);
@@ -647,6 +649,7 @@ function App() {
       checklistClientName,
       checklistDeviceModel,
       checklistDeviceColor,
+      checklistDeviceStorage,
       checklistSerialImei,
       esteticaTela,
       esteticaTraseira,
@@ -669,6 +672,7 @@ function App() {
     checklistClientName,
     checklistDeviceModel,
     checklistDeviceColor,
+    checklistDeviceStorage,
     checklistSerialImei,
     esteticaTela,
     esteticaTraseira,
@@ -860,6 +864,7 @@ function App() {
       seller_name: sellerName.trim(),
       client_name: checklistClientName.trim(),
       device_model: checklistDeviceModel,
+      device_storage: checklistDeviceStorage,
       device_color: checklistDeviceColor,
       serial_imei: checklistSerialImei.trim(),
       checklist_estetica: esteticaObj,
@@ -901,6 +906,7 @@ function App() {
       
       setChecklistClientName('')
       setChecklistDeviceColor(APPLE_COLORS[0])
+      setChecklistDeviceStorage(STORAGE_OPTIONS[0])
       setChecklistSerialImei('')
       setEsteticaTela('bom')
       setEsteticaTraseira('bom')
@@ -980,7 +986,7 @@ function App() {
 --------------------------------------------
 👤 *Vendedor:* ${record.seller_name}
 👤 *Cliente:* ${record.client_name}
-📱 *Aparelho:* ${record.device_model} (${record.device_color || 'Cor não especificada'})
+📱 *Aparelho:* ${record.device_model} ${record.device_storage || ''} (${record.device_color || 'Cor não especificada'})
 🆔 *IMEI/Serial:* ${record.serial_imei}
 
 --------------------------------------------
@@ -3162,6 +3168,27 @@ ${splitsList}
                     </div>
                   </div>
 
+                  {/* Armazenamento do Aparelho */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Armazenamento *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={checklistDeviceStorage}
+                        onChange={(e) => setChecklistDeviceStorage(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-4 pr-10 text-sm outline-none transition-all cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
+                      >
+                        {STORAGE_OPTIONS.map(storage => (
+                          <option key={storage} value={storage}>{storage}</option>
+                        ))}
+                      </select>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
+
                   {/* IMEI / Número de Série */}
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
@@ -4038,7 +4065,7 @@ ${splitsList}
                         {/* Aparelho */}
                         <td className="py-3 px-4">
                           <span className="font-semibold text-slate-800 block">
-                            {record.device_model} {record.device_color ? `(${record.device_color})` : ''}
+                            {record.device_model} {record.device_storage || ''} {record.device_color ? `(${record.device_color})` : ''}
                           </span>
                           <span className="text-[10px] text-slate-500 font-mono block">IMEI: {record.serial_imei}</span>
                         </td>
