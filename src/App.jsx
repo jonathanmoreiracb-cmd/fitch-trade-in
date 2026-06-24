@@ -253,6 +253,11 @@ function App() {
   const [imeiNew, setImeiNew] = useState('')
   const [imeiUsed, setImeiUsed] = useState('')
 
+  // Tipo de Entrada (Venda com Trade-in ou Compra de Fornecedor)
+  const [entryType, setEntryType] = useState('trade-in')
+  const [supplierCost, setSupplierCost] = useState('')
+  const [supplierVitrine, setSupplierVitrine] = useState('')
+
   // Inputs de Aparelhos (Novo)
   const [newModel, setNewModel] = useState(NEW_MODELS[0])
   const [newStorage, setNewStorage] = useState(STORAGE_OPTIONS[0])
@@ -707,12 +712,89 @@ function App() {
     customCreditValue
   ]);
 
+  // Função para importar a lista inicial de seminovos de fornecedores enviada pelo usuário
+  const importSupplierDevices = async (currentEvaluations) => {
+    if (localStorage.getItem('fitch_supplier_list_imported_v3')) return;
+    
+    const supplierList = [
+      { used_model: "iPhone 12", used_storage: "64GB", used_color: "Preto", imei_used: "353031117448546", max_evaluation: 1250.00, vitrine_price: 1850.00, battery_health: 85, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 12", used_storage: "128GB", used_color: "Branco", imei_used: "353726514105918", max_evaluation: 1450.00, vitrine_price: 2050.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 12 Pro", used_storage: "128GB", used_color: "Preto", imei_used: "358915480335469", max_evaluation: 1600.00, vitrine_price: 2200.00, battery_health: 90, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 12 Pro", used_storage: "128GB", used_color: "Preto", imei_used: "353909592923929", max_evaluation: 1700.00, vitrine_price: 2300.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 12 Pro", used_storage: "128GB", used_color: "Azul Pacífico", imei_used: "356037840171369", max_evaluation: 1750.00, vitrine_price: 2350.00, battery_health: 94, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 12 Pro", used_storage: "128GB", used_color: "Azul Pacífico", imei_used: "350905826408425", max_evaluation: 1700.00, vitrine_price: 2300.00, battery_health: 94, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 13 Pro", used_storage: "128GB", used_color: "Prata", imei_used: "359072413027067", max_evaluation: 2150.00, vitrine_price: 2950.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 13 Pro", used_storage: "128GB", used_color: "Dourado", imei_used: "352129380193749", max_evaluation: 2200.00, vitrine_price: 3000.00, battery_health: 90, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 13 Pro Max", used_storage: "128GB", used_color: "Prata", imei_used: "350019040590644", max_evaluation: 2550.00, vitrine_price: 3450.00, battery_health: 90, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 14 Pro", used_storage: "128GB", used_color: "Roxo Profundo", imei_used: "353115822777859", max_evaluation: 2600.00, vitrine_price: 3600.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 14 Pro", used_storage: "128GB", used_color: "Prata", imei_used: "359128124242112", max_evaluation: 2600.00, vitrine_price: 3600.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 14 Pro Max", used_storage: "128GB", used_color: "Dourado", imei_used: "355241306636722", max_evaluation: 3150.00, vitrine_price: 4250.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 16", used_storage: "128GB", used_color: "Preto", imei_used: "356166897161195", max_evaluation: 3550.00, vitrine_price: 4550.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 16 Pro",
+        used_storage: "128GB", used_color: "Titânio Branco", imei_used: "359072846598569", max_evaluation: 4500.00, vitrine_price: 5500.00, battery_health: 96, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 16 Pro Max", used_storage: "256GB", used_color: "Titânio Natural", imei_used: "356864566118708", max_evaluation: 5100.00, vitrine_price: 6200.00, battery_health: 94, client_name: "Fornecedor: Compra Direta" },
+      { used_model: "iPhone 16 Pro Max", used_storage: "256GB", used_color: "Titânio Deserto", imei_used: "357590876977173", max_evaluation: 5320.00, vitrine_price: 6420.00, battery_health: 100, client_name: "Fornecedor: Compra Direta" }
+    ];
+
+    let insertedAny = false;
+    for (const dev of supplierList) {
+      const exists = currentEvaluations.some(item => (item.imei_used || item.imeiUsed) === dev.imei_used);
+      if (!exists) {
+        const record = {
+          client_name: dev.client_name,
+          imei_new: 'N/A',
+          imei_used: dev.imei_used,
+          new_model: 'COMPRA FORNECEDOR',
+          new_storage: 'N/A',
+          new_color: 'N/A',
+          new_cost: 0,
+          profit_margin: 0,
+          operational_cost: 0,
+          used_model: dev.used_model,
+          used_storage: dev.used_storage,
+          used_color: dev.used_color,
+          used_category: 'Comum',
+          additional_value: 0,
+          gateway: 'Compra Direta',
+          installments: 0,
+          applied_rate: 0,
+          net_received: 0,
+          vitrine_price: dev.vitrine_price,
+          max_evaluation: dev.max_evaluation,
+          battery_health: dev.battery_health,
+          original_screen: true,
+          biometrics_status: 'ok',
+          camera_status: 'ok',
+          body_condition: 'Excelente',
+          payment_splits: []
+        };
+
+        try {
+          if (isSupabaseConfigured && dbStatus.connected) {
+            await supabase.from('evaluations').insert([record]);
+          } else {
+            await localDb.saveEvaluation(record);
+          }
+          insertedAny = true;
+        } catch (e) {
+          console.error("Failed to import supplier device:", dev.imei_used, e);
+        }
+      }
+    }
+
+    localStorage.setItem('fitch_supplier_list_imported_v3', 'true');
+    if (insertedAny) {
+      loadEvaluations();
+    }
+  }
+
   // Carregar Histórico
   const loadEvaluations = async () => {
     try {
       if (supabaseInitError) {
         throw new Error(supabaseInitError)
       }
+      let fetchedData = []
       if (isSupabaseConfigured) {
         setDbStatus({ connected: false, mode: 'checking', errorMsg: '' })
         const { data, error } = await supabase
@@ -721,12 +803,19 @@ function App() {
           .order('created_at', { ascending: false })
         
         if (error) throw error
-        setEvaluations(data || [])
+        fetchedData = data || []
+        setEvaluations(fetchedData)
         setDbStatus({ connected: true, mode: 'Supabase', errorMsg: '' })
       } else {
         const data = await localDb.getEvaluations()
+        fetchedData = data
         setEvaluations(data)
         setDbStatus({ connected: false, mode: 'Local (Offline)', errorMsg: '' })
+      }
+
+      // Importar automaticamente a lista de fornecedores caso não esteja importada
+      if (fetchedData && fetchedData.length >= 0) {
+        importSupplierDevices(fetchedData)
       }
     } catch (err) {
       console.error('Database connection error:', err)
@@ -737,6 +826,9 @@ function App() {
         mode: 'Local (Fallback)', 
         errorMsg: err.message || String(err) 
       })
+      if (data && data.length >= 0) {
+        importSupplierDevices(data)
+      }
     }
   }
 
@@ -1362,15 +1454,15 @@ function App() {
   // Salvar no Banco
   const handleSaveEvaluation = async () => {
     if (!clientName.trim()) {
-      triggerNotification('Preencha o Nome do Cliente para continuar.', 'error')
+      triggerNotification(entryType === 'supplier' ? 'Preencha o Nome do Fornecedor para continuar.' : 'Preencha o Nome do Cliente para continuar.', 'error')
       return
     }
 
     // IMEIs são opcionais (se vazios, salva como 'Não Informado')
-    const finalImeiNew = imeiNew.trim() || 'Não Informado'
+    const finalImeiNew = entryType === 'supplier' ? 'N/A' : (imeiNew.trim() || 'Não Informado')
     const finalImeiUsed = imeiUsed.trim() || 'Não Informado'
 
-    if (imeiNew.trim() && imeiNew.trim() !== 'Não Informado' && !isValidIMEI(imeiNew)) {
+    if (entryType !== 'supplier' && imeiNew.trim() && imeiNew.trim() !== 'Não Informado' && !isValidIMEI(imeiNew)) {
       triggerNotification('O IMEI do Novo é inválido! Por favor verifique.', 'error')
       return
     }
@@ -1379,14 +1471,24 @@ function App() {
       return
     }
 
-    if (!newCost || calculationData.totalValue <= 0) {
-      triggerNotification('Defina o Custo do Novo e os Valores de Pagamento.', 'error')
-      return
-    }
-
-    if (!calculationData.isValid) {
-      triggerNotification('Verifique as inconsistências de taxas antes de salvar.', 'error')
-      return
+    if (entryType === 'supplier') {
+      if (!supplierCost || parseFloat(supplierCost) <= 0) {
+        triggerNotification('Preencha o Custo da Compra.', 'error')
+        return
+      }
+      if (!supplierVitrine || parseFloat(supplierVitrine) <= 0) {
+        triggerNotification('Preencha o Preço de Vitrine Estimado.', 'error')
+        return
+      }
+    } else {
+      if (!newCost || calculationData.totalValue <= 0) {
+        triggerNotification('Defina o Custo do Novo e os Valores de Pagamento.', 'error')
+        return
+      }
+      if (!calculationData.isValid) {
+        triggerNotification('Verifique as inconsistências de taxas antes de salvar.', 'error')
+        return
+      }
     }
 
     setIsSaving(true)
@@ -1396,32 +1498,32 @@ function App() {
     const newRecord = {
       id: generatedId,
       created_at: generatedCreatedAt,
-      client_name: clientName,
+      client_name: entryType === 'supplier' ? `Fornecedor: ${clientName.trim()}` : clientName,
       imei_new: finalImeiNew,
       imei_used: finalImeiUsed,
-      new_model: newModel,
-      new_storage: newStorage,
-      new_color: newColor,
-      new_cost: parseFloat(newCost),
-      profit_margin: parseFloat(profitMargin) || 800,
-      operational_cost: parseFloat(operationalCost) || 120,
+      new_model: entryType === 'supplier' ? 'COMPRA FORNECEDOR' : newModel,
+      new_storage: entryType === 'supplier' ? 'N/A' : newStorage,
+      new_color: entryType === 'supplier' ? 'N/A' : newColor,
+      new_cost: entryType === 'supplier' ? 0 : parseFloat(newCost),
+      profit_margin: entryType === 'supplier' ? 0 : (parseFloat(profitMargin) || 800),
+      operational_cost: entryType === 'supplier' ? 0 : (parseFloat(operationalCost) || 120),
       used_model: usedModel,
       used_storage: usedStorage,
       used_color: usedColor,
       used_category: usedCategory,
-      additional_value: calculationData.totalValue,
-      gateway: paymentSplits.map(s => `${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}: R$ ${s.value})`).join(' + '),
-      installments: Math.max(...paymentSplits.map(s => s.installments)),
-      applied_rate: calculationData.appliedRate,
-      net_received: calculationData.netReceived,
-      vitrine_price: calculationData.vitrinePrice,
-      max_evaluation: calculationData.maxEvaluation,
+      additional_value: entryType === 'supplier' ? 0 : calculationData.totalValue,
+      gateway: entryType === 'supplier' ? 'Compra Direta' : paymentSplits.map(s => `${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}: R$ ${s.value})`).join(' + '),
+      installments: entryType === 'supplier' ? 0 : Math.max(...paymentSplits.map(s => s.installments)),
+      applied_rate: entryType === 'supplier' ? 0 : calculationData.appliedRate,
+      net_received: entryType === 'supplier' ? 0 : calculationData.netReceived,
+      vitrine_price: entryType === 'supplier' ? parseFloat(supplierVitrine) : calculationData.vitrinePrice,
+      max_evaluation: entryType === 'supplier' ? parseFloat(supplierCost) : calculationData.maxEvaluation,
       battery_health: parseInt(batteryHealth),
       original_screen: originalScreen,
       biometrics_status: biometricsStatus,
       camera_status: cameraStatus,
       body_condition: bodyCondition,
-      payment_splits: paymentSplits 
+      payment_splits: entryType === 'supplier' ? [] : paymentSplits 
     }
 
     try {
@@ -1430,7 +1532,7 @@ function App() {
           .from('evaluations')
           .insert([newRecord])
         if (error) throw error
-        triggerNotification('Avaliação salva no Supabase!')
+        triggerNotification('Compra salva no Supabase!')
       } else {
         await localDb.saveEvaluation(newRecord)
         triggerNotification('Salvo localmente! Dados seguros offline.')
@@ -1440,6 +1542,8 @@ function App() {
       setClientName('')
       setImeiNew('')
       setImeiUsed('')
+      setSupplierCost('')
+      setSupplierVitrine('')
       setPaymentSplits([{ id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }])
       setUsedCategory('Comum')
     } catch (err) {
@@ -1481,62 +1585,84 @@ function App() {
 
   // Carregar registro de volta na UI
   const handleLoadRecord = (record) => {
-    setClientName(record.client_name || record.clientName || '')
-    setImeiNew(record.imei_new || record.imeiNew || '')
-    setImeiUsed(record.imei_used || record.imeiUsed || '')
-    
-    setNewModel(record.new_model || record.newModel || NEW_MODELS[0])
-    setNewStorage(record.new_storage || record.newStorage || STORAGE_OPTIONS[0])
-    setNewColor(record.new_color || record.newColor || APPLE_COLORS[0])
-    setNewCost(String(record.new_cost || record.newCost || ''))
-    
-    let loadedMargin = 800
-    let loadedOpCost = 120
+    const isSupplier = (record.new_model || record.newModel) === 'COMPRA FORNECEDOR' || 
+                       String(record.client_name || record.clientName || '').startsWith('Fornecedor:')
 
-    if (record.profit_margin !== undefined && record.profit_margin !== null) {
-      loadedMargin = record.profit_margin
-      loadedOpCost = record.operational_cost !== undefined ? record.operational_cost : 120
-    } else if (record.profitMargin !== undefined && record.profitMargin !== null) {
-      loadedMargin = record.profitMargin
-      loadedOpCost = record.operationalCost !== undefined ? record.operationalCost : 120
-    } else {
-      const oldCombined = parseFloat(record.operational_cost || record.operationalCost || 920)
-      if (oldCombined === 920) {
-        loadedMargin = 800
-        loadedOpCost = 120
-      } else {
-        loadedMargin = oldCombined >= 120 ? oldCombined - 120 : 0
-        loadedOpCost = oldCombined >= 120 ? 120 : oldCombined
-      }
-    }
-    setProfitMargin(String(loadedMargin))
-    setOperationalCost(String(loadedOpCost))
-
-    let loadedSplits = []
-    if (record.payment_splits && Array.isArray(record.payment_splits)) {
-      loadedSplits = record.payment_splits
-    } else if (record.paymentSplits && Array.isArray(record.paymentSplits)) {
-      loadedSplits = record.paymentSplits
-    } else {
-      const oldVal = String(record.additional_value || record.additionalValue || '')
-      const oldGw = record.gateway || 'Dinheiro / Pix'
-      const oldInst = record.installments || 1
+    setEntryType(isSupplier ? 'supplier' : 'trade-in')
+    if (isSupplier) {
+      setClientName(String(record.client_name || record.clientName || '').replace(/^Fornecedor:\s*/, ''))
+      setSupplierCost(String(record.max_evaluation || record.maxEvaluation || ''))
+      setSupplierVitrine(String(record.vitrine_price || record.vitrinePrice || ''))
       
-      let oldType = 'credit'
-      if (oldInst === 1 && (oldGw === 'Dinheiro / Pix' || (GATEWAY_RATES[oldGw]?.debitRate === record.applied_rate))) {
-        oldType = 'debit'
-      }
+      setImeiNew('')
+      setNewModel(NEW_MODELS[0])
+      setNewStorage(STORAGE_OPTIONS[0])
+      setNewColor(APPLE_COLORS[0])
+      setNewCost('')
+      setProfitMargin('800')
+      setOperationalCost('120')
+      setPaymentSplits([{ id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }])
+    } else {
+      setClientName(record.client_name || record.clientName || '')
+      setImeiNew(record.imei_new || record.imeiNew || '')
+      
+      setSupplierCost('')
+      setSupplierVitrine('')
+      
+      setNewModel(record.new_model || record.newModel || NEW_MODELS[0])
+      setNewStorage(record.new_storage || record.newStorage || STORAGE_OPTIONS[0])
+      setNewColor(record.new_color || record.newColor || APPLE_COLORS[0])
+      setNewCost(String(record.new_cost || record.newCost || ''))
+      
+      let loadedMargin = 800
+      let loadedOpCost = 120
 
-      loadedSplits = [{
-        id: 1,
-        value: oldVal,
-        gateway: oldGw,
-        type: oldType,
-        installments: oldInst
-      }]
+      if (record.profit_margin !== undefined && record.profit_margin !== null) {
+        loadedMargin = record.profit_margin
+        loadedOpCost = record.operational_cost !== undefined ? record.operational_cost : 120
+      } else if (record.profitMargin !== undefined && record.profitMargin !== null) {
+        loadedMargin = record.profitMargin
+        loadedOpCost = record.operationalCost !== undefined ? record.operationalCost : 120
+      } else {
+        const oldCombined = parseFloat(record.operational_cost || record.operationalCost || 920)
+        if (oldCombined === 920) {
+          loadedMargin = 800
+          loadedOpCost = 120
+        } else {
+          loadedMargin = oldCombined >= 120 ? oldCombined - 120 : 0
+          loadedOpCost = oldCombined >= 120 ? 120 : oldCombined
+        }
+      }
+      setProfitMargin(String(loadedMargin))
+      setOperationalCost(String(loadedOpCost))
+
+      let loadedSplits = []
+      if (record.payment_splits && Array.isArray(record.payment_splits)) {
+        loadedSplits = record.payment_splits
+      } else if (record.paymentSplits && Array.isArray(record.paymentSplits)) {
+        loadedSplits = record.paymentSplits
+      } else {
+        const oldVal = String(record.additional_value || record.additionalValue || '')
+        const oldGw = record.gateway || 'Dinheiro / Pix'
+        const oldInst = record.installments || 1
+        
+        let oldType = 'credit'
+        if (oldInst === 1 && (oldGw === 'Dinheiro / Pix' || (GATEWAY_RATES[oldGw]?.debitRate === record.applied_rate))) {
+          oldType = 'debit'
+        }
+
+        loadedSplits = [{
+          id: 1,
+          value: oldVal,
+          gateway: oldGw,
+          type: oldType,
+          installments: oldInst
+        }]
+      }
+      setPaymentSplits(loadedSplits)
     }
-    setPaymentSplits(loadedSplits)
     
+    setImeiUsed(record.imei_used || record.imeiUsed || '')
     setUsedModel(record.used_model || record.usedModel || USED_MODELS[0])
     setUsedStorage(record.used_storage || record.usedStorage || STORAGE_OPTIONS[0])
     setUsedColor(record.used_color || record.usedColor || APPLE_COLORS[0])
@@ -1553,23 +1679,46 @@ function App() {
 
   // Copiar Resumo
   const handleCopySummary = () => {
-    if (!calculationData.isValid) {
-      triggerNotification('Cálculo inconsistente.', 'error')
-      return
-    }
-
     const formatCurrency = (val) => {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
     }
 
-    const splitsList = paymentSplits.map(s => {
-      const val = parseFloat(s.value) || 0
-      return `  - ${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}): ${formatCurrency(val)}`
-    }).join('\n')
-
+    let summaryText = ''
     const usedCategoryTag = usedCategory === 'Saldo' ? ' ⚠️ *[SALDO]*' : ''
 
-    const summaryText = `🍎 *AVALIAÇÃO DE TRADE-IN - Fitch*
+    if (entryType === 'supplier') {
+      summaryText = `📦 *COMPRA DE SEMINOVO (FORNECEDOR) - Fitch*
+--------------------------------------------
+👤 *Fornecedor:* ${clientName || 'Não Informado'}
+
+🔄 *Aparelho Comprado:* ${usedModel} (${usedStorage}) - Cor: ${usedColor}${usedCategoryTag}
+🆔 *IMEI Usado:* ${imeiUsed || 'Não Informado'}
+🔋 *Bateria:* ${batteryHealth}% (${batteryHealth < 80 ? '⚠️ NECESSITA TROCA' : 'Saúde Ok'})
+🖥️ *Tela Original:* ${originalScreen ? 'Sim' : 'Não (Paralela/Trocada)'}
+👤 *Face ID / Touch ID:* ${biometricsStatus.toUpperCase()}
+📷 *Câmeras & Foco:* ${cameraStatus.toUpperCase()}
+🛠️ *Estado da Carcaça:* ${bodyCondition}
+
+--------------------------------------------
+💰 *VALORES:*
+- *Preço de Custo (Pago):* ${formatCurrency(parseFloat(supplierCost) || 0)}
+- *Preço de Vitrine Estimado:* ${formatCurrency(parseFloat(supplierVitrine) || 0)}
+
+--------------------------------------------
+*Gerado em:* ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+*Sistema Fitch Trade-In Manager v3*`
+    } else {
+      if (!calculationData.isValid) {
+        triggerNotification('Cálculo inconsistente.', 'error')
+        return
+      }
+
+      const splitsList = paymentSplits.map(s => {
+        const val = parseFloat(s.value) || 0
+        return `  - ${s.gateway} (${s.type === 'debit' ? 'Débito' : `${s.installments}x`}): ${formatCurrency(val)}`
+      }).join('\n')
+
+      summaryText = `🍎 *AVALIAÇÃO DE TRADE-IN - Fitch*
 --------------------------------------------
 👤 *Cliente:* ${clientName || 'Não Informado'}
 
@@ -1602,6 +1751,7 @@ ${splitsList}
 --------------------------------------------
 *Gerado em:* ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
 *Sistema Fitch Trade-In Manager v3*`
+    }
 
     navigator.clipboard.writeText(summaryText)
       .then(() => {
@@ -2041,20 +2191,46 @@ ${splitsList}
               1. Dados da Venda e Dispositivos
             </h2>
 
+            {/* Seletor do Tipo de Entrada */}
+            <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setEntryType('trade-in')}
+                className={`py-1.5 px-4 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  entryType === 'trade-in'
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-905'
+                }`}
+              >
+                Trade-in (Venda + Troca)
+              </button>
+              <button
+                type="button"
+                onClick={() => setEntryType('supplier')}
+                className={`py-1.5 px-4 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  entryType === 'supplier'
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                    : 'text-slate-500 hover:text-slate-905'
+                }`}
+              >
+                Compra (Fornecedor)
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               
-              {/* Nome do Cliente */}
+              {/* Nome do Cliente / Fornecedor */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Nome Completo do Cliente *
+                  {entryType === 'supplier' ? 'Nome do Fornecedor / Empresa *' : 'Nome Completo do Cliente *'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                    <User className="w-4 h-4" />
+                    {entryType === 'supplier' ? <Archive className="w-4 h-4" /> : <User className="w-4 h-4" />}
                   </span>
                   <input
                     type="text"
-                    placeholder="Nome do cliente para rastreabilidade"
+                    placeholder={entryType === 'supplier' ? "Nome do fornecedor para rastreabilidade" : "Nome do cliente para rastreabilidade"}
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-medium"
@@ -2062,167 +2238,213 @@ ${splitsList}
                 </div>
               </div>
 
-              {/* iPhone Novo Vendido */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Modelo do Novo *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                    <Smartphone className="w-4 h-4" />
-                  </span>
-                  <select
-                    value={newModel}
-                    onChange={(e) => setNewModel(e.target.value)}
-                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
-                  >
-                    {NEW_MODELS.map(model => (
-                      <option key={model} value={model}>{model}</option>
-                    ))}
-                  </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <ChevronDown className="w-4 h-4" />
-                  </span>
-                </div>
-              </div>
+              {entryType === 'trade-in' ? (
+                <>
+                  {/* iPhone Novo Vendido */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Modelo do Novo *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <Smartphone className="w-4 h-4" />
+                      </span>
+                      <select
+                        value={newModel}
+                        onChange={(e) => setNewModel(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
+                      >
+                        {NEW_MODELS.map(model => (
+                          <option key={model} value={model}>{model}</option>
+                        ))}
+                      </select>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Capacidade do Novo */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Capacidade (Novo) *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                    <Sliders className="w-4 h-4" />
-                  </span>
-                  <select
-                    value={newStorage}
-                    onChange={(e) => setNewStorage(e.target.value)}
-                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
-                  >
-                    {STORAGE_OPTIONS.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <ChevronDown className="w-4 h-4" />
-                  </span>
-                </div>
-              </div>
+                  {/* Capacidade do Novo */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Capacidade (Novo) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <Sliders className="w-4 h-4" />
+                      </span>
+                      <select
+                        value={newStorage}
+                        onChange={(e) => setNewStorage(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
+                      >
+                        {STORAGE_OPTIONS.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Cor do Novo */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Cor do Novo *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                    <Palette className="w-4 h-4" />
-                  </span>
-                  <select
-                    value={newColor}
-                    onChange={(e) => setNewColor(e.target.value)}
-                    className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
-                  >
-                    {getColorsForModel(newModel).map(color => (
-                      <option key={color} value={color}>{color}</option>
-                    ))}
-                  </select>
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <ChevronDown className="w-4 h-4" />
-                  </span>
-                </div>
-              </div>
+                  {/* Cor do Novo */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Cor do Novo *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <Palette className="w-4 h-4" />
+                      </span>
+                      <select
+                        value={newColor}
+                        onChange={(e) => setNewColor(e.target.value)}
+                        className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-xl py-3 pl-10 pr-10 text-sm outline-none transition-all duration-150 cursor-pointer focus:ring-1 focus:ring-blue-600/20 font-medium"
+                      >
+                        {getColorsForModel(newModel).map(color => (
+                          <option key={color} value={color}>{color}</option>
+                        ))}
+                      </select>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <ChevronDown className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Custo Real do Novo */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Custo Real do Novo (Tabela) *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
-                    R$
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Custo do novo"
-                    value={newCost}
-                    onChange={(e) => setNewCost(e.target.value)}
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
-                  />
-                </div>
-              </div>
+                  {/* Custo Real do Novo */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Custo Real do Novo (Tabela) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
+                        R$
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Custo do novo"
+                        value={newCost}
+                        onChange={(e) => setNewCost(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
+                      />
+                    </div>
+                  </div>
 
-              {/* Margem de Lucro Combinada */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Margem de Lucro Combinada
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
-                    R$
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Padrão: 800.00"
-                    value={profitMargin}
-                    onChange={(e) => setProfitMargin(e.target.value)}
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
-                  />
-                </div>
-              </div>
+                  {/* Margem de Lucro Combinada */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Margem de Lucro Combinada
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
+                        R$
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Padrão: 800.00"
+                        value={profitMargin}
+                        onChange={(e) => setProfitMargin(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
+                      />
+                    </div>
+                  </div>
 
-              {/* Custos Operacionais / Despesas */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Custos Operacionais / Despesas
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
-                    R$
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Padrão: 120.00"
-                    value={operationalCost}
-                    onChange={(e) => setOperationalCost(e.target.value)}
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
-              </div>
+                  {/* Custos Operacionais / Despesas */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Custos Operacionais / Despesas
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
+                        R$
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Padrão: 120.00"
+                        value={operationalCost}
+                        onChange={(e) => setOperationalCost(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-medium"
+                      />
+                    </div>
+                  </div>
 
-              {/* IMEI Novo */}
-              <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  IMEI do Novo *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">
-                    #
-                  </span>
-                  <input
-                    type="text"
-                    maxLength="15"
-                    placeholder="IMEI de 15 dígitos"
-                    value={imeiNew}
-                    onChange={(e) => setImeiNew(e.target.value.replace(/\D/g, ''))}
-                    onBlur={() => checkIMEIBlacklist(imeiNew, 'new')}
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm font-mono outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
-                  />
-                  {blacklistStatusNew === 'checking' && (
-                    <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Verificando base da Anatel/SIRC...</p>
-                  )}
-                  {blacklistStatusNew === 'clean' && (
-                    <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1">✓ Anatel/SIRC: Aparelho regular sem restrições.</p>
-                  )}
-                  {blacklistStatusNew === 'blocked' && (
-                    <p className="text-[10px] text-rose-700 mt-1 flex items-center gap-1 font-bold">⚠️ Anatel/SIRC: Bloqueado ou impedido (furto/roubo)!</p>
-                  )}
-                </div>
-              </div>
+                  {/* IMEI Novo */}
+                  <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      IMEI do Novo *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs">
+                        #
+                      </span>
+                      <input
+                        type="text"
+                        maxLength="15"
+                        placeholder="IMEI de 15 dígitos"
+                        value={imeiNew}
+                        onChange={(e) => setImeiNew(e.target.value.replace(/\D/g, ''))}
+                        onBlur={() => checkIMEIBlacklist(imeiNew, 'new')}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm font-mono outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
+                      />
+                      {blacklistStatusNew === 'checking' && (
+                        <p className="text-[10px] text-blue-600 mt-1 flex items-center gap-1"><RefreshCw className="w-3 h-3 animate-spin" /> Verificando base da Anatel/SIRC...</p>
+                      )}
+                      {blacklistStatusNew === 'clean' && (
+                        <p className="text-[10px] text-emerald-700 mt-1 flex items-center gap-1">✓ Anatel/SIRC: Aparelho regular sem restrições.</p>
+                      )}
+                      {blacklistStatusNew === 'blocked' && (
+                        <p className="text-[10px] text-rose-700 mt-1 flex items-center gap-1 font-bold">⚠️ Anatel/SIRC: Bloqueado ou impedido (furto/roubo)!</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Custo de Compra (Pago ao Fornecedor) */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Custo da Compra (Pago) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
+                        R$
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Custo pago"
+                        value={supplierCost}
+                        onChange={(e) => setSupplierCost(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preço de Vitrine Estimado */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                      Preço de Vitrine Estimado *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-sm">
+                        R$
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Preço estimado"
+                        value={supplierVitrine}
+                        onChange={(e) => setSupplierVitrine(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600/20 rounded-xl py-3 pl-10 pr-4 text-slate-900 text-sm outline-none transition-all duration-200 placeholder:text-slate-400 font-semibold"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Categoria do Usado */}
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
@@ -2360,169 +2582,229 @@ ${splitsList}
             </div>
 
             {/* SELEÇÃO DE PAGAMENTOS MÚLTIPLOS (SPLITS) */}
-            <div className="bg-white/60 border border-slate-200 rounded-xl p-4 md:p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                  Formas de Pagamento Combinadas *
-                </span>
-                <button
-                  type="button"
-                  onClick={addPaymentSplit}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-300 transition-colors duration-155 flex items-center gap-1 cursor-pointer"
-                >
-                  + Adicionar Pagamento
-                </button>
-              </div>
+            {entryType === 'trade-in' && (
+              <div className="bg-white/60 border border-slate-200 rounded-xl p-4 md:p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                    Formas de Pagamento Combinadas *
+                  </span>
+                  <button
+                    type="button"
+                    onClick={addPaymentSplit}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-300 transition-colors duration-155 flex items-center gap-1 cursor-pointer"
+                  >
+                    + Adicionar Pagamento
+                  </button>
+                </div>
 
-              <div className="space-y-4">
-                {paymentSplits.map((split, index) => {
-                  const availableInsts = GATEWAY_RATES[split.gateway] 
-                    ? Object.keys(GATEWAY_RATES[split.gateway].creditRates).map(Number).sort((a, b) => a - b)
-                    : []
-                  
-                  return (
-                    <div key={split.id} className="relative bg-slate-100/40 border border-slate-200 rounded-xl p-4 space-y-3.5 group/split">
-                      {/* Botão Remover Split */}
-                      {paymentSplits.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePaymentSplit(index)}
-                          className="absolute top-2.5 right-2.5 text-slate-500 hover:text-rose-700 transition-colors duration-150 p-1 rounded hover:bg-slate-100"
-                          title="Remover esta forma de pagamento"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                <div className="space-y-4">
+                  {paymentSplits.map((split, index) => {
+                    const availableInsts = GATEWAY_RATES[split.gateway] 
+                      ? Object.keys(GATEWAY_RATES[split.gateway].creditRates).map(Number).sort((a, b) => a - b)
+                      : []
+                    
+                    return (
+                      <div key={split.id} className="relative bg-slate-100/40 border border-slate-200 rounded-xl p-4 space-y-3.5 group/split">
+                        {/* Botão Remover Split */}
+                        {paymentSplits.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removePaymentSplit(index)}
+                            className="absolute top-2.5 right-2.5 text-slate-500 hover:text-rose-700 transition-colors duration-150 p-1 rounded hover:bg-slate-100"
+                            title="Remover esta forma de pagamento"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                        
-                        {/* Valor do Split */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Valor (R$)</label>
-                          <div className="relative">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">R$</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="Valor"
-                              value={split.value}
-                              onChange={(e) => handleSplitChange(index, 'value', e.target.value)}
-                              className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-lg py-1.5 pl-7 pr-2.5 text-slate-900 text-xs outline-none transition-all placeholder:text-slate-400 font-semibold"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Canal / Gateway */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Canal</label>
-                          <div className="relative">
-                            <select
-                              value={split.gateway}
-                              onChange={(e) => handleSplitChange(index, 'gateway', e.target.value)}
-                              className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer font-semibold"
-                            >
-                              {Object.keys(GATEWAY_RATES).map(gw => (
-                                <option key={gw} value={gw}>{gw}</option>
-                              ))}
-                            </select>
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                              <ChevronDown className="w-3.5 h-3.5" />
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Tipo */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Tipo</label>
-                          <div className="grid grid-cols-2 gap-1">
-                            <button
-                              type="button"
-                              disabled={!GATEWAY_RATES[split.gateway]?.hasDebit}
-                              onClick={() => handleSplitChange(index, 'type', 'debit')}
-                              className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
-                                split.type === 'debit'
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                  : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-35'
-                              }`}
-                            >
-                              Déb
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleSplitChange(index, 'type', 'credit')}
-                              className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
-                                split.type === 'credit'
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                  : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800'
-                              }`}
-                            >
-                              Créd
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Parcelas */}
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Parcelas</label>
-                          {split.type === 'debit' ? (
-                            <div className="w-full bg-white border border-slate-200 text-slate-500 rounded-lg py-1.5 px-2.5 text-xs">
-                              À Vista
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                          
+                          {/* Valor do Split */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Valor (R$)</label>
+                            <div className="relative">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">R$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Valor"
+                                value={split.value}
+                                onChange={(e) => handleSplitChange(index, 'value', e.target.value)}
+                                className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-lg py-1.5 pl-7 pr-2.5 text-slate-900 text-xs outline-none transition-all placeholder:text-slate-400 font-semibold"
+                              />
                             </div>
-                          ) : (
+                          </div>
+
+                          {/* Canal / Gateway */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Canal</label>
                             <div className="relative">
                               <select
-                                value={split.installments}
-                                onChange={(e) => handleSplitChange(index, 'installments', parseInt(e.target.value))}
+                                value={split.gateway}
+                                onChange={(e) => handleSplitChange(index, 'gateway', e.target.value)}
                                 className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer font-semibold"
                               >
-                                {availableInsts.map(inst => (
-                                  <option key={inst} value={inst}>{inst}x</option>
+                                {Object.keys(GATEWAY_RATES).map(gw => (
+                                  <option key={gw} value={gw}>{gw}</option>
                                 ))}
                               </select>
                               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                                 <ChevronDown className="w-3.5 h-3.5" />
                               </span>
                             </div>
+                          </div>
+
+                          {/* Tipo */}
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Tipo</label>
+                            <div className="relative">
+                              <select
+                                value={split.type}
+                                onChange={(e) => handleSplitChange(index, 'type', e.target.value)}
+                                className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer font-semibold"
+                              >
+                                <option value="credit">Crédito</option>
+                                {GATEWAY_RATES[split.gateway]?.hasDebit && (
+                                  <option value="debit">Débito</option>
+                                )}
+                              </select>
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Parcelas */}
+                          {split.type === 'credit' && (
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Parcelas</label>
+                              <div className="relative">
+                                <select
+                                  value={split.installments}
+                                  onChange={(e) => handleSplitChange(index, 'installments', parseInt(e.target.value))}
+                                  className="w-full appearance-none bg-white border border-slate-300 focus:border-blue-600 text-slate-900 rounded-lg py-1.5 pl-2.5 pr-8 text-xs outline-none cursor-pointer font-semibold"
+                                >
+                                  {availableInsts.map(inst => (
+                                    <option key={inst} value={inst}>{inst}x</option>
+                                  ))}
+                                </select>
+                                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </span>
+                              </div>
+                            </div>
                           )}
                         </div>
-
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Resumo Consolidado das Taxas */}
-              {calculationData.isValid && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 border-t border-slate-200 pt-3 gap-2">
-                  <div className="flex gap-4">
-                    <span>Adicional Total: <strong className="text-slate-900">{formatBRL(calculationData.totalValue)}</strong></span>
-                    <span>Líquido Recebido: <strong className="text-emerald-700">{formatBRL(calculationData.netReceived)}</strong></span>
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded self-start sm:self-auto">
-                    Taxa Média Ponderada: {calculationData.appliedRate}%
-                  </span>
+                    )
+                  })}
                 </div>
-              )}
-            </div>
+
+                {/* Resumo Consolidado das Taxas */}
+                {calculationData.isValid && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 border-t border-slate-200 pt-3 gap-2">
+                    <div className="flex gap-4">
+                      <span>Adicional Total: <strong className="text-slate-900">{formatBRL(calculationData.totalValue)}</strong></span>
+                      <span>Líquido Recebido: <strong className="text-emerald-700">{formatBRL(calculationData.netReceived)}</strong></span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded self-start sm:self-auto">
+                      Taxa Média Ponderada: {calculationData.appliedRate}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* EXIBIÇÃO DE RESULTADOS */}
           <div className="space-y-4">
             
-            {/* Erro de Gateway */}
-            {!calculationData.isValid ? (
-              <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4">
-                <AlertTriangle className="w-6 h-6 text-rose-700 shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-rose-800 font-semibold text-sm">Opção Indisponível</h3>
-                  <p className="text-xs text-red-300/80 mt-1">{calculationData.errorMsg}</p>
-                </div>
-              </div>
+            {entryType === 'trade-in' ? (
+              <>
+                {/* Erro de Gateway */}
+                {!calculationData.isValid ? (
+                  <div className="bg-red-950/60 border border-red-500/30 rounded-2xl p-6 flex items-start gap-4">
+                    <AlertTriangle className="w-6 h-6 text-rose-700 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-rose-800 font-semibold text-sm">Opção Indisponível</h3>
+                      <p className="text-xs text-red-300/80 mt-1">{calculationData.errorMsg}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Preço de Vitrine */}
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/80 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-blue-300 group shadow-sm shadow-blue-500/5">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-100/30 transition-all duration-300"></div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">
+                          Preço de Vitrine
+                        </span>
+                        <TrendingUp className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="mt-4">
+                        <h3 className="text-xs text-slate-500 font-medium">Preço de Venda do Usado</h3>
+                        <p className="text-3xl font-extrabold text-blue-900 mt-1 tracking-tight">
+                          {formatBRL(calculationData.vitrinePrice)}
+                        </p>
+                      </div>
+                      <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-slate-200/85 pt-2.5">
+                        <Info className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span>Custo Novo + Margem ({formatBRL(parseFloat(profitMargin) || 0)}) + Despesa ({formatBRL(parseFloat(operationalCost) || 0)}) - Líquido Recebido</span>
+                      </div>
+                    </div>
+
+                    {/* Avaliação Máxima do Usado */}
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200/80 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-emerald-300 group shadow-sm shadow-emerald-500/5">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-100/30 transition-all duration-300"></div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
+                          Proposta ao Cliente
+                        </span>
+                        <DollarSign className="w-4 h-4 text-emerald-600" />
+                      </div>
+                      <div className="mt-4">
+                        <h3 className="text-xs text-slate-500 font-medium">Avaliação Máxima do Usado</h3>
+                        <p className="text-3xl font-extrabold text-emerald-900 mt-1 tracking-tight">
+                          {formatBRL(calculationData.maxEvaluation)}
+                        </p>
+                      </div>
+                      
+                      {/* Badge Inteligente */}
+                      {currentModelAverage && currentModelAverage.count >= 5 && (
+                        <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] p-2.5 rounded-xl flex items-start gap-2 animate-pulse mb-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <span>
+                            <strong>Estoque Crítico ({currentModelAverage.count} unid.):</strong> Margem sugerida reduzida automaticamente em 25% para acelerar o giro.
+                          </span>
+                        </div>
+                      )}
+                      {currentModelAverage ? (
+                        <div className="mt-3 text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <Archive className="w-3.5 h-3.5 text-blue-755 text-blue-700" />
+                            <span>Estoque Histórico: {currentModelAverage.count} unidades</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:justify-between text-[9px] text-slate-500 border-t border-slate-200 pt-1 gap-1">
+                            <span>Médio Pago: <strong className="text-emerald-700">{formatBRL(currentModelAverage.avgCost)}</strong></span>
+                            <span>Média Vitrine: <strong className="text-slate-950">{formatBRL(currentModelAverage.avgVitrine)}</strong></span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
+                          <Info className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>Primeira entrada deste modelo na base.</span>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                )}
+              </>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                {/* Preço de Vitrine */}
+                {/* Preço de Vitrine Estimado */}
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/80 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-blue-300 group shadow-sm shadow-blue-500/5">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-100/30 transition-all duration-300"></div>
                   <div className="flex justify-between items-start">
@@ -2534,58 +2816,34 @@ ${splitsList}
                   <div className="mt-4">
                     <h3 className="text-xs text-slate-500 font-medium">Preço de Venda do Usado</h3>
                     <p className="text-3xl font-extrabold text-blue-900 mt-1 tracking-tight">
-                      {formatBRL(calculationData.vitrinePrice)}
+                      {formatBRL(parseFloat(supplierVitrine) || 0)}
                     </p>
                   </div>
                   <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-slate-200/85 pt-2.5">
                     <Info className="w-3 h-3 text-slate-500 shrink-0" />
-                    <span>Custo Novo + Margem ({formatBRL(parseFloat(profitMargin) || 0)}) + Despesa ({formatBRL(parseFloat(operationalCost) || 0)}) - Líquido Recebido</span>
+                    <span>Valor estimado para revenda na vitrine da loja</span>
                   </div>
                 </div>
 
-                {/* Avaliação Máxima do Usado */}
+                {/* Margem Bruta Estimada */}
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200/80 rounded-2xl p-6 relative overflow-hidden transition-all duration-200 hover:border-emerald-300 group shadow-sm shadow-emerald-500/5">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-100/30 transition-all duration-300"></div>
                   <div className="flex justify-between items-start">
                     <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest">
-                      Proposta ao Cliente
+                      Margem Bruta Estimada
                     </span>
                     <DollarSign className="w-4 h-4 text-emerald-600" />
                   </div>
                   <div className="mt-4">
-                    <h3 className="text-xs text-slate-500 font-medium">Avaliação Máxima do Usado</h3>
+                    <h3 className="text-xs text-slate-500 font-medium">Lucro Bruto Estimado</h3>
                     <p className="text-3xl font-extrabold text-emerald-900 mt-1 tracking-tight">
-                      {formatBRL(calculationData.maxEvaluation)}
+                      {formatBRL((parseFloat(supplierVitrine) || 0) - (parseFloat(supplierCost) || 0))}
                     </p>
                   </div>
-                  
-                  {/* Badge Inteligente */}
-                  {/* Badge Inteligente */}
-                  {currentModelAverage && currentModelAverage.count >= 5 && (
-                    <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] p-2.5 rounded-xl flex items-start gap-2 animate-pulse mb-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Estoque Crítico ({currentModelAverage.count} unid.):</strong> Margem sugerida reduzida automaticamente em 25% para acelerar o giro.
-                      </span>
-                    </div>
-                  )}
-                  {currentModelAverage ? (
-                    <div className="mt-3 text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 font-semibold">
-                        <Archive className="w-3.5 h-3.5 text-blue-755 text-blue-700" />
-                        <span>Estoque Histórico: {currentModelAverage.count} unidades</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:justify-between text-[9px] text-slate-500 border-t border-slate-200 pt-1 gap-1">
-                        <span>Médio Pago: <strong className="text-emerald-700">{formatBRL(currentModelAverage.avgCost)}</strong></span>
-                        <span>Média Vitrine: <strong className="text-slate-950">{formatBRL(currentModelAverage.avgVitrine)}</strong></span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
-                      <Info className="w-3 h-3 text-slate-400 shrink-0" />
-                      <span>Primeira entrada deste modelo na base.</span>
-                    </div>
-                  )}
+                  <div className="mt-3 text-[10px] text-slate-500 flex items-center gap-1.5 border-t border-emerald-200/85 pt-2.5">
+                    <Info className="w-3 h-3 text-slate-500 shrink-0" />
+                    <span>Margem estimada (Vitrine - Custo de Compra)</span>
+                  </div>
                 </div>
 
               </div>
@@ -2609,7 +2867,7 @@ ${splitsList}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3.5 px-6 rounded-xl text-sm font-semibold tracking-tight transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg shadow-blue-600/10"
               >
                 <Database className="w-4 h-4" />
-                {isSaving ? 'Salvando...' : 'Confirmar & Salvar Venda'}
+                {isSaving ? 'Salvando...' : entryType === 'supplier' ? 'Confirmar & Salvar Compra' : 'Confirmar & Salvar Venda'}
               </button>
             </div>
 
@@ -2887,20 +3145,31 @@ ${splitsList}
 
                       {/* Novo Vendido */}
                       <td className="py-3 px-4">
-                        <span className="font-medium text-slate-700 block font-semibold">
-                          {record.new_model || record.newModel} ({record.new_storage || record.newStorage || '128GB'})
-                        </span>
-                        <div className="text-[10px] text-slate-500 space-y-0.5">
-                          <span>Cor: {record.new_color || record.newColor || 'N/D'}</span>
-                          <span className="block font-mono text-slate-500">IMEI: {record.imei_new || record.imeiNew || 'N/D'}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500 block mt-1">
-                          <span>Custo: {formatBRL(record.new_cost || record.newCost)}</span>
-                          <div className="text-[9px] text-slate-500 space-y-0.5 mt-0.5">
-                            <span>Margem Lucro: {formatBRL(record.profit_margin !== undefined ? record.profit_margin : (record.profitMargin !== undefined ? record.profitMargin : 800))}</span>
-                            <span className="block">Despesa Op: {formatBRL(record.operational_cost !== undefined ? record.operational_cost : (record.operationalCost !== undefined ? record.operationalCost : 120))}</span>
+                        {(record.new_model === 'COMPRA FORNECEDOR' || record.newModel === 'COMPRA FORNECEDOR') ? (
+                          <div className="space-y-1">
+                            <span className="bg-slate-100 text-slate-800 border border-slate-300 text-[10px] font-extrabold px-2 py-0.5 rounded block w-fit">
+                              📦 COMPRA FORNECEDOR
+                            </span>
+                            <span className="text-[10px] text-slate-500 block">Estoque Direto</span>
                           </div>
-                        </div>
+                        ) : (
+                          <>
+                            <span className="font-medium text-slate-700 block font-semibold">
+                              {record.new_model || record.newModel} ({record.new_storage || record.newStorage || '128GB'})
+                            </span>
+                            <div className="text-[10px] text-slate-500 space-y-0.5">
+                              <span>Cor: {record.new_color || record.newColor || 'N/D'}</span>
+                              <span className="block font-mono text-slate-500">IMEI: {record.imei_new || record.imeiNew || 'N/D'}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 block mt-1">
+                              <span>Custo: {formatBRL(record.new_cost || record.newCost)}</span>
+                              <div className="text-[9px] text-slate-500 space-y-0.5 mt-0.5">
+                                <span>Margem Lucro: {formatBRL(record.profit_margin !== undefined ? record.profit_margin : (record.profitMargin !== undefined ? record.profitMargin : 800))}</span>
+                                <span className="block">Despesa Op: {formatBRL(record.operational_cost !== undefined ? record.operational_cost : (record.operationalCost !== undefined ? record.operationalCost : 120))}</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </td>
 
                       {/* Usado */}
@@ -2942,19 +3211,25 @@ ${splitsList}
 
                       {/* Pagamento Fracionado */}
                       <td className="py-3 px-4 max-w-[220px]">
-                        <span className="text-slate-700 font-bold block">{formatBRL(record.additional_value || record.additionalValue)}</span>
-                        {record.payment_splits && Array.isArray(record.payment_splits) ? (
-                          <div className="mt-1 space-y-0.5">
-                            {record.payment_splits.map((s, idx) => (
-                              <span key={idx} className="text-[9px] text-slate-500 block leading-tight truncate">
-                                • {s.gateway} ({s.type === 'debit' ? 'Déb' : `${s.installments}x`}): {formatBRL(parseFloat(s.value) || 0)}
-                              </span>
-                            ))}
-                          </div>
+                        {(record.new_model === 'COMPRA FORNECEDOR' || record.newModel === 'COMPRA FORNECEDOR') ? (
+                          <span className="text-slate-500 text-xs italic block">Custo Pago: {formatBRL(record.max_evaluation || record.maxEvaluation)}</span>
                         ) : (
-                          <span className="text-[10px] text-slate-500 block truncate">
-                            {record.gateway} ({record.installments === 1 && (record.gateway === 'Dinheiro / Pix' || record.applied_rate === 0) ? 'Débito' : `${record.installments}x`})
-                          </span>
+                          <>
+                            <span className="text-slate-700 font-bold block">{formatBRL(record.additional_value || record.additionalValue)}</span>
+                            {record.payment_splits && Array.isArray(record.payment_splits) ? (
+                              <div className="mt-1 space-y-0.5">
+                                {record.payment_splits.map((s, idx) => (
+                                  <span key={idx} className="text-[9px] text-slate-500 block leading-tight truncate">
+                                    • {s.gateway} ({s.type === 'debit' ? 'Déb' : `${s.installments}x`}): {formatBRL(parseFloat(s.value) || 0)}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-500 block truncate">
+                                {record.gateway} ({record.installments === 1 && (record.gateway === 'Dinheiro / Pix' || record.applied_rate === 0) ? 'Débito' : `${record.installments}x`})
+                              </span>
+                            )}
+                          </>
                         )}
                       </td>
 
