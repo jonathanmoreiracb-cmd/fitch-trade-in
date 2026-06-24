@@ -1338,7 +1338,8 @@ function App() {
   const inventoryStats = useMemo(() => {
     const stats = {}
     evaluations.forEach(item => {
-      const key = `${item.used_model} ${item.used_storage}`
+      const cat = item.used_category || item.usedCategory || 'Comum'
+      const key = `${item.used_model} ${item.used_storage} - ${cat}`
       const evalVal = parseFloat(item.max_evaluation || item.maxEvaluation || 0)
       const vitrineVal = parseFloat(item.vitrine_price || item.vitrinePrice || 0)
       
@@ -1346,6 +1347,7 @@ function App() {
         stats[key] = {
           model: item.used_model || item.usedModel,
           storage: item.used_storage || item.usedStorage,
+          category: cat,
           count: 0,
           totalEval: 0,
           totalVitrine: 0
@@ -1364,10 +1366,13 @@ function App() {
   }, [evaluations])
 
   const currentModelAverage = useMemo(() => {
-    const key = `${usedModel} ${usedStorage}`
-    const match = inventoryStats.find(item => `${item.model} ${item.storage}` === key)
-    return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count } : null
-  }, [usedModel, usedStorage, inventoryStats])
+    const match = inventoryStats.find(item => 
+      (item.model === usedModel) && 
+      (item.storage === usedStorage) && 
+      (item.category === usedCategory)
+    )
+    return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count, category: match.category } : null
+  }, [usedModel, usedStorage, usedCategory, inventoryStats])
 
   // Ajuste de margem dinâmico baseado em estoque crítico (giro rápido)
   useEffect(() => {
@@ -2775,7 +2780,7 @@ ${splitsList}
                         <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] p-2.5 rounded-xl flex items-start gap-2 animate-pulse mb-2">
                           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                           <span>
-                            <strong>Estoque Crítico ({currentModelAverage.count} unid.):</strong> Margem sugerida reduzida automaticamente em 25% para acelerar o giro.
+                            <strong>Estoque Crítico ({currentModelAverage.category === 'Saldo' ? 'Saldo' : 'Comum'}) ({currentModelAverage.count} unid.):</strong> Margem sugerida reduzida automaticamente em 25% para acelerar o giro.
                           </span>
                         </div>
                       )}
@@ -2783,7 +2788,7 @@ ${splitsList}
                         <div className="mt-3 text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg flex flex-col gap-1">
                           <div className="flex items-center gap-1.5 font-semibold">
                             <Archive className="w-3.5 h-3.5 text-blue-755 text-blue-700" />
-                            <span>Estoque Histórico: {currentModelAverage.count} unidades</span>
+                            <span>Estoque Histórico ({currentModelAverage.category === 'Saldo' ? 'Saldo' : 'Comum'}): {currentModelAverage.count} unidades</span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:justify-between text-[9px] text-slate-500 border-t border-slate-200 pt-1 gap-1">
                             <span>Médio Pago: <strong className="text-emerald-700">{formatBRL(currentModelAverage.avgCost)}</strong></span>
@@ -3062,9 +3067,16 @@ ${splitsList}
             ) : (
               <div className="max-h-[260px] overflow-y-auto pr-1 space-y-2.5">
                 {inventoryStats.map((item) => (
-                  <div key={`${item.model}-${item.storage}`} className="flex justify-between items-center bg-white/50 border border-slate-200 rounded-lg p-3 hover:border-slate-200 transition-colors">
+                  <div key={`${item.model}-${item.storage}-${item.category}`} className="flex justify-between items-center bg-white/50 border border-slate-200 rounded-lg p-3 hover:border-slate-200 transition-colors">
                     <div>
-                      <span className="text-xs font-bold text-slate-900 block">{item.model}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-900">{item.model}</span>
+                        {item.category === 'Saldo' && (
+                          <span className="bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[9px] font-black px-1.5 py-0.5 rounded leading-none">
+                            SALDO
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] text-slate-500 font-mono block">{item.storage} • {item.count} unidade(s)</span>
                       <span className="text-[9px] text-slate-500 block mt-0.5">
                         Médio Pago (Custo): <strong className="text-emerald-500">{formatBRL(item.avgCost)}</strong>
