@@ -24,7 +24,9 @@ import {
   Sliders,
   Archive,
   Palette,
-  Printer
+  Printer,
+  Edit3,
+  X
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
 import logo from './assets/logo.png'
@@ -255,6 +257,7 @@ function App() {
 
   // Tipo de Entrada (Venda com Trade-in ou Compra de Fornecedor)
   const [entryType, setEntryType] = useState('trade-in')
+  const [editingRecordId, setEditingRecordId] = useState(null)
   const [supplierCost, setSupplierCost] = useState('')
   const [supplierVitrine, setSupplierVitrine] = useState('')
 
@@ -1497,12 +1500,13 @@ function App() {
     }
 
     setIsSaving(true)
-    const generatedId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)
-    const generatedCreatedAt = new Date().toISOString()
+    const originalRecord = evaluations.find(item => item.id === editingRecordId)
+    const recordId = editingRecordId || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9))
+    const recordCreatedAt = originalRecord ? (originalRecord.created_at || originalRecord.createdAt) : new Date().toISOString()
 
     const newRecord = {
-      id: generatedId,
-      created_at: generatedCreatedAt,
+      id: recordId,
+      created_at: recordCreatedAt,
       client_name: entryType === 'supplier' ? `Fornecedor: ${clientName.trim()}` : clientName,
       imei_new: finalImeiNew,
       imei_used: finalImeiUsed,
@@ -1533,17 +1537,33 @@ function App() {
 
     try {
       if (isSupabaseConfigured && dbStatus.connected) {
-        const { error } = await supabase
-          .from('evaluations')
-          .insert([newRecord])
+        let error;
+        if (editingRecordId) {
+          const { error: err } = await supabase
+            .from('evaluations')
+            .update(newRecord)
+            .eq('id', editingRecordId)
+          error = err
+        } else {
+          const { error: err } = await supabase
+            .from('evaluations')
+            .insert([newRecord])
+          error = err
+        }
         if (error) throw error
-        triggerNotification('Compra salva no Supabase!')
+        triggerNotification(editingRecordId ? 'Alterações salvas no Supabase!' : 'Lançamento salvo no Supabase!')
       } else {
-        await localDb.saveEvaluation(newRecord)
-        triggerNotification('Salvo localmente! Dados seguros offline.')
+        if (editingRecordId) {
+          await localDb.updateEvaluation(editingRecordId, newRecord)
+          triggerNotification('Alterações salvas localmente offline!')
+        } else {
+          await localDb.saveEvaluation(newRecord)
+          triggerNotification('Salvo localmente! Dados seguros offline.')
+        }
       }
       loadEvaluations()
       
+      setEditingRecordId(null)
       setClientName('')
       setImeiNew('')
       setImeiUsed('')
@@ -1554,9 +1574,22 @@ function App() {
     } catch (err) {
       console.error('Error saving:', err)
       try {
-        await localDb.saveEvaluation(newRecord)
-        triggerNotification(`Erro na nuvem: ${err.message || String(err)}. Salvo localmente!`, 'warning')
+        if (editingRecordId) {
+          await localDb.updateEvaluation(editingRecordId, newRecord)
+          triggerNotification(`Erro na nuvem: ${err.message || String(err)}. Alterações salvas localmente!`, 'warning')
+        } else {
+          await localDb.saveEvaluation(newRecord)
+          triggerNotification(`Erro na nuvem: ${err.message || String(err)}. Salvo localmente!`, 'warning')
+        }
         loadEvaluations()
+        setEditingRecordId(null)
+        setClientName('')
+        setImeiNew('')
+        setImeiUsed('')
+        setSupplierCost('')
+        setSupplierVitrine('')
+        setPaymentSplits([{ id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }])
+        setUsedCategory('Comum')
       } catch (localErr) {
         triggerNotification(`Erro ao salvar localmente: ${localErr.message || String(localErr)}`, 'error')
       }
@@ -1590,6 +1623,10 @@ function App() {
 
   // Carregar registro de volta na UI
   const handleLoadRecord = (record) => {
+    setEditingRecordId(record.id)
+    setActiveTab('simulator')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
     const isSupplier = (record.new_model || record.newModel) === 'COMPRA FORNECEDOR' || 
                        String(record.client_name || record.clientName || '').startsWith('Fornecedor:')
 
@@ -1679,7 +1716,33 @@ function App() {
     setCameraStatus(record.camera_status || 'ok')
     setBodyCondition(record.body_condition || 'Excelente')
 
-    triggerNotification('Registro carregado com sucesso!')
+    triggerNotification('Registro carregado para edição!')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingRecordId(null)
+    setClientName('')
+    setImeiNew('')
+    setImeiUsed('')
+    setSupplierCost('')
+    setSupplierVitrine('')
+    setNewModel(NEW_MODELS[0])
+    setNewStorage(STORAGE_OPTIONS[0])
+    setNewColor(APPLE_COLORS[0])
+    setNewCost('')
+    setProfitMargin('800')
+    setOperationalCost('120')
+    setPaymentSplits([{ id: 1, value: '', gateway: 'Dinheiro / Pix', type: 'credit', installments: 1 }])
+    setUsedModel(USED_MODELS[5])
+    setUsedStorage(STORAGE_OPTIONS[0])
+    setUsedColor(APPLE_COLORS[0])
+    setUsedCategory('Comum')
+    setBatteryHealth(85)
+    setOriginalScreen(true)
+    setBiometricsStatus('ok')
+    setCameraStatus('ok')
+    setBodyCondition('Excelente')
+    triggerNotification('Edição cancelada.')
   }
 
   // Copiar Resumo
@@ -2195,6 +2258,25 @@ ${splitsList}
               <Calculator className="w-5 h-5 text-blue-600" />
               1. Dados da Venda e Dispositivos
             </h2>
+
+            {editingRecordId && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-center justify-between text-xs text-amber-850 animate-fade-in shadow-sm shadow-amber-500/5">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-amber-600 animate-pulse shrink-0" />
+                  <span>
+                    Você está <strong>editando</strong> o lançamento de: <strong className="text-amber-900">{clientName || 'Cliente/Fornecedor'}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancelar
+                </button>
+              </div>
+            )}
 
             {/* Seletor do Tipo de Entrada */}
             <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
@@ -3260,10 +3342,10 @@ ${splitsList}
                         <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleLoadRecord(record)}
-                            title="Recarregar venda no painel"
+                            title="Editar lançamento"
                             className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition-colors"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteEvaluation(record.id)}

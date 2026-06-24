@@ -60,6 +60,25 @@ export const localDb = {
     }
   },
 
+  async updateEvaluation(id, updatedData) {
+    try {
+      const evaluations = await this.getEvaluations()
+      const idx = evaluations.findIndex(item => item.id === id)
+      if (idx !== -1) {
+        evaluations[idx] = {
+          ...evaluations[idx],
+          ...updatedData
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(evaluations))
+        return evaluations[idx]
+      }
+      return null
+    } catch (e) {
+      console.error('Error updating in localStorage', e)
+      throw e
+    }
+  },
+
   async deleteEvaluation(id) {
     try {
       const evaluations = await this.getEvaluations()
