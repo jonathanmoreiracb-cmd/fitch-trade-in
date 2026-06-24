@@ -295,6 +295,10 @@ function App() {
   const [evaluations, setEvaluations] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterCategory, setFilterCategory] = useState('all')
+  const [filterEntryType, setFilterEntryType] = useState('all')
+  const [filterModel, setFilterModel] = useState('all')
+  const [sortBy, setSortBy] = useState('date-desc')
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const triggerNotification = (message, type = 'success') => {
@@ -1832,21 +1836,82 @@ ${splitsList}
       })
   }
 
-  // Filtragem
+  // Filtragem e Ordenação
   const filteredEvaluations = useMemo(() => {
-    if (!searchQuery.trim()) return evaluations
-    const query = searchQuery.toLowerCase()
-    return evaluations.filter(record => {
-      const client = (record.client_name || record.clientName || '').toLowerCase()
-      const imeiN = (record.imei_new || record.imeiNew || '').toLowerCase()
-      const imeiU = (record.imei_used || record.imeiUsed || '').toLowerCase()
-      const modN = (record.new_model || record.newModel || '').toLowerCase()
-      const modU = (record.used_model || record.usedModel || '').toLowerCase()
-      const colN = (record.new_color || record.newColor || '').toLowerCase()
-      const colU = (record.used_color || record.usedColor || '').toLowerCase()
-      return client.includes(query) || imeiN.includes(query) || imeiU.includes(query) || modN.includes(query) || modU.includes(query) || colN.includes(query) || colU.includes(query)
+    let result = [...evaluations]
+
+    // 1. Filtro de Busca de Texto
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(record => {
+        const client = (record.client_name || record.clientName || '').toLowerCase()
+        const imeiN = (record.imei_new || record.imeiNew || '').toLowerCase()
+        const imeiU = (record.imei_used || record.imeiUsed || '').toLowerCase()
+        const modN = (record.new_model || record.newModel || '').toLowerCase()
+        const modU = (record.used_model || record.usedModel || '').toLowerCase()
+        const colN = (record.new_color || record.newColor || '').toLowerCase()
+        const colU = (record.used_color || record.usedColor || '').toLowerCase()
+        return client.includes(query) || imeiN.includes(query) || imeiU.includes(query) || modN.includes(query) || modU.includes(query) || colN.includes(query) || colU.includes(query)
+      })
+    }
+
+    // 2. Filtro de Categoria (Comum vs Saldo)
+    if (filterCategory !== 'all') {
+      result = result.filter(record => {
+        const cat = record.used_category || record.usedCategory || 'Comum'
+        return cat === filterCategory
+      })
+    }
+
+    // 3. Filtro de Tipo (Trade-in vs Compra Fornecedor)
+    if (filterEntryType !== 'all') {
+      result = result.filter(record => {
+        const isSupplier = (record.new_model || record.newModel) === 'COMPRA FORNECEDOR' || 
+                           String(record.client_name || record.clientName || '').startsWith('Fornecedor:')
+        return filterEntryType === 'supplier' ? isSupplier : !isSupplier
+      })
+    }
+
+    // 4. Filtro de Modelo Usado
+    if (filterModel !== 'all') {
+      result = result.filter(record => {
+        const model = record.used_model || record.usedModel || ''
+        return model === filterModel
+      })
+    }
+
+    // 5. Ordenação
+    result.sort((a, b) => {
+      if (sortBy === 'date-desc') {
+        const dateA = new Date(a.created_at || a.createdAt || 0)
+        const dateB = new Date(b.created_at || b.createdAt || 0)
+        return dateB - dateA
+      } else if (sortBy === 'date-asc') {
+        const dateA = new Date(a.created_at || a.createdAt || 0)
+        const dateB = new Date(b.created_at || b.createdAt || 0)
+        return dateA - dateB
+      } else if (sortBy === 'model-used') {
+        const modA = (a.used_model || a.usedModel || '').toLowerCase()
+        const modB = (b.used_model || b.usedModel || '').toLowerCase()
+        return modA.localeCompare(modB)
+      } else if (sortBy === 'model-new') {
+        const modA = (a.new_model || a.newModel || '').toLowerCase()
+        const modB = (b.new_model || b.newModel || '').toLowerCase()
+        return modA.localeCompare(modB)
+      } else if (sortBy === 'vitrine-desc') {
+        const valA = parseFloat(a.vitrine_price || a.vitrinePrice || 0)
+        const valB = parseFloat(b.vitrine_price || b.vitrinePrice || 0)
+        return valB - valA
+      } else if (sortBy === 'vitrine-asc') {
+        const valA = parseFloat(a.vitrine_price || a.vitrinePrice || 0)
+        const valB = parseFloat(b.vitrine_price || b.vitrinePrice || 0)
+        return valA - valB
+      }
+      return 0
     })
-  }, [evaluations, searchQuery])
+
+    return result
+  }, [evaluations, searchQuery, filterCategory, filterEntryType, filterModel, sortBy])
 
   // Cálculo Automático de Grade e Sugestão de Crédito de Seminovos
   const checklistGradeData = useMemo(() => {
@@ -3203,6 +3268,78 @@ ${splitsList}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium placeholder:text-slate-400"
               />
+            </div>
+          </div>
+
+          {/* Barra de Filtros e Ordenação */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+              
+              {/* Filtro por Categoria */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Categoria</span>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="bg-white border border-slate-350 focus:border-blue-600 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 outline-none cursor-pointer font-semibold"
+                >
+                  <option value="all">Todas as Categorias</option>
+                  <option value="Comum">Usado Comum</option>
+                  <option value="Saldo">iPhone de Saldo</option>
+                </select>
+              </div>
+
+              {/* Filtro por Tipo */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tipo</span>
+                <select
+                  value={filterEntryType}
+                  onChange={(e) => setFilterEntryType(e.target.value)}
+                  className="bg-white border border-slate-350 focus:border-blue-600 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 outline-none cursor-pointer font-semibold"
+                >
+                  <option value="all">Todos os Lançamentos</option>
+                  <option value="trade-in">Trade-ins (Clientes)</option>
+                  <option value="supplier">Compras (Fornecedores)</option>
+                </select>
+              </div>
+
+              {/* Filtro por Modelo */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Modelo Usado</span>
+                <select
+                  value={filterModel}
+                  onChange={(e) => setFilterModel(e.target.value)}
+                  className="bg-white border border-slate-350 focus:border-blue-600 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 outline-none cursor-pointer font-semibold truncate"
+                >
+                  <option value="all">Todos os Modelos</option>
+                  {USED_MODELS.map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Ordenação */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ordenar Por</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-white border border-slate-350 focus:border-blue-600 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 outline-none cursor-pointer font-semibold"
+                >
+                  <option value="date-desc">Mais Recentes</option>
+                  <option value="date-asc">Mais Antigos</option>
+                  <option value="model-used">Modelo Usado (A-Z)</option>
+                  <option value="model-new">Modelo Vendido (A-Z)</option>
+                  <option value="vitrine-desc">Preço Vitrine (Maior)</option>
+                  <option value="vitrine-asc">Preço Vitrine (Menor)</option>
+                </select>
+              </div>
+
+            </div>
+
+            {/* Contador de Lançamentos */}
+            <div className="text-right text-[11px] text-slate-500 font-semibold self-end lg:self-center border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-200">
+              Exibindo <span className="text-blue-600 font-extrabold">{filteredEvaluations.length}</span> de <span className="text-slate-700 font-bold">{evaluations.length}</span> lançamentos
             </div>
           </div>
 
