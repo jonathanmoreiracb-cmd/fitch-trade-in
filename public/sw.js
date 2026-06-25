@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitch-trade-in-v24';
+const CACHE_NAME = 'fitch-trade-in-v25';
 const ASSETS = [
   '/',
   '/index.html'

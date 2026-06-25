@@ -299,6 +299,10 @@ function App() {
   const [filterEntryType, setFilterEntryType] = useState('all')
   const [filterModel, setFilterModel] = useState('all')
   const [sortBy, setSortBy] = useState('date-desc')
+  const [stockSearchQuery, setStockSearchQuery] = useState('')
+  const [stockFilterCategory, setStockFilterCategory] = useState('all')
+  const [stockPricingMode, setStockPricingMode] = useState('retail')
+  const [selectedStockKeys, setSelectedStockKeys] = useState([])
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' })
 
   const triggerNotification = (message, type = 'success') => {
@@ -1350,6 +1354,10 @@ function App() {
       const evalVal = parseFloat(item.max_evaluation || item.maxEvaluation || 0)
       const vitrineVal = parseFloat(item.vitrine_price || item.vitrinePrice || 0)
       
+      const opCostVal = ((item.new_model || item.newModel) === 'COMPRA FORNECEDOR') 
+        ? 120 
+        : parseFloat(item.operational_cost !== undefined ? item.operational_cost : (item.operationalCost !== undefined ? item.operationalCost : 120))
+
       if (!stats[key]) {
         stats[key] = {
           model: item.used_model || item.usedModel,
@@ -1357,18 +1365,21 @@ function App() {
           category: cat,
           count: 0,
           totalEval: 0,
-          totalVitrine: 0
+          totalVitrine: 0,
+          totalOpCost: 0
         }
       }
       stats[key].count += 1
       stats[key].totalEval += evalVal
       stats[key].totalVitrine += vitrineVal
+      stats[key].totalOpCost += opCostVal
     })
     
     return Object.values(stats).map(item => ({
       ...item,
       avgCost: item.totalEval / item.count,
-      avgVitrine: item.totalVitrine / item.count
+      avgVitrine: item.totalVitrine / item.count,
+      avgOpCost: item.totalOpCost / item.count
     })).sort((a, b) => b.count - a.count)
   }, [evaluations])
 
@@ -1380,6 +1391,19 @@ function App() {
     )
     return match ? { avgCost: match.avgCost, avgVitrine: match.avgVitrine, count: match.count, category: match.category } : null
   }, [usedModel, usedStorage, usedCategory, inventoryStats])
+
+  // Filtragem específica do painel de estoque/atacado
+  const filteredStockStats = useMemo(() => {
+    let result = [...inventoryStats]
+    if (stockSearchQuery.trim()) {
+      const q = stockSearchQuery.toLowerCase()
+      result = result.filter(item => item.model.toLowerCase().includes(q))
+    }
+    if (stockFilterCategory !== 'all') {
+      result = result.filter(item => item.category === stockFilterCategory)
+    }
+    return result
+  }, [inventoryStats, stockSearchQuery, stockFilterCategory])
 
   // Ajuste de margem dinâmico baseado em estoque crítico (giro rápido)
   useEffect(() => {
@@ -1747,6 +1771,273 @@ function App() {
     setCameraStatus('ok')
     setBodyCondition('Excelente')
     triggerNotification('Edição cancelada.')
+  }
+
+  // Gerar Orçamento/Planilha em PDF para Atacado
+  const handleGenerateQuotePDF = () => {
+    if (selectedStockKeys.length === 0) {
+      triggerNotification('Nenhum item selecionado para o orçamento.', 'error')
+      return
+    }
+
+    const partner = window.prompt('Digite o nome do Fornecedor / Parceiro Comercial para o orçamento:', '')
+    if (partner === null) return // Cancelado
+
+    const selectedItems = inventoryStats.filter(item => 
+      selectedStockKeys.includes(`${item.model}-${item.storage}-${item.category}`)
+    )
+
+    if (selectedItems.length === 0) {
+      triggerNotification('Nenhum item válido encontrado.', 'error')
+      return
+    }
+
+    const printWindow = window.open('', '_blank', 'width=850,height=800')
+    if (!printWindow) {
+      triggerNotification('Bloqueador de pop-ups ativo! Permita pop-ups para gerar o PDF.', 'error')
+      return
+    }
+
+    const formatCurrency = (val) => {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+    }
+
+    const tableRows = selectedItems.map(item => {
+      const unitPrice = stockPricingMode === 'wholesale' 
+        ? (item.avgVitrine - item.avgOpCost) 
+        : item.avgVitrine
+      const subtotal = unitPrice * item.count
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px; font-weight: 600; color: #1e293b; text-align: left;">
+            ${item.model} 
+            ${item.category === 'Saldo' ? '<span style="background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 9px; font-weight: 900; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">SALDO</span>' : ''}
+          </td>
+          <td style="padding: 10px; text-align: center; color: #475569;">${item.storage}</td>
+          <td style="padding: 10px; text-align: center; color: #475569;">${item.count}</td>
+          <td style="padding: 10px; text-align: right; color: #475569; font-family: monospace;">${formatCurrency(unitPrice)}</td>
+          <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold; font-family: monospace;">${formatCurrency(subtotal)}</td>
+        </tr>
+      `
+    }).join('')
+
+    const totalQty = selectedItems.reduce((acc, item) => acc + item.count, 0)
+    const totalVal = selectedItems.reduce((acc, item) => {
+      const price = stockPricingMode === 'wholesale' ? (item.avgVitrine - item.avgOpCost) : item.avgVitrine
+      return acc + (price * item.count)
+    }, 0)
+
+    const dateStr = new Date().toLocaleDateString('pt-BR')
+    const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Orçamento de Seminovos - Fitch</title>
+        <style>
+          body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 40px;
+            color: #0f172a;
+            background-color: #fff;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo-badge {
+            background-color: #0f172a;
+            color: #fff;
+            padding: 8px 16px;
+            font-weight: 800;
+            border-radius: 50px;
+            font-size: 16px;
+            letter-spacing: 0.05em;
+          }
+          .title-block {
+            text-align: right;
+          }
+          .title {
+            font-size: 20px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin: 0;
+            letter-spacing: 0.02em;
+          }
+          .subtitle {
+            font-size: 11px;
+            color: #64748b;
+            margin: 5px 0 0 0;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-cols: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            font-size: 12px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 12px;
+          }
+          .info-grid div span {
+            display: block;
+            margin-bottom: 5px;
+          }
+          .table-container {
+            margin-bottom: 35px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+          th {
+            background-color: #0f172a;
+            color: #ffffff;
+            padding: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.05em;
+          }
+          .summary-card {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 15px 20px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+          }
+          .summary-title {
+            font-size: 11px;
+            color: #475569;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+          }
+          .summary-value {
+            font-size: 20px;
+            font-weight: 900;
+            color: #0f172a;
+            font-family: monospace;
+          }
+          .footer-note {
+            font-size: 10px;
+            color: #64748b;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+            margin-top: 50px;
+          }
+          .no-print-btn {
+            background-color: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.15s;
+          }
+          .no-print-btn:hover {
+            background-color: #1d4ed8;
+          }
+          @media print {
+            .no-print-btn {
+              display: none;
+            }
+            body {
+              margin: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <button class="no-print-btn" onclick="window.print()">
+          🖨️ Imprimir / Salvar PDF
+        </button>
+        
+        <div class="header">
+          <div class="logo-badge">FITCH</div>
+          <div class="title-block">
+            <h1 class="title">Tabela de Orçamento</h1>
+            <p class="subtitle">Seminovos em Estoque</p>
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div>
+            <span><strong>Destinatário (Parceiro):</strong> ${partner || 'Não Informado'}</span>
+            <span><strong>Emitido por:</strong> Fitch Trade-In Manager</span>
+          </div>
+          <div style="text-align: right;">
+            <span><strong>Data de Emissão:</strong> ${dateStr} às ${timeStr}</span>
+            <span><strong>Tipo de Preço:</strong> ${stockPricingMode === 'wholesale' ? 'Atacado (Sem despesas operacionais)' : 'Varejo (Vitrine Padrão)'}</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: left; border-radius: 6px 0 0 6px;">Aparelho Usado</th>
+                <th>Capacidade</th>
+                <th>Quantidade</th>
+                <th style="text-align: right;">Preço Unitário</th>
+                <th style="text-align: right; border-radius: 0 6px 6px 0;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="summary-card">
+          <div>
+            <span class="summary-title">Total de Dispositivos</span>
+            <div style="font-size: 18px; font-weight: 800; color: #334155; margin-top: 5px;">${totalQty} unidade(s)</div>
+          </div>
+          <div style="text-align: right;">
+            <span class="summary-title">Valor Consolidado</span>
+            <div class="summary-value">${formatCurrency(totalVal)}</div>
+          </div>
+        </div>
+
+        <p style="font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 30px; text-align: justify;">
+          * Este documento representa uma cotação formal com base no estoque disponível na data e hora da emissão. Os preços informados refletem a modalidade de <strong>${stockPricingMode === 'wholesale' ? 'Atacado' : 'Varejo'}</strong> e estão sujeitos a alterações com base na rotatividade de vendas diárias.
+        </p>
+
+        <div class="footer-note">
+          Fitch Trade-In Manager • Relatório Oficial de Distribuição de Estoque
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `
+
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
   }
 
   // Copiar Resumo
@@ -2303,6 +2594,20 @@ ${splitsList}
             <ListTodo className="w-4 h-4" />
             Checklist de Seminovos
             {activeTab === 'checklist' && (
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-t-full"></div>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('estoque')}
+            className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
+              activeTab === 'estoque' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Archive className="w-4 h-4" />
+            Estoque & Atacado
+            {activeTab === 'estoque' && (
               <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-t-full"></div>
             )}
           </button>
@@ -3204,10 +3509,19 @@ ${splitsList}
 
           {/* Painel de Inventário */}
           <div className="glass-panel rounded-2xl p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-200 pb-2">
-              <Archive className="w-4 h-4 text-blue-600" />
-              Estoque Recebido & Médias de Preço
-            </h3>
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <Archive className="w-4 h-4 text-blue-600" />
+                Estoque Recebido & Médias de Preço
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('estoque'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="text-[10px] font-bold text-blue-600 hover:text-blue-500 hover:underline transition-all cursor-pointer flex items-center gap-0.5"
+              >
+                Painel Completo ➔
+              </button>
+            </div>
             
             {inventoryStats.length === 0 ? (
               <p className="text-xs text-slate-500 py-4 text-center">Nenhum estoque no histórico para calcular médias.</p>
@@ -3603,6 +3917,200 @@ ${splitsList}
         </div>
       </footer>
         </>
+      )}
+
+      {activeTab === 'estoque' && (
+        <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
+          <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
+            
+            {/* Cabeçalho */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                  <Archive className="w-5 h-5 text-blue-600" />
+                  Painel de Estoque & Atacado
+                </h2>
+                <p className="text-xs text-slate-500">Média de custos, preços sugeridos e geração de orçamentos para fornecedores</p>
+              </div>
+
+              {/* Ações */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleGenerateQuotePDF}
+                  disabled={selectedStockKeys.length === 0}
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 shadow-sm ${
+                    selectedStockKeys.length > 0
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:scale-[1.01] active:scale-[0.99]'
+                      : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                  }`}
+                >
+                  <Printer className="w-4 h-4" />
+                  Gerar Orçamento PDF {selectedStockKeys.length > 0 && `(${selectedStockKeys.length})`}
+                </button>
+              </div>
+            </div>
+
+            {/* Barra de Filtros e Alternador de Preço */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+              
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
+                {/* Busca */}
+                <div className="relative flex-1 max-w-xs">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Search className="w-3.5 h-3.5" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Buscar modelo..."
+                    value={stockSearchQuery}
+                    onChange={(e) => setStockSearchQuery(e.target.value)}
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-lg py-1.5 pl-9 pr-3 text-xs text-slate-900 outline-none transition-all placeholder:text-slate-400 font-semibold"
+                  />
+                </div>
+
+                {/* Filtro Categoria */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Categoria:</span>
+                  <select
+                    value={stockFilterCategory}
+                    onChange={(e) => setStockFilterCategory(e.target.value)}
+                    className="bg-white border border-slate-300 focus:border-blue-600 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 outline-none cursor-pointer font-semibold"
+                  >
+                    <option value="all">Todas</option>
+                    <option value="Comum">Usado Comum</option>
+                    <option value="Saldo">iPhone de Saldo</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Toggle Varejo vs Atacado */}
+              <div className="flex items-center gap-2 bg-slate-200/80 p-1 rounded-xl border border-slate-300/60 self-start lg:self-center">
+                <button
+                  type="button"
+                  onClick={() => setStockPricingMode('retail')}
+                  className={`py-1.5 px-3.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    stockPricingMode === 'retail'
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200 font-bold shadow'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Venda Varejo (Vitrine)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockPricingMode('wholesale')}
+                  className={`py-1.5 px-3.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    stockPricingMode === 'wholesale'
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200 font-bold shadow'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Remove a taxa de despesa operacional de R$ 120,00"
+                >
+                  Preço Atacado (Sem R$ 120)
+                </button>
+              </div>
+
+            </div>
+
+            {/* Listagem em Tabela */}
+            {filteredStockStats.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-slate-300 rounded-xl">
+                <p className="text-sm text-slate-500">Nenhum estoque encontrado para os filtros selecionados.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white/50">
+                <table className="w-full text-sm text-slate-700 border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-200">
+                      <th className="py-3 px-4 text-center w-12">
+                        <input
+                          type="checkbox"
+                          checked={filteredStockStats.length > 0 && filteredStockStats.every(item => selectedStockKeys.includes(`${item.model}-${item.storage}-${item.category}`))}
+                          onChange={() => {
+                            const allSel = filteredStockStats.every(item => selectedStockKeys.includes(`${item.model}-${item.storage}-${item.category}`))
+                            if (allSel) {
+                              const keysToRemove = filteredStockStats.map(item => `${item.model}-${item.storage}-${item.category}`)
+                              setSelectedStockKeys(prev => prev.filter(k => !keysToRemove.includes(k)))
+                            } else {
+                              const keysToAdd = filteredStockStats.map(item => `${item.model}-${item.storage}-${item.category}`)
+                              setSelectedStockKeys(prev => Array.from(new Set([...prev, ...keysToAdd])))
+                            }
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer"
+                        />
+                      </th>
+                      <th className="py-3 px-4 text-left font-bold text-xs uppercase text-slate-500 tracking-wider">Aparelho</th>
+                      <th className="py-3 px-4 text-center font-bold text-xs uppercase text-slate-500 tracking-wider">Armazenamento</th>
+                      <th className="py-3 px-4 text-center font-bold text-xs uppercase text-slate-500 tracking-wider font-mono">Qtd</th>
+                      <th className="py-3 px-4 text-right font-bold text-xs uppercase text-slate-500 tracking-wider">Custo Médio (Pago)</th>
+                      <th className="py-3 px-4 text-right font-bold text-xs uppercase text-slate-500 tracking-wider">
+                        {stockPricingMode === 'wholesale' ? 'Venda Atacado (Sugerida)' : 'Venda Varejo (Vitrine)'}
+                      </th>
+                      <th className="py-3 px-4 text-right font-bold text-xs uppercase text-slate-500 tracking-wider">Margem Média Unitária</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStockStats.map((item) => {
+                      const itemKey = `${item.model}-${item.storage}-${item.category}`
+                      const isSelected = selectedStockKeys.includes(itemKey)
+                      
+                      const sellPrice = stockPricingMode === 'wholesale' 
+                        ? (item.avgVitrine - item.avgOpCost) 
+                        : item.avgVitrine
+                      
+                      const margin = sellPrice - item.avgCost
+
+                      return (
+                        <tr
+                          key={itemKey}
+                          className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${
+                            isSelected ? 'bg-blue-50/20' : ''
+                          }`}
+                        >
+                          <td className="py-3 px-4 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                setSelectedStockKeys(prev => 
+                                  prev.includes(itemKey)
+                                    ? prev.filter(k => k !== itemKey)
+                                    : [...prev, itemKey]
+                                )
+                              }}
+                              className="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 cursor-pointer"
+                            />
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-slate-900">
+                            <div className="flex items-center gap-2">
+                              <span>{item.model}</span>
+                              {item.category === 'Saldo' && (
+                                <span className="bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[9px] font-black px-1.5 py-0.5 rounded leading-none">
+                                  SALDO
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center font-medium text-slate-600">{item.storage}</td>
+                          <td className="py-3 px-4 text-center font-bold text-slate-900">{item.count}</td>
+                          <td className="py-3 px-4 text-right font-semibold text-slate-600">{formatBRL(item.avgCost)}</td>
+                          <td className={`py-3 px-4 text-right font-extrabold ${stockPricingMode === 'wholesale' ? 'text-indigo-600' : 'text-blue-600'}`}>
+                            {formatBRL(sellPrice)}
+                          </td>
+                          <td className={`py-3 px-4 text-right font-bold ${margin >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatBRL(margin)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          </div>
+        </div>
       )}
 
       {activeTab === 'checklist' && (
