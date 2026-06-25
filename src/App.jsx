@@ -1806,7 +1806,6 @@ function App() {
       const unitPrice = stockPricingMode === 'wholesale' 
         ? (item.avgVitrine - item.avgOpCost) 
         : item.avgVitrine
-      const subtotal = unitPrice * item.count
       return `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 10px; font-weight: 600; color: #1e293b; text-align: left;">
@@ -1814,18 +1813,10 @@ function App() {
             ${item.category === 'Saldo' ? '<span style="background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 9px; font-weight: 900; padding: 2px 5px; border-radius: 4px; margin-left: 5px;">SALDO</span>' : ''}
           </td>
           <td style="padding: 10px; text-align: center; color: #475569;">${item.storage}</td>
-          <td style="padding: 10px; text-align: center; color: #475569;">${item.count}</td>
-          <td style="padding: 10px; text-align: right; color: #475569; font-family: monospace;">${formatCurrency(unitPrice)}</td>
-          <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold; font-family: monospace;">${formatCurrency(subtotal)}</td>
+          <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold; font-family: monospace;">${formatCurrency(unitPrice)}</td>
         </tr>
       `
     }).join('')
-
-    const totalQty = selectedItems.reduce((acc, item) => acc + item.count, 0)
-    const totalVal = selectedItems.reduce((acc, item) => {
-      const price = stockPricingMode === 'wholesale' ? (item.avgVitrine - item.avgOpCost) : item.avgVitrine
-      return acc + (price * item.count)
-    }, 0)
 
     const dateStr = new Date().toLocaleDateString('pt-BR')
     const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -1993,28 +1984,15 @@ function App() {
           <table>
             <thead>
               <tr>
-                <th style="text-align: left; border-radius: 6px 0 0 6px;">Aparelho Usado</th>
-                <th>Capacidade</th>
-                <th>Quantidade</th>
-                <th style="text-align: right;">Preço Unitário</th>
-                <th style="text-align: right; border-radius: 0 6px 6px 0;">Subtotal</th>
+                <th style="text-align: left; border-radius: 6px 0 0 6px; padding: 10px;">Aparelho</th>
+                <th style="text-align: center; padding: 10px;">Capacidade</th>
+                <th style="text-align: right; border-radius: 0 6px 6px 0; padding: 10px;">Preço Unitário</th>
               </tr>
             </thead>
             <tbody>
               ${tableRows}
             </tbody>
           </table>
-        </div>
-
-        <div class="summary-card">
-          <div>
-            <span class="summary-title">Total de Dispositivos</span>
-            <div style="font-size: 18px; font-weight: 800; color: #334155; margin-top: 5px;">${totalQty} unidade(s)</div>
-          </div>
-          <div style="text-align: right;">
-            <span class="summary-title">Valor Consolidado</span>
-            <div class="summary-value">${formatCurrency(totalVal)}</div>
-          </div>
         </div>
 
         <p style="font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 30px; text-align: justify;">
