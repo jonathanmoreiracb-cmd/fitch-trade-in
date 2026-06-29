@@ -5012,7 +5012,8 @@ ${splitsList}
           </div>
 
           {/* HISTÓRICO DE CHECKLISTS E INSPEÇÕES */}
-          <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
+          {currentUser && currentUser.role !== 'seller' && (
+            <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
               <div>
@@ -5158,6 +5159,7 @@ ${splitsList}
             )}
 
           </div>
+        )}
         </div>
       )}
 
