@@ -26,7 +26,8 @@ import {
   Palette,
   Printer,
   Edit3,
-  X
+  X,
+  Eye
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
 import logo from './assets/logo.png'
@@ -379,6 +380,8 @@ function App() {
   const [checklistsList, setChecklistsList] = useState([])
   const [isSavingChecklist, setIsSavingChecklist] = useState(false)
   const [checklistSearchQuery, setChecklistSearchQuery] = useState('')
+  const [selectedChecklistForView, setSelectedChecklistForView] = useState(null)
+  const [selectedPhotoZoom, setSelectedPhotoZoom] = useState(null)
 
   // --- Estados e Funções de Recursos Avançados (v12) ---
   const [blacklistStatus, setBlacklistStatus] = useState(null)
@@ -5126,6 +5129,14 @@ ${splitsList}
                           <div className="flex items-center justify-center gap-2">
                             <button
                               type="button"
+                              onClick={() => setSelectedChecklistForView(record)}
+                              title="Visualizar Detalhes do Laudo"
+                              className="text-slate-400 hover:text-slate-800 transition-colors duration-150 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleCopyChecklistSummary(record)}
                               title="Copiar Laudo completo"
                               className="text-slate-400 hover:text-slate-800 transition-colors duration-150 p-1.5 rounded hover:bg-slate-100 cursor-pointer"
@@ -5208,6 +5219,318 @@ ${splitsList}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Laudo (Exclusivo Gerente / Admin) */}
+      {selectedChecklistForView && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative my-8">
+            
+            {/* Fechar botão */}
+            <button
+              onClick={() => setSelectedChecklistForView(null)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Cabeçalho */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-extrabold text-slate-900">
+                    {selectedChecklistForView.device_model} {selectedChecklistForView.device_storage || ''}
+                  </h3>
+                  {selectedChecklistForView.device_color && (
+                    <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-medium border border-slate-200">
+                      {selectedChecklistForView.device_color}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 font-mono">IMEI: {selectedChecklistForView.serial_imei}</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded-full font-black text-sm border ${
+                  selectedChecklistForView.grade === 'A'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : selectedChecklistForView.grade === 'B'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                }`}>
+                  Grade {selectedChecklistForView.grade}
+                </span>
+                <span className="text-xs text-slate-400 font-medium">
+                  {new Date(selectedChecklistForView.created_at).toLocaleDateString('pt-BR')} às {new Date(selectedChecklistForView.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+
+            {/* Dados de Identificação */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 border border-slate-200/60 p-4 rounded-2xl">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block">Cliente</span>
+                <span className="text-sm font-semibold text-slate-800">{selectedChecklistForView.client_name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block">Vendedor</span>
+                <span className="text-sm font-semibold text-slate-800">{selectedChecklistForView.seller_name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block">Preço de Vitrine</span>
+                <span className="text-sm font-bold text-slate-700">{formatBRL(selectedChecklistForView.reference_value)}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 block">Crédito Final</span>
+                <span className="text-sm font-extrabold text-emerald-600">{formatBRL(selectedChecklistForView.evaluation_value)}</span>
+              </div>
+            </div>
+
+            {/* Blocos de Checklist */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Estética */}
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-2xl space-y-3">
+                <span className="text-xs font-bold text-slate-900 block border-b border-slate-200 pb-1.5 uppercase tracking-wider">
+                  🎨 Avaliação Estética
+                </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Tela:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_estetica?.tela === 'bom'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : selectedChecklistForView.checklist_estetica?.tela === 'detalhe'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_estetica?.tela}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Traseira:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_estetica?.traseira === 'bom'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : selectedChecklistForView.checklist_estetica?.traseira === 'detalhe'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-55 bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_estetica?.traseira}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Laterais:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_estetica?.laterais === 'bom'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : selectedChecklistForView.checklist_estetica?.laterais === 'detalhe'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_estetica?.laterais}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Lentes:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_estetica?.lentes === 'bom'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : selectedChecklistForView.checklist_estetica?.lentes === 'detalhe'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_estetica?.lentes}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Funcional */}
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-2xl space-y-3">
+                <span className="text-xs font-bold text-slate-900 block border-b border-slate-200 pb-1.5 uppercase tracking-wider">
+                  ⚙️ Avaliação Funcional
+                </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Saúde da Bateria:</span>
+                    <span className="font-bold text-slate-800">{selectedChecklistForView.battery_health}%</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Peça Desconhecida:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_funcional?.peca_desconhecida === 'não'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_funcional?.peca_desconhecida === 'sim' ? 'Sim (Trocada)' : 'Não'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Biometria:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_funcional?.biometria === 'ok'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_funcional?.biometria === 'ok' ? 'Ok' : 'Defeito'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Câmeras:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_funcional?.cameras === 'ok'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_funcional?.cameras === 'ok' ? 'Ok' : 'Defeito'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Áudio:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_funcional?.audio === 'ok'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_funcional?.audio === 'ok' ? 'Ok' : 'Defeito'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Botões / Conexão:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_funcional?.botoes === 'ok'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_funcional?.botoes === 'ok' ? 'Ok' : 'Defeito'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Segurança */}
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-2xl space-y-3">
+                <span className="text-xs font-bold text-slate-900 block border-b border-slate-200 pb-1.5 uppercase tracking-wider">
+                  🔒 Segurança e Procedência
+                </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">iCloud Desativado:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_seguranca?.icloud === 'sim'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_seguranca?.icloud === 'sim' ? 'Sim (Livre)' : 'Não (Bloqueado)'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 font-medium">Aparelho Demo / Vitrine:</span>
+                    <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${
+                      selectedChecklistForView.checklist_seguranca?.demo === 'não'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {selectedChecklistForView.checklist_seguranca?.demo === 'não' ? 'Não (Original)' : 'Sim'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Evidências Fotográficas */}
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-slate-900 block uppercase tracking-wider">
+                📸 Evidências Fotográficas (Clique para ampliar)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {['tela', 'traseira', 'laterais', 'conector'].map((side) => {
+                  const photoData = selectedChecklistForView.photos?.[side]
+                  const labels = { tela: 'Tela / Sobre', traseira: 'Traseira', laterais: 'Laterais', conector: 'Conector' }
+                  return (
+                    <div key={side} className="space-y-1.5 text-center">
+                      <span className="text-[10px] text-slate-500 font-semibold block">{labels[side]}</span>
+                      {photoData ? (
+                        <div
+                          onClick={() => setSelectedPhotoZoom(photoData)}
+                          className="bg-slate-100 border border-slate-200 rounded-xl aspect-[3/4] overflow-hidden cursor-pointer hover:opacity-90 active:scale-95 transition-all shadow-sm flex items-center justify-center relative group"
+                        >
+                          <img src={photoData} className="w-full h-full object-cover" alt={labels[side]} />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <span className="text-[10px] text-white font-black uppercase tracking-wider">Ampliar</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-100/50 border border-dashed border-slate-350 rounded-xl aspect-[3/4] flex flex-col items-center justify-center text-slate-400">
+                          <X className="w-5 h-5 text-slate-400" />
+                          <span className="text-[9px] mt-1 font-medium">Sem foto</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Assinatura */}
+            {selectedChecklistForView.signature && (
+              <div className="space-y-2 border-t border-slate-200 pt-4">
+                <span className="text-xs font-bold text-slate-900 block uppercase tracking-wider">
+                  🖋️ Assinatura do Cliente
+                </span>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-w-md flex items-center justify-center">
+                  <img src={selectedChecklistForView.signature} className="max-h-24 object-contain" alt="Assinatura Digital" />
+                </div>
+              </div>
+            )}
+
+            {/* Rodapé Ações */}
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  printChecklistReceipt(selectedChecklistForView)
+                }}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-bold text-xs py-3 px-6 rounded-xl transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir Laudo PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedChecklistForView(null)}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 px-6 rounded-xl transition-all cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Zoom de Imagem */}
+      {selectedPhotoZoom && (
+        <div 
+          onClick={() => setSelectedPhotoZoom(null)} 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-4 cursor-zoom-out"
+        >
+          <div className="relative max-w-full max-h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <button 
+              onClick={() => setSelectedPhotoZoom(null)}
+              className="absolute right-4 top-4 bg-slate-900/85 hover:bg-slate-900 border border-slate-750 text-white p-2.5 rounded-full transition-all cursor-pointer shadow-lg z-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img 
+              src={selectedPhotoZoom} 
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-2xl shadow-2xl border border-slate-800" 
+              alt="Foto ampliada" 
+            />
           </div>
         </div>
       )}
