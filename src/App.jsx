@@ -421,6 +421,7 @@ function App() {
   const [newPartMinimo, setNewPartMinimo] = useState('2')
 
   const [selectedOsForPart, setSelectedOsForPart] = useState(null)
+  const [selectedPartForOS, setSelectedPartForOS] = useState(null)
   const [serialInstalledForOS, setSerialInstalledForOS] = useState('')
   const [showAddPartModal, setShowAddPartModal] = useState(false)
 
@@ -1343,6 +1344,7 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
   useEffect(() => {
     loadEvaluations()
     loadChecklists()
+    loadAssistenciaData()
   }, [])
 
   // --- Funções de Negócio do Checklist de Seminovos ---
