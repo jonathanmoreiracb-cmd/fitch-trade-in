@@ -852,6 +852,50 @@ function App() {
   // --- Fitch Assistência Business Logic Methods ---
   const loadAssistenciaData = async () => {
     try {
+      if (isSupabaseConfigured) {
+        // Load Clientes
+        const { data: cData, error: cErr } = await supabase.from('clientes').select('*').order('nome')
+        if (!cErr && cData) setClientesList(cData)
+        else {
+          const c = await localDb.getClientes()
+          setClientesList(c)
+        }
+
+        // Load Dispositivos
+        const { data: dData, error: dErr } = await supabase.from('cliente_dispositivos').select('*')
+        if (!dErr && dData) setDispositivosList(dData)
+        else {
+          const d = await localDb.getDispositivos()
+          setDispositivosList(d)
+        }
+
+        // Load Pecas
+        const { data: pData, error: pErr } = await supabase.from('pecas_estoque').select('*').order('sku')
+        if (!pErr && pData) setPecasList(pData)
+        else {
+          const p = await localDb.getPecas()
+          setPecasList(p)
+        }
+
+        // Load OS
+        const { data: oData, error: oErr } = await supabase.from('ordens_servico').select('*').order('os_number', { ascending: false })
+        if (!oErr && oData) setOrdensServicoList(oData)
+        else {
+          const o = await localDb.getOS()
+          setOrdensServicoList(o)
+        }
+      } else {
+        const c = await localDb.getClientes()
+        setClientesList(c)
+        const d = await localDb.getDispositivos()
+        setDispositivosList(d)
+        const p = await localDb.getPecas()
+        setPecasList(p)
+        const o = await localDb.getOS()
+        setOrdensServicoList(o)
+      }
+    } catch (e) {
+      console.error("Error loading assistance data:", e)
       const c = await localDb.getClientes()
       setClientesList(c)
       const d = await localDb.getDispositivos()
@@ -860,8 +904,6 @@ function App() {
       setPecasList(p)
       const o = await localDb.getOS()
       setOrdensServicoList(o)
-    } catch (e) {
-      console.error("Error loading assistance data:", e)
     }
   }
 
@@ -916,23 +958,50 @@ function App() {
     try {
       let cliente = clientesList.find(c => c.cpf_cnpj === osClientCpf)
       if (!cliente) {
-        cliente = await localDb.saveCliente({
-          nome: osClientName,
-          cpf_cnpj: osClientCpf,
-          telefone: osClientPhone
-        })
+        if (isSupabaseConfigured) {
+          const { data, error } = await supabase.from('clientes').insert([{
+            nome: osClientName,
+            cpf_cnpj: osClientCpf,
+            telefone: osClientPhone
+          }]).select()
+          if (!error && data && data.length > 0) {
+            cliente = data[0]
+          }
+        }
+        if (!cliente) {
+          cliente = await localDb.saveCliente({
+            nome: osClientName,
+            cpf_cnpj: osClientCpf,
+            telefone: osClientPhone
+          })
+        }
       }
 
       let dispositivo = dispositivosList.find(d => d.imei === osDeviceImei || d.numero_serie === osDeviceSerial)
       if (!dispositivo) {
-        dispositivo = await localDb.saveDispositivo({
-          cliente_id: cliente.id,
-          modelo: osDeviceModel,
-          capacidade: osDeviceStorage,
-          cor: osDeviceColor,
-          imei: osDeviceImei,
-          numero_serie: osDeviceSerial
-        })
+        if (isSupabaseConfigured) {
+          const { data, error } = await supabase.from('cliente_dispositivos').insert([{
+            cliente_id: cliente.id,
+            modelo: osDeviceModel,
+            capacidade: osDeviceStorage,
+            cor: osDeviceColor,
+            imei: osDeviceImei,
+            numero_serie: osDeviceSerial
+          }]).select()
+          if (!error && data && data.length > 0) {
+            dispositivo = data[0]
+          }
+        }
+        if (!dispositivo) {
+          dispositivo = await localDb.saveDispositivo({
+            cliente_id: cliente.id,
+            modelo: osDeviceModel,
+            capacidade: osDeviceStorage,
+            cor: osDeviceColor,
+            imei: osDeviceImei,
+            numero_serie: osDeviceSerial
+          })
+        }
       }
 
       const record = {
@@ -953,7 +1022,17 @@ function App() {
         serial_imei: dispositivo.imei
       }
 
-      await localDb.saveOS(record)
+      let osSaved = false
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('ordens_servico').insert([record])
+        if (!error) {
+          osSaved = true
+        }
+      }
+      if (!osSaved) {
+        await localDb.saveOS(record)
+      }
+
       triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
       
       setOsType('Serviço')
@@ -1046,7 +1125,15 @@ function App() {
     }
 
     try {
-      await localDb.updateOS(osId, updatedData)
+      let updatedRemote = false
+      if (isSupabaseConfigured) {
+        // Try UUID match or serial numeric ID match
+        const { error } = await supabase.from('ordens_servico').update(updatedData).eq('id', osId)
+        if (!error) updatedRemote = true
+      }
+      if (!updatedRemote) {
+        await localDb.updateOS(osId, updatedData)
+      }
       triggerNotification(`OS #${os.os_number} alterada para ${nextStatus}`)
       loadAssistenciaData()
     } catch (e) {
@@ -1071,13 +1158,29 @@ function App() {
         estoque_atual: peca.estoque_atual - 1,
         estoque_reservado: peca.estoque_reservado + 1
       }
-      await localDb.updatePeca(peca.id, updatedPeca)
+      
+      let updatedPecaRemote = false
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('pecas_estoque').update(updatedPeca).eq('id', peca.id)
+        if (!error) updatedPecaRemote = true
+      }
+      if (!updatedPecaRemote) {
+        await localDb.updatePeca(peca.id, updatedPeca)
+      }
 
       const updatedOS = {
         valor_pecas: os.valor_pecas + peca.preco_venda,
         diagnostico_tecnico: (os.diagnostico_tecnico || '') + `\n[Peça Instalada: ${peca.nome} (S/N: ${serialInstalledForOS || 'N/A'})]`
       }
-      await localDb.updateOS(os.id, updatedOS)
+      
+      let updatedOSRemote = false
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('ordens_servico').update(updatedOS).eq('id', os.id)
+        if (!error) updatedOSRemote = true
+      }
+      if (!updatedOSRemote) {
+        await localDb.updateOS(os.id, updatedOS)
+      }
 
       triggerNotification(`Peça ${peca.nome} vinculada à OS #${os.os_number} com sucesso!`)
       setShowAddPartModal(false)
@@ -1097,17 +1200,26 @@ function App() {
       return
     }
 
+    const newRecord = {
+      sku: newPartSku,
+      nome: newPartName,
+      compatibilidade_modelo: newPartCompat,
+      deposito_tipo: 'assistencia',
+      preco_custo: parseFloat(newPartCusto) || 0,
+      preco_venda: parseFloat(newPartVenda) || 0,
+      estoque_atual: parseInt(newPartEstoque) || 0,
+      estoque_minimo: parseInt(newPartMinimo) || 2
+    }
+
     try {
-      await localDb.savePeca({
-        sku: newPartSku,
-        nome: newPartName,
-        compatibilidade_modelo: newPartCompat,
-        deposito_tipo: 'assistencia',
-        preco_custo: parseFloat(newPartCusto) || 0,
-        preco_venda: parseFloat(newPartVenda) || 0,
-        estoque_atual: parseInt(newPartEstoque) || 0,
-        estoque_minimo: parseInt(newPartMinimo) || 2
-      })
+      let savedRemote = false
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('pecas_estoque').insert([newRecord])
+        if (!error) savedRemote = true
+      }
+      if (!savedRemote) {
+        await localDb.savePeca(newRecord)
+      }
 
       triggerNotification('Nova peça cadastrada com sucesso!')
       setNewPartSku('')
@@ -1125,9 +1237,15 @@ function App() {
   const handleSaveChecklistSaida = async () => {
     if (!selectedOsForChecklistSaida) return
     try {
-      await localDb.updateOS(selectedOsForChecklistSaida, {
-        checklist_saida: osChecklistSaidaEdit
-      })
+      const updatedOS = { checklist_saida: osChecklistSaidaEdit }
+      let updatedRemote = false
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('ordens_servico').update(updatedOS).eq('id', selectedOsForChecklistSaida)
+        if (!error) updatedRemote = true
+      }
+      if (!updatedRemote) {
+        await localDb.updateOS(selectedOsForChecklistSaida, updatedOS)
+      }
       triggerNotification('Checklist de Saída salvo com sucesso!')
       setSelectedOsForChecklistSaida(null)
       loadAssistenciaData()
