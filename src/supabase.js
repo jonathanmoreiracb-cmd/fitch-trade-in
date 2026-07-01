@@ -128,5 +128,163 @@ export const localDb = {
       console.error('Error deleting checklist from localStorage', e)
       throw e
     }
+  },
+
+  // --- Fitch Assistência Local Storage Methods ---
+  async getClientes() {
+    try {
+      const data = localStorage.getItem('fitch_clientes')
+      return data ? JSON.parse(data) : []
+    } catch (e) {
+      console.error('Error reading localStorage for clientes', e)
+      return []
+    }
+  },
+
+  async saveCliente(cliente) {
+    try {
+      const clientes = await this.getClientes()
+      const newRecord = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        created_at: new Date().toISOString(),
+        ...cliente
+      }
+      clientes.unshift(newRecord)
+      localStorage.setItem('fitch_clientes', JSON.stringify(clientes))
+      return newRecord
+    } catch (e) {
+      console.error('Error saving cliente to localStorage', e)
+      throw e
+    }
+  },
+
+  async getDispositivos() {
+    try {
+      const data = localStorage.getItem('fitch_dispositivos')
+      return data ? JSON.parse(data) : []
+    } catch (e) {
+      console.error('Error reading localStorage for dispositivos', e)
+      return []
+    }
+  },
+
+  async saveDispositivo(dispositivo) {
+    try {
+      const dispositivos = await this.getDispositivos()
+      const newRecord = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        created_at: new Date().toISOString(),
+        ...dispositivo
+      }
+      dispositivos.unshift(newRecord)
+      localStorage.setItem('fitch_dispositivos', JSON.stringify(dispositivos))
+      return newRecord
+    } catch (e) {
+      console.error('Error saving dispositivo to localStorage', e)
+      throw e
+    }
+  },
+
+  async getPecas() {
+    try {
+      const data = localStorage.getItem('fitch_pecas')
+      // Se não houver estoque de peças inicial, criamos algumas peças padrão para teste
+      if (!data) {
+        const defaultPecas = [
+          { id: 'p1', sku: 'TEL-IP11', nome: 'Tela Premium iPhone 11', compatibilidade_modelo: 'iPhone 11', deposito_tipo: 'assistencia', preco_custo: 180, preco_venda: 390, estoque_atual: 6, estoque_reservado: 0, estoque_minimo: 2 },
+          { id: 'p2', sku: 'BAT-IP13PM', nome: 'Bateria Homologada iPhone 13 Pro Max', compatibilidade_modelo: 'iPhone 13 Pro Max', deposito_tipo: 'assistencia', preco_custo: 120, preco_venda: 290, estoque_atual: 4, estoque_reservado: 0, estoque_minimo: 1 },
+          { id: 'p3', sku: 'CON-IP12', nome: 'Conector de Carga iPhone 12', compatibilidade_modelo: 'iPhone 12', deposito_tipo: 'assistencia', preco_custo: 50, preco_venda: 180, estoque_atual: 3, estoque_reservado: 0, estoque_minimo: 2 }
+        ]
+        localStorage.setItem('fitch_pecas', JSON.stringify(defaultPecas))
+        return defaultPecas
+      }
+      return JSON.parse(data)
+    } catch (e) {
+      console.error('Error reading localStorage for pecas', e)
+      return []
+    }
+  },
+
+  async savePeca(peca) {
+    try {
+      const pecas = await this.getPecas()
+      const newRecord = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        created_at: new Date().toISOString(),
+        estoque_reservado: 0,
+        ...peca
+      }
+      pecas.unshift(newRecord)
+      localStorage.setItem('fitch_pecas', JSON.stringify(pecas))
+      return newRecord
+    } catch (e) {
+      console.error('Error saving peca to localStorage', e)
+      throw e
+    }
+  },
+
+  async updatePeca(id, updatedData) {
+    try {
+      const pecas = await this.getPecas()
+      const idx = pecas.findIndex(item => item.id === id)
+      if (idx !== -1) {
+        pecas[idx] = { ...pecas[idx], ...updatedData }
+        localStorage.setItem('fitch_pecas', JSON.stringify(pecas))
+        return pecas[idx]
+      }
+      return null
+    } catch (e) {
+      console.error('Error updating peca in localStorage', e)
+      throw e
+    }
+  },
+
+  async getOS() {
+    try {
+      const data = localStorage.getItem('fitch_ordens_servico')
+      return data ? JSON.parse(data) : []
+    } catch (e) {
+      console.error('Error reading localStorage for ordens de servico', e)
+      return []
+    }
+  },
+
+  async saveOS(os) {
+    try {
+      const ordens = await this.getOS()
+      const nextNumber = ordens.length > 0 ? Math.max(...ordens.map(o => o.os_number || 0)) + 1 : 1001
+      const newRecord = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        os_number: nextNumber,
+        uuid_acesso_vip: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        created_at: new Date().toISOString(),
+        data_entrada: new Date().toISOString(),
+        status: 'Entrada',
+        checklist_fotos: [],
+        ...os
+      }
+      ordens.unshift(newRecord)
+      localStorage.setItem('fitch_ordens_servico', JSON.stringify(ordens))
+      return newRecord
+    } catch (e) {
+      console.error('Error saving OS to localStorage', e)
+      throw e
+    }
+  },
+
+  async updateOS(id, updatedData) {
+    try {
+      const ordens = await this.getOS()
+      const idx = ordens.findIndex(item => item.id === id)
+      if (idx !== -1) {
+        ordens[idx] = { ...ordens[idx], ...updatedData }
+        localStorage.setItem('fitch_ordens_servico', JSON.stringify(ordens))
+        return ordens[idx]
+      }
+      return null
+    } catch (e) {
+      console.error('Error updating OS in localStorage', e)
+      throw e
+    }
   }
 }

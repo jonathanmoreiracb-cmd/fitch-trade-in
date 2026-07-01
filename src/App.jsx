@@ -383,6 +383,51 @@ function App() {
   const [selectedChecklistForView, setSelectedChecklistForView] = useState(null)
   const [selectedPhotoZoom, setSelectedPhotoZoom] = useState(null)
 
+  // Fitch Assistência States
+  const [clientesList, setClientesList] = useState([])
+  const [dispositivosList, setDispositivosList] = useState([])
+  const [pecasList, setPecasList] = useState([])
+  const [ordensServicoList, setOrdensServicoList] = useState([])
+  const [assistenciaSubTab, setAssistenciaSubTab] = useState('balcao')
+  
+  // OS Form States
+  const [osClientName, setOsClientName] = useState('')
+  const [osClientPhone, setOsClientPhone] = useState('')
+  const [osClientCpf, setOsClientCpf] = useState('')
+  const [osDeviceModel, setOsDeviceModel] = useState('iPhone 13')
+  const [osDeviceColor, setOsDeviceColor] = useState('Preto')
+  const [osDeviceStorage, setOsDeviceStorage] = useState('128GB')
+  const [osDeviceImei, setOsDeviceImei] = useState('')
+  const [osDeviceSerial, setOsDeviceSerial] = useState('')
+  const [osSymptom, setOsSymptom] = useState('')
+  const [osChecklistEntrada, setOsChecklistEntrada] = useState({
+    faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
+  })
+  const [osLaborValue, setOsLaborValue] = useState('')
+  const [osDiscountValue, setOsDiscountValue] = useState('')
+
+  // IA Co-Pilot & Parts Modals States
+  const [iaQuestion, setIaQuestion] = useState('')
+  const [iaAnswer, setIaAnswer] = useState('')
+  const [isIaLoading, setIsIaLoading] = useState(false)
+
+  const [newPartSku, setNewPartSku] = useState('')
+  const [newPartName, setNewPartName] = useState('')
+  const [newPartCompat, setNewPartCompat] = useState('iPhone 13')
+  const [newPartCusto, setNewPartCusto] = useState('')
+  const [newPartVenda, setNewPartVenda] = useState('')
+  const [newPartEstoque, setNewPartEstoque] = useState('')
+  const [newPartMinimo, setNewPartMinimo] = useState('2')
+
+  const [selectedOsForPart, setSelectedOsForPart] = useState(null)
+  const [serialInstalledForOS, setSerialInstalledForOS] = useState('')
+  const [showAddPartModal, setShowAddPartModal] = useState(false)
+
+  const [selectedOsForChecklistSaida, setSelectedOsForChecklistSaida] = useState(null)
+  const [osChecklistSaidaEdit, setOsChecklistSaidaEdit] = useState({
+    faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
+  })
+
   // --- Estados e Funções de Recursos Avançados (v12) ---
   const [blacklistStatus, setBlacklistStatus] = useState(null)
   const [blacklistStatusNew, setBlacklistStatusNew] = useState(null)
@@ -800,6 +845,414 @@ function App() {
     if (insertedAny) {
       loadEvaluations();
     }
+  }
+
+  // --- Fitch Assistência Business Logic Methods ---
+  const loadAssistenciaData = async () => {
+    try {
+      const c = await localDb.getClientes()
+      setClientesList(c)
+      const d = await localDb.getDispositivos()
+      setDispositivosList(d)
+      const p = await localDb.getPecas()
+      setPecasList(p)
+      const o = await localDb.getOS()
+      setOrdensServicoList(o)
+    } catch (e) {
+      console.error("Error loading assistance data:", e)
+    }
+  }
+
+  const validarCPF = (cpf) => {
+    const clean = String(cpf).replace(/\D/g, '')
+    if (clean.length !== 11) return false
+    if (/^(\d)\1{10}$/.test(clean)) return false
+    let sum = 0
+    for (let i = 0; i < 9; i++) sum += parseInt(clean.charAt(i)) * (10 - i)
+    let rev = 11 - (sum % 11)
+    if (rev === 10 || rev === 11) rev = 0
+    if (rev !== parseInt(clean.charAt(9))) return false
+    sum = 0
+    for (let i = 0; i < 10; i++) sum += parseInt(clean.charAt(i)) * (11 - i)
+    rev = 11 - (sum % 11)
+    if (rev === 10 || rev === 11) rev = 0
+    if (rev !== parseInt(clean.charAt(10))) return false
+    return true
+  }
+
+  const validarIMEI = (imei) => {
+    const clean = String(imei).replace(/\D/g, '')
+    if (clean.length !== 15) return false
+    let sum = 0
+    for (let i = 0; i < 15; i++) {
+      let digit = parseInt(clean.charAt(i), 10)
+      if (i % 2 === 1) {
+        digit *= 2
+        if (digit > 9) {
+          digit = (digit % 10) + 1
+        }
+      }
+      sum += digit
+    }
+    return sum % 10 === 0
+  }
+
+  const handleSaveOS = async () => {
+    if (!osClientName || !osClientPhone || !osClientCpf || !osDeviceImei || !osDeviceSerial) {
+      triggerNotification('Todos os campos obrigatórios (*) devem ser preenchidos.', 'error')
+      return
+    }
+    if (!validarCPF(osClientCpf)) {
+      triggerNotification('CPF inválido! Corrija para prosseguir.', 'error')
+      return
+    }
+    if (!validarIMEI(osDeviceImei)) {
+      triggerNotification('IMEI inválido! Corrija para prosseguir (15 dígitos).', 'error')
+      return
+    }
+
+    try {
+      let cliente = clientesList.find(c => c.cpf_cnpj === osClientCpf)
+      if (!cliente) {
+        cliente = await localDb.saveCliente({
+          nome: osClientName,
+          cpf_cnpj: osClientCpf,
+          telefone: osClientPhone
+        })
+      }
+
+      let dispositivo = dispositivosList.find(d => d.imei === osDeviceImei || d.numero_serie === osDeviceSerial)
+      if (!dispositivo) {
+        dispositivo = await localDb.saveDispositivo({
+          cliente_id: cliente.id,
+          modelo: osDeviceModel,
+          capacidade: osDeviceStorage,
+          cor: osDeviceColor,
+          imei: osDeviceImei,
+          numero_serie: osDeviceSerial
+        })
+      }
+
+      const record = {
+        cliente_id: cliente.id,
+        dispositivo_id: dispositivo.id,
+        tecnico_responsavel: currentUser ? currentUser.name : 'Técnico Fitch',
+        status: 'Entrada',
+        valor_mao_de_obra: parseFloat(osLaborValue) || 0,
+        valor_pecas: 0,
+        valor_desconto: parseFloat(osDiscountValue) || 0,
+        checklist_entrada: osChecklistEntrada,
+        checklist_saida: {},
+        checklist_fotos: [],
+        relatorio_tecnico: osSymptom,
+        client_name: cliente.nome,
+        device_model: `${dispositivo.modelo} ${dispositivo.capacidade} (${dispositivo.cor})`,
+        serial_imei: dispositivo.imei
+      }
+
+      await localDb.saveOS(record)
+      triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
+      
+      setOsClientName('')
+      setOsClientPhone('')
+      setOsClientCpf('')
+      setOsDeviceImei('')
+      setOsDeviceSerial('')
+      setOsSymptom('')
+      setOsLaborValue('')
+      setOsDiscountValue('')
+      setOsChecklistEntrada({
+        faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
+      })
+
+      loadAssistenciaData()
+    } catch (e) {
+      console.error(e)
+      triggerNotification('Erro ao salvar OS.', 'error')
+    }
+  }
+
+  const handleUpdateOSStatus = async (osId, nextStatus) => {
+    const os = ordensServicoList.find(o => o.id === osId)
+    if (!os) return
+
+    let updatedData = { status: nextStatus }
+
+    if (nextStatus === 'Pronto') {
+      updatedData.checklist_saida = os.checklist_saida && Object.keys(os.checklist_saida).length > 0
+        ? os.checklist_saida 
+        : { ...os.checklist_entrada }
+      
+      triggerNotification(`Notificação enviada via WhatsApp para ${os.client_name}: Aparelho Pronto!`, 'success')
+    }
+
+    if (nextStatus === 'Entregue') {
+      const formaPag = window.prompt("Digite a forma de pagamento (Pix, Cartão, Dinheiro):", "Pix")
+      if (formaPag === null) return
+      
+      updatedData.forma_pagamento = formaPag
+      updatedData.data_saida = new Date().toISOString()
+      
+      const mockEvaluationRecord = {
+        client_name: `OS #${os.os_number} [Retirada]`,
+        imei_new: 'N/A',
+        imei_used: os.serial_imei,
+        new_model: 'ASSISTENCIA TECNICA',
+        new_storage: 'N/A',
+        new_color: 'N/A',
+        new_cost: 0,
+        profit_margin: os.valor_total - (os.valor_pecas * 0.5),
+        operational_cost: 0,
+        used_model: os.device_model.split(' ')[0] + ' ' + os.device_model.split(' ')[1],
+        used_storage: os.device_model.includes('GB') ? os.device_model.match(/\d+GB/)[0] : '128GB',
+        used_color: 'N/A',
+        used_category: 'Comum',
+        additional_value: 0,
+        gateway: 'Assistencia',
+        installments: 0,
+        applied_rate: 0,
+        net_received: os.valor_total,
+        vitrine_price: os.valor_total,
+        max_evaluation: os.valor_pecas * 0.5,
+        battery_health: 100,
+        original_screen: true,
+        biometrics_status: 'ok',
+        camera_status: 'ok',
+        body_condition: 'Excelente'
+      }
+
+      try {
+        if (isSupabaseConfigured) {
+          await supabase.from('evaluations').insert([mockEvaluationRecord])
+        } else {
+          await localDb.saveEvaluation(mockEvaluationRecord)
+        }
+        loadEvaluations()
+      } catch (err) {
+        console.error(err)
+      }
+
+      triggerNotification(`OS faturada e arquivada via ${formaPag}!`, 'success')
+    }
+
+    try {
+      await localDb.updateOS(osId, updatedData)
+      triggerNotification(`OS #${os.os_number} alterada para ${nextStatus}`)
+      loadAssistenciaData()
+    } catch (e) {
+      console.error(e)
+      triggerNotification('Erro ao atualizar status.', 'error')
+    }
+  }
+
+  const handleSavePartToOS = async () => {
+    if (!selectedOsForPart || !selectedPartForOS) return
+    const os = ordensServicoList.find(o => o.id === selectedOsForPart)
+    const peca = pecasList.find(p => p.id === selectedPartForOS)
+    if (!os || !peca) return
+
+    if (peca.estoque_atual <= 0) {
+      triggerNotification('Erro: Estoque insuficiente de peças para este modelo.', 'error')
+      return
+    }
+
+    try {
+      const updatedPeca = {
+        estoque_atual: peca.estoque_atual - 1,
+        estoque_reservado: peca.estoque_reservado + 1
+      }
+      await localDb.updatePeca(peca.id, updatedPeca)
+
+      const updatedOS = {
+        valor_pecas: os.valor_pecas + peca.preco_venda,
+        diagnostico_tecnico: (os.diagnostico_tecnico || '') + `\n[Peça Instalada: ${peca.nome} (S/N: ${serialInstalledForOS || 'N/A'})]`
+      }
+      await localDb.updateOS(os.id, updatedOS)
+
+      triggerNotification(`Peça ${peca.nome} vinculada à OS #${os.os_number} com sucesso!`)
+      setShowAddPartModal(false)
+      setSelectedPartForOS(null)
+      setSerialInstalledForOS('')
+      loadAssistenciaData()
+    } catch (e) {
+      console.error(e)
+      triggerNotification('Erro ao vincular peça.', 'error')
+    }
+  }
+
+  const handleSaveNewPart = async (e) => {
+    e.preventDefault()
+    if (!newPartSku || !newPartName || !newPartCusto || !newPartVenda || !newPartEstoque) {
+      triggerNotification('Preencha todos os campos da peça.', 'error')
+      return
+    }
+
+    try {
+      await localDb.savePeca({
+        sku: newPartSku,
+        nome: newPartName,
+        compatibilidade_modelo: newPartCompat,
+        deposito_tipo: 'assistencia',
+        preco_custo: parseFloat(newPartCusto) || 0,
+        preco_venda: parseFloat(newPartVenda) || 0,
+        estoque_atual: parseInt(newPartEstoque) || 0,
+        estoque_minimo: parseInt(newPartMinimo) || 2
+      })
+
+      triggerNotification('Nova peça cadastrada com sucesso!')
+      setNewPartSku('')
+      setNewPartName('')
+      setNewPartCusto('')
+      setNewPartVenda('')
+      setNewPartEstoque('')
+      loadAssistenciaData()
+    } catch (e) {
+      console.error(e)
+      triggerNotification('Erro ao cadastrar peça.', 'error')
+    }
+  }
+
+  const handleSaveChecklistSaida = async () => {
+    if (!selectedOsForChecklistSaida) return
+    try {
+      await localDb.updateOS(selectedOsForChecklistSaida, {
+        checklist_saida: osChecklistSaidaEdit
+      })
+      triggerNotification('Checklist de Saída salvo com sucesso!')
+      setSelectedOsForChecklistSaida(null)
+      loadAssistenciaData()
+    } catch (e) {
+      console.error(e)
+      triggerNotification('Erro ao salvar checklist de saída.', 'error')
+    }
+  }
+
+  const handleIaQuery = async () => {
+    if (!iaQuestion.trim()) return
+    setIsIaLoading(true)
+    setIaAnswer('')
+
+    try {
+      setTimeout(() => {
+        const questionLower = iaQuestion.toLowerCase()
+        let answerText = ""
+
+        if (questionLower.includes('curto') || questionLower.includes('placa')) {
+          answerText = `🔍 **Roteiro de Diagnóstico de Curto na Linha Principal (VDD_MAIN / VDD_BOOST):**
+1. **Inspeção Visual**: Use microscópio para identificar trincas em capacitores cerâmicos ou marcas de oxidação.
+2. **Injeção de Tensão**: Regule a fonte de bancada para **1.0V** com limite de **2A**. Injete na linha afetada.
+3. **Câmera Térmica / Breu**: Aplique breu (rosin) na placa ou use câmera térmica. O componente que dissipar calor primeiro é o culpado.
+*Dica Fitch:* Em iPhones 11 e 12, verifique sempre os capacitores ao redor do IC de Carga (Tigris/Hydra).`
+        } else if (questionLower.includes('bateria') || questionLower.includes('mensagem')) {
+          answerText = `🔋 **Roteiro para Remoção de Mensagem de Peça Desconhecida (Bateria):**
+1. **Transplante de BMS**: Retire o circuito controlador (BMS) original da bateria antiga (degradada).
+2. **Soldagem por Ponto**: Solde o BMS original nas novas células de reposição (use soldadora por ponto portátil).
+3. **Reset de Ciclos**: Utilize uma programadora (ex: JC V1S / QianLi Apollo) com tag-on flex para redefinir a saúde para **100%** e os ciclos para **0**.
+4. **Ciclo de Inicialização**: Ligue o iPhone inicialmente sem a bateria (na fonte) para registrar o erro de peça ausente, depois desligue e instale a nova bateria com BMS original.`
+        } else if (questionLower.includes('face id') || questionLower.includes('dot projector')) {
+          answerText = `👁️ **Diagnóstico de Face ID Inoperante:**
+1. **Teste do Sensor de Proximidade (Flood Illuminator)**: Meça a linha de alimentação de **1.8V**. O transplante do sensor de luminosidade para o novo flex mantém o True Tone e Face ID.
+2. **Falha do Dot Projector**: Geralmente causado por curto interno no diodo emissor devido à umidade.
+3. **Procedimento de Reparo**: Use JCID V1S Pro com flex JC Tag-on para ler os dados criptografados do Dot Projector original, grave em um novo flex JC e solde o prisma original.`
+        } else {
+          answerText = `🤖 **Fitch Assist AI Co-Pilot:**
+Recebi sua pergunta sobre: *"${iaQuestion}"*.
+*Recomendação Técnica Geral:*
+1. Sempre verifique o consumo de corrente na fonte antes de iniciar micro-soldagem.
+2. Utilize multímetro em escala de diodo (condução reversa) para comparar linhas suspeitas com uma placa de referência espelho.
+3. Utilize telas e periféricos homologados para evitar problemas de compatibilidade no iOS.`
+        }
+
+        setIaAnswer(answerText)
+        setIsIaLoading(false)
+      }, 1200)
+    } catch (e) {
+      console.error(e)
+      setIaAnswer("Desculpe, ocorreu um erro ao contatar o Fitch Assist.")
+      setIsIaLoading(false)
+    }
+  }
+
+  const printOSReceipt = (os) => {
+    const printWindow = window.open('', '_blank', 'width=850,height=800')
+    if (!printWindow) {
+      triggerNotification('Bloqueador de pop-ups ativo! Permita pop-ups para gerar o comprovante.', 'error')
+      return
+    }
+
+    const formatCurrency = (val) => {
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Ordem de Serviço #${os.os_number} - Fitch</title>
+        <style>
+          body { font-family: 'Inter', sans-serif; margin: 40px; color: #0f172a; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 20px; }
+          .logo { background: #0f172a; color: white; padding: 8px 16px; border-radius: 50px; font-weight: 800; }
+          .info-block { display: grid; grid-template-cols: 1fr 1fr; gap: 20px; margin-top: 30px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; font-size: 13px; }
+          .checklist-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+          .checklist-table th, .checklist-table td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 12px; }
+          .checklist-table th { background: #f1f5f9; }
+          .total-card { margin-top: 30px; background: #f1f5f9; padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="logo">FITCH</div>
+          <div><h2>ORDEM DE SERVIÇO #${os.os_number}</h2></div>
+        </div>
+        <div class="info-block">
+          <div>
+            <strong>Cliente:</strong> ${os.client_name}<br>
+            <strong>Aparelho:</strong> ${os.device_model}<br>
+            <strong>IMEI:</strong> ${os.serial_imei}
+          </div>
+          <div>
+            <strong>Técnico:</strong> ${os.tecnico_responsavel || 'Não definido'}<br>
+            <strong>Status:</strong> ${os.status}<br>
+            <strong>Entrada:</strong> ${new Date(os.created_at).toLocaleDateString('pt-BR')}
+          </div>
+        </div>
+        <h3>Defeito / Sintoma Relatado:</h3>
+        <p>${os.relatorio_tecnico || 'Sem observações adicionais.'}</p>
+        
+        <h3>Checklist de Entrada:</h3>
+        <table class="checklist-table">
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Status Recepção</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Face ID / Touch ID</td><td>${os.checklist_entrada?.faceId || 'NT'}</td></tr>
+            <tr><td>Tela e Touch</td><td>${os.checklist_entrada?.tela || 'NT'}</td></tr>
+            <tr><td>Câmeras</td><td>${os.checklist_entrada?.camera || 'NT'}</td></tr>
+            <tr><td>Áudio (Microfone/Alto-falante)</td><td>${os.checklist_entrada?.audio || 'NT'}</td></tr>
+            <tr><td>Conectividade (Wi-Fi/Rede)</td><td>${os.checklist_entrada?.conexao || 'NT'}</td></tr>
+            <tr><td>Bateria</td><td>${os.checklist_entrada?.bateria || 'NT'}</td></tr>
+            <tr><td>Carcaça e Botões</td><td>${os.checklist_entrada?.carcaca || 'NT'}</td></tr>
+          </tbody>
+        </table>
+
+        <div class="total-card">
+          <span>VALOR DA MÃO DE OBRA: ${formatCurrency(os.valor_mao_de_obra)}</span>
+          <span>VALOR TOTAL: ${formatCurrency(os.valor_total)}</span>
+        </div>
+        
+        <div style="margin-top: 50px; text-align: center; font-size: 11px; color: #64748b;">
+          Assinatura do Cliente: __________________________________________________
+        </div>
+        <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
+      </body>
+      </html>
+    `
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
   }
 
   // Carregar Histórico
@@ -2499,7 +2952,7 @@ ${splitsList}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
             
             {/* Card 1: Simulador de Trade-in */}
             <button
@@ -2542,6 +2995,28 @@ ${splitsList}
               </div>
               <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
                 Acesso Vendedores &gt;
+              </span>
+            </button>
+
+            {/* Card 3: Assistência Técnica */}
+            <button
+              type="button"
+              onClick={() => requestAccess('assistencia')}
+              className="group text-left bg-white border border-slate-200 hover:border-purple-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5 cursor-pointer flex flex-col justify-between min-h-[240px]"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
+                  Assistência Técnica
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Ordens de serviço especialistas, controle de estoque de peças, Kanban de manutenção e IA Fitch Assist.
+                </p>
+              </div>
+              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
+                Acesso Gerente / ADM &gt;
               </span>
             </button>
 
@@ -2589,6 +3064,20 @@ ${splitsList}
             <Archive className="w-4 h-4" />
             Estoque & Atacado
             {activeTab === 'estoque' && (
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-t-full"></div>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('assistencia')}
+            className={`pb-3 text-sm font-semibold transition-all relative cursor-pointer flex items-center gap-2 ${
+              activeTab === 'assistencia' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Smartphone className="w-4 h-4" />
+            Assistência Técnica
+            {activeTab === 'assistencia' && (
               <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 rounded-t-full"></div>
             )}
           </button>
@@ -4094,6 +4583,635 @@ ${splitsList}
         </div>
       )}
 
+      {activeTab === 'assistencia' && (
+        <div className="max-w-7xl mx-auto px-6 mt-8 space-y-6">
+          {/* Header de Sub-Abas */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/60 border border-slate-200/80 p-3 rounded-2xl">
+            <div className="space-y-0.5">
+              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-purple-600" />
+                Fitch Assistência & Serviços
+              </h2>
+              <p className="text-xs text-slate-500">Abertura de O.S. com validador de IMEI, Kanban técnico e controle de peças</p>
+            </div>
+            
+            <div className="flex gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto">
+              {['balcao', 'kanban', 'estoque_pecas'].map((sub) => (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setAssistenciaSubTab(sub)}
+                  className={`flex-1 sm:flex-initial py-1.5 px-4 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    assistenciaSubTab === sub
+                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {sub === 'balcao' ? '🏪 Balcão / PDV' : sub === 'kanban' ? '🛠️ Kanban Técnico' : '📦 Estoque de Peças'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sub-Aba 1: Balcão / PDV (Abertura de OS) */}
+          {assistenciaSubTab === 'balcao' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              
+              {/* Formulário de Abertura de OS */}
+              <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm">
+                <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-purple-600" />
+                    1. Abertura Rápida de Ordem de Serviço
+                  </h3>
+                  <span className="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded font-bold border border-purple-100">
+                    BALCÃO ATIVO
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {/* Nome do Cliente */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nome do Cliente *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: João da Silva"
+                      value={osClientName}
+                      onChange={(e) => setOsClientName(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                    />
+                  </div>
+
+                  {/* Telefone */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Telefone *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: (11) 99999-9999"
+                      value={osClientPhone}
+                      onChange={(e) => setOsClientPhone(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                    />
+                  </div>
+
+                  {/* CPF / CNPJ */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">CPF *</label>
+                      {osClientCpf && (
+                        <span className={`text-[9px] font-bold ${validarCPF(osClientCpf) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {validarCPF(osClientCpf) ? '● Válido' : '● Inválido'}
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Apenas números"
+                      value={osClientCpf}
+                      onChange={(e) => setOsClientCpf(e.target.value)}
+                      className={`w-full bg-white border rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium ${
+                        osClientCpf ? (validarCPF(osClientCpf) ? 'border-emerald-500 focus:border-emerald-600' : 'border-rose-450 focus:border-rose-600') : 'border-slate-300'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-5 border-t border-slate-100 pt-5">
+                  {/* Aparelho */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Aparelho *</label>
+                    <select
+                      value={osDeviceModel}
+                      onChange={(e) => setOsDeviceModel(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none font-medium cursor-pointer"
+                    >
+                      {USED_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Cor */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Cor *</label>
+                    <select
+                      value={osDeviceColor}
+                      onChange={(e) => setOsDeviceColor(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none font-medium cursor-pointer"
+                    >
+                      {APPLE_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Armazenamento */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Capacidade *</label>
+                    <select
+                      value={osDeviceStorage}
+                      onChange={(e) => setOsDeviceStorage(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none font-medium cursor-pointer"
+                    >
+                      {STORAGE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                  {/* IMEI */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <div className="flex justify-between">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">IMEI *</label>
+                      {osDeviceImei && (
+                        <span className={`text-[9px] font-bold ${validarIMEI(osDeviceImei) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {validarIMEI(osDeviceImei) ? '● Válido' : '● Inválido'}
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="15 dígitos"
+                      value={osDeviceImei}
+                      onChange={(e) => setOsDeviceImei(e.target.value)}
+                      maxLength={15}
+                      className={`w-full bg-white border rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium ${
+                        osDeviceImei ? (validarIMEI(osDeviceImei) ? 'border-emerald-500 focus:border-emerald-600' : 'border-rose-450 focus:border-rose-600') : 'border-slate-300'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-slate-100 pt-5">
+                  {/* Número de Série */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Número de Série *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: F17CN890N4Y0"
+                      value={osDeviceSerial}
+                      onChange={(e) => setOsDeviceSerial(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                    />
+                  </div>
+
+                  {/* Sintoma / Defeito */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Sintoma Relatado *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Tela quebrou após queda, sem touch"
+                      value={osSymptom}
+                      onChange={(e) => setOsSymptom(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Checklist Técnico Rápido de Recepção */}
+                <div className="border-t border-slate-100 pt-5 space-y-3">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Checklist Técnico de Entrada (Toque rápido)</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { key: 'faceId', label: 'Face ID / Touch ID' },
+                      { key: 'tela', label: 'Tela e Touch' },
+                      { key: 'camera', label: 'Câmeras' },
+                      { key: 'audio', label: 'Áudio (Alto-falante)' },
+                      { key: 'conexao', label: 'Wi-Fi / Sinal' },
+                      { key: 'bateria', label: 'Bateria' },
+                      { key: 'carcaca', label: 'Carcaça/Botões' }
+                    ].map((item) => (
+                      <div key={item.key} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between gap-1.5">
+                        <span className="text-[9px] font-bold text-slate-700 block">{item.label}</span>
+                        <div className="flex gap-1">
+                          {['Ok', 'Def', 'NT'].map(v => (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => setOsChecklistEntrada(prev => ({ ...prev, [item.key]: v }))}
+                              className={`flex-1 text-[9px] font-extrabold py-1 rounded cursor-pointer transition-all ${
+                                osChecklistEntrada[item.key] === v
+                                  ? (v === 'Ok' ? 'bg-emerald-500 text-white' : v === 'Def' ? 'bg-rose-500 text-white' : 'bg-slate-500 text-white')
+                                  : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                              }`}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-slate-100 pt-5">
+                  {/* Mão de Obra */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Valor Mão de Obra (Sugerido)</label>
+                    <input
+                      type="number"
+                      placeholder="R$ 150,00"
+                      value={osLaborValue}
+                      onChange={(e) => setOsLaborValue(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                    />
+                  </div>
+
+                  {/* Desconto */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Desconto Especial</label>
+                    <input
+                      type="number"
+                      placeholder="R$ 0,00"
+                      value={osDiscountValue}
+                      onChange={(e) => setOsDiscountValue(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={handleSaveOS}
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    Abrir Ordem de Serviço & Imprimir Via Cliente
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista Lateral de OS Recentes */}
+              <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                  <Archive className="w-4 h-4 text-purple-600" />
+                  Ordem de Serviço Recentes
+                </h3>
+
+                {ordensServicoList.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-4 text-center">Nenhuma ordem de serviço registrada localmente.</p>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                    {ordensServicoList.slice(0, 10).map((os) => (
+                      <div key={os.id} className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col justify-between gap-2 hover:bg-slate-100/50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold block">OS #{os.os_number}</span>
+                            <span className="text-xs font-bold text-slate-900 block mt-0.5">{os.client_name}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">{os.device_model}</span>
+                          </div>
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
+                            os.status === 'Entrada' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            os.status === 'Em Análise' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                            os.status === 'Aguardando Peça' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                            os.status === 'Pronto' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                            'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                            {os.status}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center border-t border-slate-200/60 pt-2 text-[10px] text-slate-500">
+                          <span className="font-semibold text-slate-800">Total: {formatBRL(os.valor_total)}</span>
+                          <button
+                            type="button"
+                            onClick={() => printOSReceipt(os)}
+                            className="text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            Comprovante
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+          {/* Sub-Aba 2: Kanban Técnico */}
+          {assistenciaSubTab === 'kanban' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* Painel Central Kanban */}
+              <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 space-y-6 shadow-sm overflow-x-auto">
+                <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    🛠️ Quadro de Manutenções Kanban
+                  </h3>
+                  <span className="text-[10px] text-slate-500 font-bold">Distribuição de Cargas de Trabalho</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {['Entrada', 'Em Análise', 'Aguardando Peça'].map((colStatus) => {
+                    const filteredOS = ordensServicoList.filter(os => os.status === colStatus)
+                    return (
+                      <div key={colStatus} className="bg-slate-100 border border-slate-200/80 p-3.5 rounded-2xl space-y-3 min-h-[400px] flex flex-col">
+                        <div className="flex justify-between items-center border-b border-slate-250 pb-2">
+                          <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider block">{colStatus}</span>
+                          <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-black leading-none">{filteredOS.length}</span>
+                        </div>
+
+                        <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+                          {filteredOS.map((os) => (
+                            <div key={os.id} className="bg-white border border-slate-200/60 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2">
+                              <div>
+                                <span className="text-[9px] text-slate-400 font-mono block">OS #{os.os_number}</span>
+                                <span className="text-xs font-bold text-slate-900 block mt-0.5">{os.device_model}</span>
+                                <span className="text-[10px] text-slate-500 block">Cliente: {os.client_name}</span>
+                              </div>
+
+                              {/* Ações Técnicas no Card */}
+                              <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-slate-100">
+                                <select
+                                  value={os.status}
+                                  onChange={(e) => handleUpdateOSStatus(os.id, e.target.value)}
+                                  className="text-[9px] font-bold bg-slate-100 border border-slate-200 rounded py-1 px-1.5 text-slate-700 cursor-pointer"
+                                >
+                                  <option value="Entrada">Entrada</option>
+                                  <option value="Em Análise">Em Análise</option>
+                                  <option value="Aguardando Peça">Aguardando Peça</option>
+                                  <option value="Pronto">Pronto</option>
+                                  <option value="Sem Reparo">Sem Reparo</option>
+                                  <option value="Entregue">Entregue</option>
+                                </select>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOsForPart(os.id)
+                                    setShowAddPartModal(true)
+                                  }}
+                                  className="text-[9px] font-bold bg-purple-50 hover:bg-purple-100 border border-purple-100 text-purple-700 py-1 px-2 rounded cursor-pointer"
+                                >
+                                  + Peça
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOsForChecklistSaida(os.id)
+                                    setOsChecklistSaidaEdit(os.checklist_saida && Object.keys(os.checklist_saida).length > 0 ? os.checklist_saida : { ...os.checklist_entrada })
+                                  }}
+                                  className="text-[9px] font-bold bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-700 py-1 px-2 rounded cursor-pointer"
+                                >
+                                  Exit Test
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-5">
+                  {['Pronto', 'Sem Reparo', 'Entregue'].map((colStatus) => {
+                    const filteredOS = ordensServicoList.filter(os => os.status === colStatus)
+                    return (
+                      <div key={colStatus} className="bg-slate-100 border border-slate-200/80 p-3.5 rounded-2xl space-y-3 min-h-[300px] flex flex-col">
+                        <div className="flex justify-between items-center border-b border-slate-250 pb-2">
+                          <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider block">{colStatus}</span>
+                          <span className="text-[9px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-black leading-none">{filteredOS.length}</span>
+                        </div>
+
+                        <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+                          {filteredOS.map((os) => (
+                            <div key={os.id} className="bg-white border border-slate-200/60 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col gap-2">
+                              <div>
+                                <span className="text-[9px] text-slate-400 font-mono block">OS #{os.os_number}</span>
+                                <span className="text-xs font-bold text-slate-900 block mt-0.5">{os.device_model}</span>
+                                <span className="text-[10px] text-slate-500 block">Cliente: {os.client_name}</span>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-slate-100">
+                                <select
+                                  value={os.status}
+                                  onChange={(e) => handleUpdateOSStatus(os.id, e.target.value)}
+                                  className="text-[9px] font-bold bg-slate-100 border border-slate-200 rounded py-1 px-1.5 text-slate-700 cursor-pointer"
+                                >
+                                  <option value="Entrada">Entrada</option>
+                                  <option value="Em Análise">Em Análise</option>
+                                  <option value="Aguardando Peça">Aguardando Peça</option>
+                                  <option value="Pronto">Pronto</option>
+                                  <option value="Sem Reparo">Sem Reparo</option>
+                                  <option value="Entregue">Entregue</option>
+                                </select>
+                                
+                                <span className="text-[9px] font-bold text-slate-500 self-center">Custo Peças: {formatBRL(os.valor_pecas)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Sidebar Co-Pilot IA */}
+              <div className="lg:col-span-4 bg-slate-900 text-slate-100 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl relative min-h-[500px] flex flex-col">
+                <div className="border-b border-slate-800 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                    <Cpu className="w-4 h-4" />
+                    🤖 IA Fitch Assist Co-Pilot
+                  </h3>
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Diagnósticos e esquemáticos de microeletrônica Apple</span>
+                </div>
+
+                <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+                  {iaAnswer ? (
+                    <div className="bg-slate-850 border border-slate-800 p-4 rounded-2xl text-xs leading-relaxed space-y-2 animate-fade-in whitespace-pre-line text-slate-200">
+                      {iaAnswer}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 space-y-2 text-slate-500">
+                      <Cpu className="w-8 h-8 mx-auto text-slate-600 animate-pulse" />
+                      <p className="text-xs font-medium">Digite uma dúvida de soldagem ou códigos de erro acima (ex: Panic Full, Curto Tigris, True Tone, 4013).</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 pt-3 border-t border-slate-800">
+                  <textarea
+                    placeholder="Cole seu código de erro ou sintoma..."
+                    value={iaQuestion}
+                    onChange={(e) => setIaQuestion(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 focus:border-purple-500 rounded-xl py-2 px-3 text-xs text-white outline-none transition-all placeholder:text-slate-500 font-medium resize-none h-20"
+                  />
+                  <button
+                    type="button"
+                    disabled={isIaLoading}
+                    onClick={handleIaQuery}
+                    className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 text-white font-bold text-xs py-2.5 rounded-xl transition-all cursor-pointer"
+                  >
+                    {isIaLoading ? 'Analisando Circuito...' : 'Perguntar ao Co-Pilot'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* Sub-Aba 3: Estoque de Peças */}
+          {assistenciaSubTab === 'estoque_pecas' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              
+              {/* Tabela de Insumos */}
+              <div className="lg:col-span-8 bg-white border border-slate-200 rounded-3xl p-6 md:p-8 space-y-6 shadow-sm overflow-x-auto">
+                <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    📦 Almoxarifado de Peças de Reposição
+                  </h3>
+                  <span className="text-[10px] text-slate-500 font-bold">Grade Fina de Compatibilidade</span>
+                </div>
+
+                <table className="w-full text-sm text-slate-700 border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-200 text-left">
+                      <th className="py-3 px-4 font-bold text-xs uppercase text-slate-500 tracking-wider">SKU</th>
+                      <th className="py-3 px-4 font-bold text-xs uppercase text-slate-500 tracking-wider">Nome da Peça</th>
+                      <th className="py-3 px-4 font-bold text-xs uppercase text-slate-500 tracking-wider">Compatibilidade</th>
+                      <th className="py-3 px-4 text-center font-bold text-xs uppercase text-slate-500 tracking-wider">Estoque</th>
+                      <th className="py-3 px-4 text-right font-bold text-xs uppercase text-slate-500 tracking-wider">Custo</th>
+                      <th className="py-3 px-4 text-right font-bold text-xs uppercase text-slate-500 tracking-wider">Preço Venda</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pecasList.map((peca) => {
+                      const isLowStock = peca.estoque_atual <= peca.estoque_minimo
+                      return (
+                        <tr key={peca.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-4 font-mono text-xs font-semibold text-slate-900">{peca.sku}</td>
+                          <td className="py-3 px-4 font-semibold text-slate-900">{peca.nome}</td>
+                          <td className="py-3 px-4 text-slate-600 font-medium">{peca.compatibilidade_modelo}</td>
+                          <td className="py-3 px-4 text-center font-bold">
+                            <span className={`px-2 py-0.5 rounded text-[10px] border ${
+                              isLowStock
+                                ? 'bg-rose-50 text-rose-700 border-rose-200/60 font-black animate-pulse'
+                                : 'bg-slate-100 text-slate-700 border-slate-200/60'
+                            }`}>
+                              {peca.estoque_atual} un
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold text-slate-600">{formatBRL(peca.preco_custo)}</td>
+                          <td className="py-3 px-4 text-right font-extrabold text-blue-600">{formatBRL(peca.preco_venda)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Form de Cadastro de Nova Peça */}
+              <div className="lg:col-span-4 bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-2 flex items-center gap-1.5">
+                  <Archive className="w-4 h-4 text-purple-600" />
+                  Cadastrar Peça / Insumo
+                </h3>
+
+                <form onSubmit={handleSaveNewPart} className="space-y-4">
+                  {/* SKU */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">SKU / Código da Peça</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: TEL-IP11"
+                      value={newPartSku}
+                      onChange={(e) => setNewPartSku(e.target.value)}
+                      className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Nome */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Descrição da Peça</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Tela Premium iPhone 11"
+                      value={newPartName}
+                      onChange={(e) => setNewPartName(e.target.value)}
+                      className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Compatibilidade */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Compatibilidade Apple</label>
+                    <select
+                      value={newPartCompat}
+                      onChange={(e) => setNewPartCompat(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-3 text-xs text-slate-900 outline-none font-medium cursor-pointer"
+                    >
+                      {USED_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Custo */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Custo (R$)</label>
+                      <input
+                        type="number"
+                        placeholder="180.00"
+                        value={newPartCusto}
+                        onChange={(e) => setNewPartCusto(e.target.value)}
+                        className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                      />
+                    </div>
+
+                    {/* Venda */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Venda (R$)</label>
+                      <input
+                        type="number"
+                        placeholder="390.00"
+                        value={newPartVenda}
+                        onChange={(e) => setNewPartVenda(e.target.value)}
+                        className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Estoque */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Qtd em Estoque</label>
+                      <input
+                        type="number"
+                        placeholder="5"
+                        value={newPartEstoque}
+                        onChange={(e) => setNewPartEstoque(e.target.value)}
+                        className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                      />
+                    </div>
+
+                    {/* Alerta Mínimo */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Estoque Mínimo</label>
+                      <input
+                        type="number"
+                        placeholder="2"
+                        value={newPartMinimo}
+                        onChange={(e) => setNewPartMinimo(e.target.value)}
+                        className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-md cursor-pointer mt-2"
+                  >
+                    Salvar e Cadastrar Peça
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      )}
+
       {activeTab === 'checklist' && (
         <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
           {/* O Checklist principal em 2 colunas: Col 8 (Formulário) e Col 4 (Resultado da Grade / Ações) */}
@@ -5219,6 +6337,141 @@ ${splitsList}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Adicionar Peça na OS */}
+      {showAddPartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-md space-y-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowAddPartModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-md font-bold text-slate-900">Vincular Peça à OS</h3>
+              <p className="text-xs text-slate-500">Escolha a peça compatível no estoque e registre a numeração de série.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Selecionar Insumo / Peça</label>
+                <select
+                  value={selectedPartForOS || ''}
+                  onChange={(e) => setSelectedPartForOS(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-3 text-xs text-slate-900 outline-none font-medium cursor-pointer"
+                >
+                  <option value="">-- Escolha a Peça em Estoque --</option>
+                  {pecasList.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.sku} - {p.nome} (Qtd: {p.estoque_atual} un)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Código Serial da Nova Peça (Garantia) *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: BT-908127391-J"
+                  value={serialInstalledForOS}
+                  onChange={(e) => setSerialInstalledForOS(e.target.value)}
+                  className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2.5 px-3 text-xs text-slate-900 outline-none transition-all font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPartModal(false)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-3 rounded-xl transition-all cursor-pointer border border-slate-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePartToOS}
+                  className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-md cursor-pointer"
+                >
+                  Vincular Insumo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Checklist de Saída da OS */}
+      {selectedOsForChecklistSaida && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 w-full max-w-lg space-y-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedOsForChecklistSaida(null)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 transition-colors p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <h3 className="text-md font-bold text-slate-900">Checklist Técnico de Saída (Entrega)</h3>
+              <p className="text-xs text-slate-500">Valide o funcionamento de todos os itens antes de liberar o dispositivo.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { key: 'faceId', label: 'Face ID / Touch ID' },
+                  { key: 'tela', label: 'Tela e Touch' },
+                  { key: 'camera', label: 'Câmeras' },
+                  { key: 'audio', label: 'Áudio (Microfone/Alto-falante)' },
+                  { key: 'conexao', label: 'Wi-Fi / Rede' },
+                  { key: 'bateria', label: 'Bateria' },
+                  { key: 'carcaca', label: 'Carcaça/Botoes' }
+                ].map((item) => (
+                  <div key={item.key} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex flex-col justify-between gap-1">
+                    <span className="text-[10px] font-bold text-slate-700 block">{item.label}</span>
+                    <div className="flex gap-1">
+                      {['Ok', 'Def', 'NT'].map(v => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setOsChecklistSaidaEdit(prev => ({ ...prev, [item.key]: v }))}
+                          className={`flex-1 text-[9px] font-extrabold py-1 rounded cursor-pointer transition-all ${
+                            osChecklistSaidaEdit[item.key] === v
+                              ? (v === 'Ok' ? 'bg-emerald-500 text-white' : v === 'Def' ? 'bg-rose-500 text-white' : 'bg-slate-500 text-white')
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                          }`}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOsForChecklistSaida(null)}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-3 rounded-xl transition-all cursor-pointer border border-slate-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveChecklistSaida}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-3 rounded-xl transition-all shadow-md cursor-pointer"
+                >
+                  Confirmar e Salvar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
