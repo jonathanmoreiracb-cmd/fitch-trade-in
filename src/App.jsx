@@ -852,58 +852,62 @@ function App() {
   // --- Fitch Assistência Business Logic Methods ---
   const loadAssistenciaData = async () => {
     try {
+      // 1. Always load local data first as baseline/instant cache
+      const localClientes = await localDb.getClientes()
+      const localDispositivos = await localDb.getDispositivos()
+      const localPecas = await localDb.getPecas()
+      const localOS = await localDb.getOS()
+
+      let finalClientes = localClientes
+      let finalDispositivos = localDispositivos
+      let finalPecas = localPecas
+      let finalOS = localOS
+
+      // 2. Query Supabase in background if configured
       if (isSupabaseConfigured) {
-        // Load Clientes
+        // Fetch Clientes
         const { data: cData, error: cErr } = await supabase.from('clientes').select('*').order('nome')
-        if (!cErr && cData) setClientesList(cData)
-        else {
-          const c = await localDb.getClientes()
-          setClientesList(c)
+        if (!cErr && cData) {
+          const map = new Map()
+          localClientes.forEach(item => map.set(item.id, item))
+          cData.forEach(item => map.set(item.id, item))
+          finalClientes = Array.from(map.values())
         }
 
-        // Load Dispositivos
+        // Fetch Dispositivos
         const { data: dData, error: dErr } = await supabase.from('cliente_dispositivos').select('*')
-        if (!dErr && dData) setDispositivosList(dData)
-        else {
-          const d = await localDb.getDispositivos()
-          setDispositivosList(d)
+        if (!dErr && dData) {
+          const map = new Map()
+          localDispositivos.forEach(item => map.set(item.id, item))
+          dData.forEach(item => map.set(item.id, item))
+          finalDispositivos = Array.from(map.values())
         }
 
-        // Load Pecas
+        // Fetch Pecas
         const { data: pData, error: pErr } = await supabase.from('pecas_estoque').select('*').order('sku')
-        if (!pErr && pData) setPecasList(pData)
-        else {
-          const p = await localDb.getPecas()
-          setPecasList(p)
+        if (!pErr && pData) {
+          const map = new Map()
+          localPecas.forEach(item => map.set(item.id, item))
+          pData.forEach(item => map.set(item.id, item))
+          finalPecas = Array.from(map.values())
         }
 
-        // Load OS
+        // Fetch OS
         const { data: oData, error: oErr } = await supabase.from('ordens_servico').select('*').order('os_number', { ascending: false })
-        if (!oErr && oData) setOrdensServicoList(oData)
-        else {
-          const o = await localDb.getOS()
-          setOrdensServicoList(o)
+        if (!oErr && oData) {
+          const map = new Map()
+          localOS.forEach(item => map.set(item.id, item))
+          oData.forEach(item => map.set(item.id, item))
+          finalOS = Array.from(map.values()).sort((a, b) => (b.os_number || 0) - (a.os_number || 0))
         }
-      } else {
-        const c = await localDb.getClientes()
-        setClientesList(c)
-        const d = await localDb.getDispositivos()
-        setDispositivosList(d)
-        const p = await localDb.getPecas()
-        setPecasList(p)
-        const o = await localDb.getOS()
-        setOrdensServicoList(o)
       }
+
+      setClientesList(finalClientes)
+      setDispositivosList(finalDispositivos)
+      setPecasList(finalPecas)
+      setOrdensServicoList(finalOS)
     } catch (e) {
       console.error("Error loading assistance data:", e)
-      const c = await localDb.getClientes()
-      setClientesList(c)
-      const d = await localDb.getDispositivos()
-      setDispositivosList(d)
-      const p = await localDb.getPecas()
-      setPecasList(p)
-      const o = await localDb.getOS()
-      setOrdensServicoList(o)
     }
   }
 
@@ -956,54 +960,51 @@ function App() {
     }
 
     try {
+      // 1. Salvar ou obter cliente localmente
       let cliente = clientesList.find(c => c.cpf_cnpj === osClientCpf)
       if (!cliente) {
+        cliente = await localDb.saveCliente({
+          nome: osClientName,
+          cpf_cnpj: osClientCpf,
+          telefone: osClientPhone
+        })
         if (isSupabaseConfigured) {
-          const { data, error } = await supabase.from('clientes').insert([{
+          await supabase.from('clientes').insert([{
+            id: cliente.id,
             nome: osClientName,
             cpf_cnpj: osClientCpf,
-            telefone: osClientPhone
-          }]).select()
-          if (!error && data && data.length > 0) {
-            cliente = data[0]
-          }
-        }
-        if (!cliente) {
-          cliente = await localDb.saveCliente({
-            nome: osClientName,
-            cpf_cnpj: osClientCpf,
-            telefone: osClientPhone
-          })
+            telefone: osClientPhone,
+            created_at: cliente.created_at
+          }])
         }
       }
 
+      // 2. Salvar ou obter dispositivo localmente
       let dispositivo = dispositivosList.find(d => d.imei === osDeviceImei || d.numero_serie === osDeviceSerial)
       if (!dispositivo) {
+        dispositivo = await localDb.saveDispositivo({
+          cliente_id: cliente.id,
+          modelo: osDeviceModel,
+          capacidade: osDeviceStorage,
+          cor: osDeviceColor,
+          imei: osDeviceImei,
+          numero_serie: osDeviceSerial
+        })
         if (isSupabaseConfigured) {
-          const { data, error } = await supabase.from('cliente_dispositivos').insert([{
+          await supabase.from('cliente_dispositivos').insert([{
+            id: dispositivo.id,
             cliente_id: cliente.id,
             modelo: osDeviceModel,
             capacidade: osDeviceStorage,
             cor: osDeviceColor,
             imei: osDeviceImei,
-            numero_serie: osDeviceSerial
-          }]).select()
-          if (!error && data && data.length > 0) {
-            dispositivo = data[0]
-          }
-        }
-        if (!dispositivo) {
-          dispositivo = await localDb.saveDispositivo({
-            cliente_id: cliente.id,
-            modelo: osDeviceModel,
-            capacidade: osDeviceStorage,
-            cor: osDeviceColor,
-            imei: osDeviceImei,
-            numero_serie: osDeviceSerial
-          })
+            numero_serie: osDeviceSerial,
+            created_at: dispositivo.created_at
+          }])
         }
       }
 
+      // 3. Salvar OS localmente primeiro
       const record = {
         cliente_id: cliente.id,
         dispositivo_id: dispositivo.id,
@@ -1022,15 +1023,19 @@ function App() {
         serial_imei: dispositivo.imei
       }
 
-      let osSaved = false
+      const savedOS = await localDb.saveOS(record)
+
+      // 4. Enviar a mesma OS com os mesmos identificadores para o Supabase
       if (isSupabaseConfigured) {
-        const { error } = await supabase.from('ordens_servico').insert([record])
-        if (!error) {
-          osSaved = true
+        const remoteRecord = {
+          ...record,
+          id: savedOS.id,
+          os_number: savedOS.os_number,
+          uuid_acesso_vip: savedOS.uuid_acesso_vip,
+          created_at: savedOS.created_at,
+          data_entrada: savedOS.data_entrada
         }
-      }
-      if (!osSaved) {
-        await localDb.saveOS(record)
+        await supabase.from('ordens_servico').insert([remoteRecord])
       }
 
       triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
@@ -1125,14 +1130,9 @@ function App() {
     }
 
     try {
-      let updatedRemote = false
+      await localDb.updateOS(osId, updatedData)
       if (isSupabaseConfigured) {
-        // Try UUID match or serial numeric ID match
-        const { error } = await supabase.from('ordens_servico').update(updatedData).eq('id', osId)
-        if (!error) updatedRemote = true
-      }
-      if (!updatedRemote) {
-        await localDb.updateOS(osId, updatedData)
+        await supabase.from('ordens_servico').update(updatedData).eq('id', osId)
       }
       triggerNotification(`OS #${os.os_number} alterada para ${nextStatus}`)
       loadAssistenciaData()
@@ -1159,13 +1159,9 @@ function App() {
         estoque_reservado: peca.estoque_reservado + 1
       }
       
-      let updatedPecaRemote = false
+      await localDb.updatePeca(peca.id, updatedPeca)
       if (isSupabaseConfigured) {
-        const { error } = await supabase.from('pecas_estoque').update(updatedPeca).eq('id', peca.id)
-        if (!error) updatedPecaRemote = true
-      }
-      if (!updatedPecaRemote) {
-        await localDb.updatePeca(peca.id, updatedPeca)
+        await supabase.from('pecas_estoque').update(updatedPeca).eq('id', peca.id)
       }
 
       const updatedOS = {
@@ -1173,13 +1169,9 @@ function App() {
         diagnostico_tecnico: (os.diagnostico_tecnico || '') + `\n[Peça Instalada: ${peca.nome} (S/N: ${serialInstalledForOS || 'N/A'})]`
       }
       
-      let updatedOSRemote = false
+      await localDb.updateOS(os.id, updatedOS)
       if (isSupabaseConfigured) {
-        const { error } = await supabase.from('ordens_servico').update(updatedOS).eq('id', os.id)
-        if (!error) updatedOSRemote = true
-      }
-      if (!updatedOSRemote) {
-        await localDb.updateOS(os.id, updatedOS)
+        await supabase.from('ordens_servico').update(updatedOS).eq('id', os.id)
       }
 
       triggerNotification(`Peça ${peca.nome} vinculada à OS #${os.os_number} com sucesso!`)
@@ -1212,13 +1204,12 @@ function App() {
     }
 
     try {
-      let savedRemote = false
+      const savedLocal = await localDb.savePeca(newRecord)
       if (isSupabaseConfigured) {
-        const { error } = await supabase.from('pecas_estoque').insert([newRecord])
-        if (!error) savedRemote = true
-      }
-      if (!savedRemote) {
-        await localDb.savePeca(newRecord)
+        await supabase.from('pecas_estoque').insert([{
+          id: savedLocal.id,
+          ...newRecord
+        }])
       }
 
       triggerNotification('Nova peça cadastrada com sucesso!')
@@ -1238,14 +1229,12 @@ function App() {
     if (!selectedOsForChecklistSaida) return
     try {
       const updatedOS = { checklist_saida: osChecklistSaidaEdit }
-      let updatedRemote = false
+      
+      await localDb.updateOS(selectedOsForChecklistSaida, updatedOS)
       if (isSupabaseConfigured) {
-        const { error } = await supabase.from('ordens_servico').update(updatedOS).eq('id', selectedOsForChecklistSaida)
-        if (!error) updatedRemote = true
+        await supabase.from('ordens_servico').update(updatedOS).eq('id', selectedOsForChecklistSaida)
       }
-      if (!updatedRemote) {
-        await localDb.updateOS(selectedOsForChecklistSaida, updatedOS)
-      }
+
       triggerNotification('Checklist de Saída salvo com sucesso!')
       setSelectedOsForChecklistSaida(null)
       loadAssistenciaData()
