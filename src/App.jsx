@@ -391,6 +391,7 @@ function App() {
   const [assistenciaSubTab, setAssistenciaSubTab] = useState('balcao')
   
   // OS Form States
+  const [osType, setOsType] = useState('Serviço') // 'Serviço' ou 'Garantia'
   const [osClientName, setOsClientName] = useState('')
   const [osClientPhone, setOsClientPhone] = useState('')
   const [osClientCpf, setOsClientCpf] = useState('')
@@ -938,9 +939,10 @@ function App() {
         dispositivo_id: dispositivo.id,
         tecnico_responsavel: currentUser ? currentUser.name : 'Técnico Fitch',
         status: 'Entrada',
-        valor_mao_de_obra: parseFloat(osLaborValue) || 0,
+        tipo_os: osType,
+        valor_mao_de_obra: osType === 'Garantia' ? 0 : (parseFloat(osLaborValue) || 0),
         valor_pecas: 0,
-        valor_desconto: parseFloat(osDiscountValue) || 0,
+        valor_desconto: osType === 'Garantia' ? 0 : (parseFloat(osDiscountValue) || 0),
         checklist_entrada: osChecklistEntrada,
         checklist_saida: {},
         checklist_fotos: [],
@@ -953,6 +955,7 @@ function App() {
       await localDb.saveOS(record)
       triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
       
+      setOsType('Serviço')
       setOsClientName('')
       setOsClientPhone('')
       setOsClientCpf('')
@@ -987,21 +990,27 @@ function App() {
     }
 
     if (nextStatus === 'Entregue') {
-      const formaPag = window.prompt("Digite a forma de pagamento (Pix, Cartão, Dinheiro):", "Pix")
-      if (formaPag === null) return
+      let formaPag = 'Garantia'
+      if (os.tipo_os !== 'Garantia') {
+        formaPag = window.prompt("Digite a forma de pagamento (Pix, Cartão, Dinheiro):", "Pix")
+        if (formaPag === null) return
+      }
       
       updatedData.forma_pagamento = formaPag
       updatedData.data_saida = new Date().toISOString()
       
+      const finalRevenue = os.tipo_os === 'Garantia' ? 0 : os.valor_total
+      const insumosCost = os.valor_pecas * 0.5
+      
       const mockEvaluationRecord = {
-        client_name: `OS #${os.os_number} [Retirada]`,
+        client_name: `OS #${os.os_number} [Retirada - ${os.tipo_os || 'Serviço'}]`,
         imei_new: 'N/A',
         imei_used: os.serial_imei,
         new_model: 'ASSISTENCIA TECNICA',
         new_storage: 'N/A',
         new_color: 'N/A',
         new_cost: 0,
-        profit_margin: os.valor_total - (os.valor_pecas * 0.5),
+        profit_margin: finalRevenue - insumosCost,
         operational_cost: 0,
         used_model: os.device_model.split(' ')[0] + ' ' + os.device_model.split(' ')[1],
         used_storage: os.device_model.includes('GB') ? os.device_model.match(/\d+GB/)[0] : '128GB',
@@ -1011,9 +1020,9 @@ function App() {
         gateway: 'Assistencia',
         installments: 0,
         applied_rate: 0,
-        net_received: os.valor_total,
-        vitrine_price: os.valor_total,
-        max_evaluation: os.valor_pecas * 0.5,
+        net_received: finalRevenue,
+        vitrine_price: finalRevenue,
+        max_evaluation: insumosCost,
         battery_health: 100,
         original_screen: true,
         biometrics_status: 'ok',
@@ -4629,6 +4638,30 @@ ${splitsList}
                   </span>
                 </div>
 
+                {/* Seletor de Tipo de OS */}
+                <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Classificação da Ordem de Serviço</span>
+                    <span className="text-[10px] text-slate-500 block">Identifique se é um reparo avulso cobrado ou acionamento de garantia</span>
+                  </div>
+                  <div className="flex gap-1.5 bg-slate-250 p-1 rounded-xl border border-slate-300 w-full sm:w-auto">
+                    {['Serviço', 'Garantia'].map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setOsType(type)}
+                        className={`flex-1 sm:flex-initial py-1.5 px-4 text-[10px] font-black rounded-lg transition-all cursor-pointer ${
+                          osType === type
+                            ? 'bg-purple-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:text-slate-800'
+                        }`}
+                      >
+                        {type === 'Serviço' ? '💸 Reparo Cobrado' : '🛡️ Garantia Fitch'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {/* Nome do Cliente */}
                   <div className="space-y-1.5">
@@ -4804,10 +4837,13 @@ ${splitsList}
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Valor Mão de Obra (Sugerido)</label>
                     <input
                       type="number"
-                      placeholder="R$ 150,00"
-                      value={osLaborValue}
+                      placeholder={osType === 'Garantia' ? 'R$ 0,00' : 'R$ 150,00'}
+                      disabled={osType === 'Garantia'}
+                      value={osType === 'Garantia' ? '0' : osLaborValue}
                       onChange={(e) => setOsLaborValue(e.target.value)}
-                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                      className={`w-full border rounded-xl py-2 px-3 text-xs outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium ${
+                        osType === 'Garantia' ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-300 focus:border-blue-600'
+                      }`}
                     />
                   </div>
 
@@ -4816,10 +4852,13 @@ ${splitsList}
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Desconto Especial</label>
                     <input
                       type="number"
-                      placeholder="R$ 0,00"
-                      value={osDiscountValue}
+                      placeholder={osType === 'Garantia' ? 'R$ 0,00' : 'R$ 0,00'}
+                      disabled={osType === 'Garantia'}
+                      value={osType === 'Garantia' ? '0' : osDiscountValue}
                       onChange={(e) => setOsDiscountValue(e.target.value)}
-                      className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium"
+                      className={`w-full border rounded-xl py-2 px-3 text-xs outline-none transition-all focus:ring-1 focus:ring-blue-600/20 font-medium ${
+                        osType === 'Garantia' ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-300 focus:border-blue-600'
+                      }`}
                     />
                   </div>
                 </div>
@@ -4851,7 +4890,12 @@ ${splitsList}
                       <div key={os.id} className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col justify-between gap-2 hover:bg-slate-100/50 transition-colors">
                         <div className="flex justify-between items-start">
                           <div>
-                            <span className="text-[10px] text-slate-500 font-bold block">OS #{os.os_number}</span>
+                            <span className="text-[10px] text-slate-500 font-bold block">
+                              OS #{os.os_number}
+                              {os.tipo_os === 'Garantia' && (
+                                <span className="ml-1.5 bg-purple-50 text-purple-700 border border-purple-100 text-[8px] font-black px-1.5 py-0.2 rounded uppercase">Garantia</span>
+                              )}
+                            </span>
                             <span className="text-xs font-bold text-slate-900 block mt-0.5">{os.client_name}</span>
                             <span className="text-[10px] text-slate-500 font-medium">{os.device_model}</span>
                           </div>
