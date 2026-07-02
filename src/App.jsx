@@ -27,7 +27,8 @@ import {
   Printer,
   Edit3,
   X,
-  Eye
+  Eye,
+  Wrench
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
 import logo from './assets/logo.png'
@@ -2806,7 +2807,8 @@ ${splitsList}
 
   // Filtragem e Ordenação
   const filteredEvaluations = useMemo(() => {
-    let result = [...evaluations]
+    // Exclude Technical Assistance module transactions from general Trade-in / Sales list
+    let result = evaluations.filter(record => (record.new_model || record.newModel) !== 'ASSISTENCIA TECNICA')
 
     // 1. Filtro de Busca de Texto
     if (searchQuery.trim()) {
@@ -2880,6 +2882,29 @@ ${splitsList}
 
     return result
   }, [evaluations, searchQuery, filterCategory, filterEntryType, filterModel, sortBy])
+
+  const filteredServices = useMemo(() => {
+    let result = evaluations.filter(record => (record.new_model || record.newModel) === 'ASSISTENCIA TECNICA')
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(record => {
+        const client = (record.client_name || record.clientName || '').toLowerCase()
+        const modU = (record.used_model || record.usedModel || '').toLowerCase()
+        const imeiU = (record.imei_used || record.imeiUsed || '').toLowerCase()
+        return client.includes(query) || modU.includes(query) || imeiU.includes(query)
+      })
+    }
+
+    // Sort by most recent
+    result.sort((a, b) => {
+      const dateA = new Date(a.created_at || a.createdAt || 0)
+      const dateB = new Date(b.created_at || b.createdAt || 0)
+      return dateB - dateA
+    })
+
+    return result
+  }, [evaluations, searchQuery])
 
   // Cálculo Automático de Grade e Sugestão de Crédito de Seminovos
   const checklistGradeData = useMemo(() => {
@@ -4705,6 +4730,109 @@ ${splitsList}
           )}
         </div>
       </section>
+
+      {/* HISTÓRICO DE SERVIÇOS & ASSISTÊNCIA */}
+      {currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') && filteredServices.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 mt-8 animate-fade-in">
+          <div className="glass-panel bg-white border border-slate-200 rounded-2xl p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="border-b border-slate-200 pb-4">
+              <h2 className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-purple-600" />
+                🛠️ Histórico de Faturamento de Serviços (Assistência Técnica)
+              </h2>
+              <p className="text-xs text-slate-500">Ordens de Serviço finalizadas e integradas à DRE comercial</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <th className="py-3 px-4">OS e Cliente</th>
+                    <th className="py-3 px-4">Aparelho do Cliente</th>
+                    <th className="py-3 px-4">Tipo de OS</th>
+                    <th className="py-3 px-4 text-right">Mão de Obra</th>
+                    <th className="py-3 px-4 text-right">Insumos/Peças</th>
+                    <th className="py-3 px-4 text-right font-bold text-purple-600">Margem Líquida</th>
+                    <th className="py-3 px-4">Formas de Pagamento</th>
+                    <th className="py-3 px-4 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {filteredServices.map((record) => {
+                    const isWarranty = record.client_name.includes('Garantia')
+                    return (
+                      <tr key={record.id} className="hover:bg-slate-55 transition-colors duration-155 group">
+                        {/* OS e Cliente */}
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-slate-900 block">
+                            {record.client_name.includes(' [') 
+                              ? record.client_name.split(' [')[0] 
+                              : record.client_name}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {new Date(record.created_at).toLocaleDateString('pt-BR')} às {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </td>
+
+                        {/* Aparelho */}
+                        <td className="py-3 px-4">
+                          <span className="font-medium text-slate-700 block font-semibold">
+                            {record.used_model} ({record.used_storage || '128GB'})
+                          </span>
+                          <span className="block font-mono text-[10px] text-slate-500">IMEI: {record.imei_used || 'N/D'}</span>
+                        </td>
+
+                        {/* Tipo de OS */}
+                        <td className="py-3 px-4">
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${
+                            isWarranty 
+                              ? 'bg-purple-50 text-purple-700 border-purple-100' 
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          }`}>
+                            {isWarranty ? '🛡️ Garantia' : '💸 Reparo Cobrado'}
+                          </span>
+                        </td>
+
+                        {/* Mão de Obra */}
+                        <td className="py-3 px-4 text-right font-medium">
+                          {formatBRL(record.vitrine_price || 0)}
+                        </td>
+
+                        {/* Insumos / Peças */}
+                        <td className="py-3 px-4 text-right text-rose-600 font-medium">
+                          -{formatBRL(record.max_evaluation || 0)}
+                        </td>
+
+                        {/* Lucro Líquido */}
+                        <td className="py-3 px-4 text-right font-extrabold text-purple-600">
+                          {formatBRL(record.profit_margin || 0)}
+                        </td>
+
+                        {/* Pagamento / Retirada */}
+                        <td className="py-3 px-4 font-medium text-slate-700">
+                          {record.gateway || 'Assistencia'}
+                        </td>
+
+                        {/* Ações */}
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvaluation(record.id)}
+                            className="text-slate-400 hover:text-rose-700 p-1.5 rounded hover:bg-slate-100 transition-all cursor-pointer inline-block"
+                            title="Excluir Registro de Serviço"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* DISCREET PANEL: Auditoria Interna do Gerente (Rodapé) */}
       <footer className="max-w-7xl mx-auto px-6 mt-12">
