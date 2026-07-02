@@ -393,6 +393,11 @@ function App() {
   // OS Form States
   const [osType, setOsType] = useState('Serviço') // 'Serviço' ou 'Garantia'
   const [osClientName, setOsClientName] = useState('')
+  const [osBatteryHealth, setOsBatteryHealth] = useState('85')
+  const [osTrueTone, setOsTrueTone] = useState('Sim')
+  const [osPecaDesconhecida, setOsPecaDesconhecida] = useState('Nenhuma')
+  const [trackingOsUuid, setTrackingOsUuid] = useState(null)
+  const [trackingOsData, setTrackingOsData] = useState(null)
   const [osClientPhone, setOsClientPhone] = useState('')
   const [osClientCpf, setOsClientCpf] = useState('')
   const [osDeviceModel, setOsDeviceModel] = useState('iPhone 13')
@@ -932,6 +937,36 @@ function App() {
     }
   }
 
+  const loadTrackingOS = async (uuid) => {
+    try {
+      // 1. Search locally first
+      const localOSs = await localDb.getOS()
+      const foundLocal = localOSs.find(o => o.uuid_acesso_vip === uuid)
+      if (foundLocal) {
+        setTrackingOsData(foundLocal)
+      }
+
+      // 2. Search on Supabase if configured
+      if (isSupabaseConfigured) {
+        try {
+          const { data, error } = await supabase
+            .from('ordens_servico')
+            .select('*')
+            .eq('uuid_acesso_vip', uuid)
+            .maybeSingle()
+          
+          if (!error && data) {
+            setTrackingOsData(data)
+          }
+        } catch (err) {
+          console.warn("Supabase load tracking OS failed:", err)
+        }
+      }
+    } catch (err) {
+      console.error("Error loading tracking OS:", err)
+    }
+  }
+
   const validarCPF = (cpf) => {
     const clean = String(cpf).replace(/\D/g, '')
     if (clean.length !== 11) return false
@@ -1043,7 +1078,12 @@ function App() {
         valor_mao_de_obra: osType === 'Garantia' ? 0 : (parseFloat(osLaborValue) || 0),
         valor_pecas: 0,
         valor_desconto: osType === 'Garantia' ? 0 : (parseFloat(osDiscountValue) || 0),
-        checklist_entrada: osChecklistEntrada,
+        checklist_entrada: {
+          ...osChecklistEntrada,
+          saude_bateria: parseInt(osBatteryHealth) || 85,
+          true_tone: osTrueTone,
+          peca_desconhecida: osPecaDesconhecida
+        },
         checklist_saida: {},
         checklist_fotos: [],
         relatorio_tecnico: osSymptom,
@@ -1082,6 +1122,9 @@ function App() {
       setOsSymptom('')
       setOsLaborValue('')
       setOsDiscountValue('')
+      setOsBatteryHealth('85')
+      setOsTrueTone('Sim')
+      setOsPecaDesconhecida('Nenhuma')
       setOsChecklistEntrada({
         faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
       })
@@ -1410,6 +1453,9 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
             <tr><td>Conectividade (Wi-Fi/Rede)</td><td>${os.checklist_entrada?.conexao || 'NT'}</td></tr>
             <tr><td>Bateria</td><td>${os.checklist_entrada?.bateria || 'NT'}</td></tr>
             <tr><td>Carcaça e Botões</td><td>${os.checklist_entrada?.carcaca || 'NT'}</td></tr>
+            <tr><td><strong>Saúde da Bateria (Apple Check)</strong></td><td>${os.checklist_entrada?.saude_bateria ? `${os.checklist_entrada.saude_bateria}%` : 'Não aferido'}</td></tr>
+            <tr><td><strong>True Tone (Apple Check)</strong></td><td>${os.checklist_entrada?.true_tone || 'Não aferido'}</td></tr>
+            <tr><td><strong>Peça Desconhecida (Apple Check)</strong></td><td>${os.checklist_entrada?.peca_desconhecida || 'Nenhuma'}</td></tr>
           </tbody>
         </table>
 
@@ -1418,7 +1464,14 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
           <span>VALOR TOTAL: ${formatCurrency(os.valor_total)}</span>
         </div>
         
-        <div style="margin-top: 50px; text-align: center; font-size: 11px; color: #64748b;">
+        <div style="margin-top: 30px; border: 2px dashed #7c3aed; padding: 15px; border-radius: 12px; background: #faf5ff; text-align: center; font-size: 12px; color: #581c87; font-family: sans-serif;">
+          <strong>Acompanhe o status do seu reparo em tempo real online:</strong><br>
+          <a href="${window.location.origin}/?os=${os.uuid_acesso_vip}" target="_blank" style="color: #7c3aed; font-weight: 800; text-decoration: underline; display: inline-block; margin-top: 5px;">
+            ${window.location.origin}/?os=${os.uuid_acesso_vip}
+          </a>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #64748b;">
           Assinatura do Cliente: __________________________________________________
         </div>
         <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
@@ -1509,6 +1562,14 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
     loadEvaluations()
     loadChecklists()
     loadAssistenciaData()
+    
+    // VIP Tracking Parameter Check
+    const params = new URLSearchParams(window.location.search)
+    const osParam = params.get('os')
+    if (osParam) {
+      setTrackingOsUuid(osParam)
+      loadTrackingOS(osParam)
+    }
   }, [])
 
   // --- Funções de Negócio do Checklist de Seminovos ---
@@ -2969,6 +3030,182 @@ ${splitsList}
       <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-500/25 uppercase tracking-wider">
         Liberado
       </span>
+    )
+  }
+
+  if (trackingOsUuid) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 font-sans antialiased flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
+        {/* Luzes de Fundo */}
+        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none translate-y-1/2"></div>
+
+        <div className="w-full max-w-2xl bg-slate-955/60 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl relative space-y-8">
+          
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-850 pb-5 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center p-1.5 shrink-0 shadow">
+                <img src={logo} className="h-full w-full object-contain select-none" alt="Fitch Logo" />
+              </div>
+              <div>
+                <h1 className="text-sm font-black tracking-wider text-white uppercase">FITCH ASSISTÊNCIA</h1>
+                <span className="text-[10px] text-slate-400 font-medium">Status do Reparo em Tempo Real</span>
+              </div>
+            </div>
+            {trackingOsData ? (
+              <span className="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20 px-3 py-1 rounded-full font-bold">
+                OS #${trackingOsData.os_number}
+              </span>
+            ) : (
+              <span className="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold animate-pulse">
+                Carregando...
+              </span>
+            )}
+          </div>
+
+          {!trackingOsData ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+              <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs font-semibold">Buscando ordem de serviço na Fitch Cloud...</span>
+            </div>
+          ) : (
+            <>
+              {/* Aparelho Info */}
+              <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Dispositivo</span>
+                  <span className="text-md font-extrabold text-white block mt-0.5">{trackingOsData.device_model}</span>
+                  <span className="text-[10px] text-slate-400 mt-1 block">IMEI: {trackingOsData.serial_imei ? `${trackingOsData.serial_imei.substring(0, 4)}*******${trackingOsData.serial_imei.slice(-3)}` : 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Sintoma / Laudo Inicial</span>
+                  <span className="text-xs text-slate-300 block mt-1 leading-relaxed bg-slate-950 p-2.5 rounded-xl border border-slate-800/60 min-h-[50px]">
+                    {trackingOsData.relatorio_tecnico || 'Nenhum sintoma descrito.'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Linha do Tempo de Status (Stepper) */}
+              <div className="space-y-4">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block text-center">Progresso do Serviço</span>
+                <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-0 pt-2 pb-6">
+                  {/* Linha Conectora (Apenas Desktop) */}
+                  <div className="hidden md:block absolute top-[18px] left-[10%] right-[10%] h-0.5 bg-slate-850 z-0">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 transition-all duration-500"
+                      style={{
+                        width: 
+                          trackingOsData.status === 'Entrada' ? '0%' :
+                          trackingOsData.status === 'Em Análise' ? '25%' :
+                          trackingOsData.status === 'Aguardando Peça' ? '50%' :
+                          trackingOsData.status === 'Pronto' ? '75%' : '100%'
+                      }}
+                    ></div>
+                  </div>
+
+                  {[
+                    { label: 'Recepção', statusKey: 'Entrada', desc: 'Aparelho recebido na Fitch' },
+                    { label: 'Em Análise', statusKey: 'Em Análise', desc: 'Diagnóstico técnico' },
+                    { label: 'Peças', statusKey: 'Aguardando Peça', desc: 'Aguardando insumos' },
+                    { label: 'Pronto', statusKey: 'Pronto', desc: 'Pronto para retirada' },
+                    { label: 'Entregue', statusKey: 'Entregue', desc: 'Serviço finalizado' }
+                  ].map((step, idx) => {
+                    const statusSequence = ['Entrada', 'Em Análise', 'Aguardando Peça', 'Pronto', 'Entregue']
+                    const currentIdx = statusSequence.indexOf(trackingOsData.status)
+                    const stepIdx = statusSequence.indexOf(step.statusKey)
+                    const isCompleted = stepIdx < currentIdx
+                    const isActive = stepIdx === currentIdx
+
+                    return (
+                      <div key={step.statusKey} className="flex md:flex-col items-center gap-4 md:gap-2 z-10 w-full md:w-1/5 relative">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all border ${
+                          isActive 
+                            ? 'bg-purple-600 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                            : isCompleted
+                            ? 'bg-indigo-950 border-indigo-500 text-indigo-400'
+                            : 'bg-slate-900 border-slate-800 text-slate-500'
+                        }`}>
+                          {isCompleted ? '✓' : idx + 1}
+                        </div>
+                        <div className="text-left md:text-center">
+                          <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                            isActive ? 'text-purple-400' : isCompleted ? 'text-indigo-400' : 'text-slate-500'
+                          }`}>
+                            {step.label}
+                          </span>
+                          <span className="text-[9px] text-slate-400 block sm:inline leading-none">{step.desc}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Apple Health Check Details */}
+              <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-4">
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest block">🛡️ Diagnóstico Fitch Health Check</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Bateria */}
+                  <div className="bg-slate-950/65 border border-slate-800 p-3 rounded-xl flex flex-col justify-between gap-1">
+                    <span className="text-[9px] font-bold text-slate-550 uppercase block">Saúde da Bateria</span>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="text-lg font-black text-white">{trackingOsData.checklist_entrada?.saude_bateria || 'N/A'}</span>
+                      <span className="text-[10px] font-semibold text-slate-400">%</span>
+                    </div>
+                  </div>
+
+                  {/* True Tone */}
+                  <div className="bg-slate-950/65 border border-slate-800 p-3 rounded-xl flex flex-col justify-between gap-1">
+                    <span className="text-[9px] font-bold text-slate-550 uppercase block">True Tone Original</span>
+                    <span className={`text-xs font-black mt-1 block ${
+                      trackingOsData.checklist_entrada?.true_tone === 'Sim' ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
+                      {trackingOsData.checklist_entrada?.true_tone || 'Não Aferido'}
+                    </span>
+                  </div>
+
+                  {/* Peça Desconhecida */}
+                  <div className="bg-slate-950/65 border border-slate-800 p-3 rounded-xl flex flex-col justify-between gap-1">
+                    <span className="text-[9px] font-bold text-slate-550 uppercase block">Aviso do iOS (Desconhecido)</span>
+                    <span className={`text-xs font-black mt-1 block ${
+                      trackingOsData.checklist_entrada?.peca_desconhecida === 'Nenhuma' ? 'text-slate-400' : 'text-amber-400'
+                    }`}>
+                      {trackingOsData.checklist_entrada?.peca_desconhecida || 'Nenhum'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botão de Ajuda WhatsApp */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-3">
+                <a 
+                  href={`https://wa.me/55${trackingOsData.client_phone || '31999999999'}?text=Olá,%20gostaria%20de%20informações%20sobre%20a%20OS%20${trackingOsData.os_number}`}
+                  target="_blank"
+                  className="flex-1 bg-purple-650 hover:bg-purple-600 text-white font-extrabold text-xs py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer border border-purple-500/20"
+                >
+                  💬 Falar com a Assistência Fitch
+                </a>
+                <button
+                  onClick={() => {
+                    window.history.pushState({}, '', window.location.pathname)
+                    setTrackingOsUuid(null)
+                    setTrackingOsData(null)
+                  }}
+                  className="bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold text-xs py-3 px-6 rounded-xl border border-slate-800 transition-all cursor-pointer"
+                >
+                  Voltar ao Fitch Manager
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Footer */}
+          <div className="text-center text-[10px] text-slate-500 pt-2 border-t border-slate-800/60">
+            Fitch Assistência Especializada Apple © 2026. Todos os direitos reservados.
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -4994,6 +5231,61 @@ ${splitsList}
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Apple Health Check & Details */}
+                <div className="bg-slate-50 border border-slate-200/80 p-4.5 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                    <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest block">🛡️ Apple Diagnostics Health Check</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Saúde da Bateria */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Saúde da Bateria (%)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="50"
+                          max="100"
+                          placeholder="85"
+                          value={osBatteryHealth}
+                          onChange={(e) => setOsBatteryHealth(e.target.value)}
+                          className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2.5 px-3 text-xs text-slate-900 outline-none transition-all pr-8 font-semibold"
+                        />
+                        <span className="absolute right-3 top-3 text-[10px] font-black text-slate-400">%</span>
+                      </div>
+                    </div>
+
+                    {/* True Tone */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Originalidade (True Tone)</label>
+                      <select
+                        value={osTrueTone}
+                        onChange={(e) => setOsTrueTone(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2.5 px-3 text-xs text-slate-900 outline-none transition-all font-semibold cursor-pointer"
+                      >
+                        <option value="Sim">Sim (Original / Ativo)</option>
+                        <option value="Não">Não (Ausente / Inativo)</option>
+                        <option value="Sem TrueTone (Incompatível)">Sem TrueTone (Incompatível)</option>
+                      </select>
+                    </div>
+
+                    {/* Peça Desconhecida */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Mensagem de Peça Desconhecida</label>
+                      <select
+                        value={osPecaDesconhecida}
+                        onChange={(e) => setOsPecaDesconhecida(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-blue-600 rounded-xl py-2.5 px-3 text-xs text-slate-900 outline-none transition-all font-semibold cursor-pointer"
+                      >
+                        <option value="Nenhuma">Nenhuma Mensagem</option>
+                        <option value="Tela">Aviso de Tela</option>
+                        <option value="Bateria">Aviso de Bateria</option>
+                        <option value="Câmera">Aviso de Câmera</option>
+                        <option value="Múltiplas">Múltiplos Avisos</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
