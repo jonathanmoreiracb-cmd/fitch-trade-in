@@ -1238,6 +1238,37 @@ function App() {
     }
   }
 
+  const getWarrantyStatus = (os) => {
+    if (os.status !== 'Entregue' || !os.data_entrega) {
+      return { status: 'Não Iniciada', label: 'Garantia não iniciada (Em reparo)', color: 'text-slate-500 bg-slate-100 border-slate-200' }
+    }
+
+    const deliveryDate = new Date(os.data_entrega)
+    const endDate = new Date(deliveryDate)
+    endDate.setMonth(endDate.getMonth() + 3)
+
+    const today = new Date()
+    const isActive = today <= endDate
+
+    const formattedEndDate = endDate.toLocaleDateString('pt-BR')
+
+    if (isActive) {
+      return {
+        status: 'Ativa',
+        label: `🛡️ Garantia Ativa até ${formattedEndDate}`,
+        color: 'text-emerald-700 bg-emerald-50 border-emerald-250/60 font-bold',
+        endDate: formattedEndDate
+      }
+    } else {
+      return {
+        status: 'Expirada',
+        label: `⚠️ Garantia Expirada em ${formattedEndDate}`,
+        color: 'text-slate-500 bg-slate-100 border-slate-200 font-medium',
+        endDate: formattedEndDate
+      }
+    }
+  }
+
   const handleUpdateOSStatus = async (osId, nextStatus) => {
     const os = ordensServicoList.find(o => o.id === osId)
     if (!os) return
@@ -1261,6 +1292,7 @@ function App() {
       
       updatedData.forma_pagamento = formaPag
       updatedData.data_saida = new Date().toISOString()
+      updatedData.data_entrega = new Date().toISOString()
       
       const finalRevenue = os.tipo_os === 'Garantia' ? 0 : os.valor_total
       const insumosCost = os.valor_pecas * 0.5
@@ -1615,6 +1647,18 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
           <span>VALOR TOTAL: ${formatCurrency(os.valor_total)}</span>
         </div>
         
+        ${os.status === 'Entregue' && os.data_entrega ? `
+        <div style="margin-top: 20px; border: 1px solid #cbd5e1; padding: 12px; border-radius: 12px; background: #f8fafc; font-size: 11px; color: #1e293b; font-family: sans-serif; line-height: 1.5;">
+          <strong>🛡️ TERMO DE GARANTIA DE REPARO (FITCH)</strong><br>
+          Este serviço possui garantia legal e contratual de <strong>90 dias (3 meses)</strong> a partir da data de entrega em <strong>${new Date(os.data_entrega).toLocaleDateString('pt-BR')}</strong>, sendo válida até <strong>${(() => {
+            const d = new Date(os.data_entrega)
+            d.setMonth(d.getMonth() + 3)
+            return d.toLocaleDateString('pt-BR')
+          })()}</strong>.<br>
+          A garantia cobre exclusivamente defeitos de fabricação ou funcionamento das peças substituídas. Danos físicos (telas quebradas, trincadas, riscos), contato com líquidos, ou abertura por terceiros anulam esta garantia.
+        </div>
+        ` : ''}
+
         <div style="margin-top: 30px; border: 2px dashed #7c3aed; padding: 15px; border-radius: 12px; background: #faf5ff; text-align: center; font-size: 12px; color: #581c87; font-family: sans-serif;">
           <strong>Acompanhe o status do seu reparo em tempo real online:</strong><br>
           <a href="${window.location.origin}/?os=${os.uuid_acesso_vip}" target="_blank" style="color: #7c3aed; font-weight: 800; text-decoration: underline; display: inline-block; margin-top: 5px;">
@@ -5772,7 +5816,15 @@ ${splitsList}
                               )}
                             </span>
                             <span className="text-xs font-bold text-slate-900 block mt-0.5">{os.client_name}</span>
-                            <span className="text-[10px] text-slate-500 font-medium">{os.device_model}</span>
+                            <span className="text-[10px] text-slate-500 font-medium block">{os.device_model}</span>
+                            {os.status === 'Entregue' && (() => {
+                              const warranty = getWarrantyStatus(os)
+                              return (
+                                <span className={`inline-block mt-1 px-2 py-0.5 text-[8.5px] rounded border ${warranty.color}`}>
+                                  {warranty.label}
+                                </span>
+                              )
+                            })()}
                           </div>
                           <span className={`text-[9px] font-black px-2 py-0.5 rounded border ${
                             os.status === 'Entrada' ? 'bg-blue-50 text-blue-600 border-blue-100' :
@@ -5939,6 +5991,16 @@ ${splitsList}
                                 
                                 <span className="text-[9px] font-bold text-slate-500 self-center">Custo Peças: {formatBRL(os.valor_pecas)}</span>
                               </div>
+                              {os.status === 'Entregue' && (() => {
+                                const warranty = getWarrantyStatus(os)
+                                return (
+                                  <div className="mt-1">
+                                    <span className={`inline-block px-2 py-0.5 text-[8.5px] rounded border ${warranty.color}`}>
+                                      {warranty.label}
+                                    </span>
+                                  </div>
+                                )
+                              })()}
                             </div>
                           ))}
                         </div>
