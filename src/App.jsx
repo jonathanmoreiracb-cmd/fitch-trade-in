@@ -1423,6 +1423,55 @@ function App() {
     }
   }
 
+  const handleAdjustPartStock = async (peca, direction) => {
+    const actionLabel = direction === 'entrada' ? 'adicionar ao' : 'retirar do'
+    const qtyStr = window.prompt(`Quantidade de peças para ${actionLabel} estoque do item "${peca.nome}":`, "1")
+    if (qtyStr === null) return
+
+    const qty = parseInt(qtyStr, 10)
+    if (isNaN(qty) || qty <= 0) {
+      triggerNotification('Quantidade inválida inserida.', 'error')
+      return
+    }
+
+    let newStock = peca.estoque_atual
+    if (direction === 'entrada') {
+      newStock += qty
+    } else {
+      if (qty > peca.estoque_atual) {
+        triggerNotification('Quantidade de saída maior que o estoque atual!', 'error')
+        return
+      }
+      newStock -= qty
+    }
+
+    const updatedPeca = {
+      ...peca,
+      estoque_atual: newStock
+    }
+
+    try {
+      if (isSupabaseConfigured) {
+        try {
+          const { error } = await supabase
+            .from('pecas_estoque')
+            .update({ estoque_atual: newStock })
+            .eq('id', peca.id)
+          if (error) throw error
+        } catch (err) {
+          console.warn("Supabase part stock update failed:", err)
+        }
+      }
+
+      await localDb.updatePeca(peca.id, updatedPeca)
+      triggerNotification(`Estoque ajustado com sucesso para ${newStock} unidades!`)
+      await loadAssistenciaData()
+    } catch (err) {
+      console.error("Error adjusting stock:", err)
+      triggerNotification('Erro ao ajustar estoque.', 'error')
+    }
+  }
+
   const handleSaveChecklistSaida = async () => {
     if (!selectedOsForChecklistSaida) return
     try {
@@ -5975,14 +6024,36 @@ ${splitsList}
                           <td className="py-3 px-4 font-mono text-xs font-semibold text-slate-900">{peca.sku}</td>
                           <td className="py-3 px-4 font-semibold text-slate-900">{peca.nome}</td>
                           <td className="py-3 px-4 text-slate-600 font-medium">{peca.compatibilidade_modelo}</td>
-                          <td className="py-3 px-4 text-center font-bold">
-                            <span className={`px-2 py-0.5 rounded text-[10px] border ${
-                              isLowStock
-                                ? 'bg-rose-50 text-rose-700 border-rose-200/60 font-black animate-pulse'
-                                : 'bg-slate-100 text-slate-700 border-slate-200/60'
-                            }`}>
-                              {peca.estoque_atual} un
-                            </span>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {/* Botão de Saída (-) */}
+                              <button
+                                type="button"
+                                onClick={() => handleAdjustPartStock(peca, 'saida')}
+                                className="w-5 h-5 rounded-full bg-rose-100 hover:bg-rose-250 text-rose-700 hover:text-white hover:bg-rose-500 flex items-center justify-center text-xs font-black cursor-pointer shadow-sm transition-all select-none border border-rose-300"
+                                title="Dar Saída no Estoque (Remover Peça)"
+                              >
+                                -
+                              </button>
+
+                              <span className={`px-2 py-0.5 rounded text-[10px] border font-bold min-w-[45px] text-center inline-block ${
+                                isLowStock
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200/60 font-black animate-pulse'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200/60'
+                              }`}>
+                                {peca.estoque_atual} un
+                              </span>
+
+                              {/* Botão de Entrada (+) */}
+                              <button
+                                type="button"
+                                onClick={() => handleAdjustPartStock(peca, 'entrada')}
+                                className="w-5 h-5 rounded-full bg-emerald-100 hover:bg-emerald-250 text-emerald-700 hover:text-white hover:bg-emerald-550 flex items-center justify-center text-xs font-black cursor-pointer shadow-sm transition-all select-none border border-emerald-300"
+                                title="Dar Entrada no Estoque (Adicionar Peça)"
+                              >
+                                +
+                              </button>
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-right font-semibold text-slate-600">{formatBRL(peca.preco_custo)}</td>
                           <td className="py-3 px-4 text-right font-extrabold text-blue-600">{formatBRL(peca.preco_venda)}</td>
