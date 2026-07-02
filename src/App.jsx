@@ -103,7 +103,8 @@ const USER_CREDENTIALS = {
   "emely123": { name: "Emely", role: "seller" },
   "joalison123": { name: "Joalison", role: "seller" },
   "juliana123": { name: "Juliana", role: "seller" },
-  "jefferson123": { name: "Jefferson", role: "seller" }
+  "jefferson123": { name: "Jefferson", role: "seller" },
+  "henrike123": { name: "Henrike", role: "tech" }
 };
 
 // Modelos Padronizados
@@ -3262,7 +3263,7 @@ ${splitsList}
               </div>
               <div className="text-left">
                 <span className="text-[11px] font-bold text-slate-900 block leading-tight">{currentUser.name}</span>
-                <span className="text-[9px] text-slate-500 block capitalize">{currentUser.role === 'admin' ? 'Administrador' : currentUser.role === 'manager' ? 'Gerente' : 'Vendedor'}</span>
+                <span className="text-[9px] text-slate-500 block capitalize">{currentUser.role === 'admin' ? 'Administrador' : currentUser.role === 'manager' ? 'Gerente' : currentUser.role === 'tech' ? 'Técnico' : 'Vendedor'}</span>
               </div>
               <button
                 type="button"
@@ -6635,7 +6636,7 @@ ${splitsList}
           </div>
 
           {/* HISTÓRICO DE CHECKLISTS E INSPEÇÕES */}
-          {currentUser && currentUser.role !== 'seller' && (
+          {currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') && (
             <div className="glass-panel rounded-2xl p-6 md:p-8 space-y-6">
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
