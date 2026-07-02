@@ -2049,6 +2049,9 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
   const inventoryStats = useMemo(() => {
     const stats = {}
     evaluations.forEach(item => {
+      // Exclude assistance records
+      if ((item.new_model || item.newModel) === 'ASSISTENCIA TECNICA') return
+
       const cat = item.used_category || item.usedCategory || 'Comum'
       const key = `${item.used_model} ${item.used_storage} - ${cat}`
       const evalVal = parseFloat(item.max_evaluation || item.maxEvaluation || 0)
@@ -2058,18 +2061,24 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
         ? 120 
         : parseFloat(item.operational_cost !== undefined ? item.operational_cost : (item.operationalCost !== undefined ? item.operationalCost : 120))
 
+      const isSold = item.status_estoque === 'Vendido'
+
       if (!stats[key]) {
         stats[key] = {
           model: item.used_model || item.usedModel,
           storage: item.used_storage || item.usedStorage,
           category: cat,
-          count: 0,
+          totalCount: 0,
+          inStockCount: 0,
           totalEval: 0,
           totalVitrine: 0,
           totalOpCost: 0
         }
       }
-      stats[key].count += 1
+      stats[key].totalCount += 1
+      if (!isSold) {
+        stats[key].inStockCount += 1
+      }
       stats[key].totalEval += evalVal
       stats[key].totalVitrine += vitrineVal
       stats[key].totalOpCost += opCostVal
@@ -2077,9 +2086,10 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
     
     return Object.values(stats).map(item => ({
       ...item,
-      avgCost: item.totalEval / item.count,
-      avgVitrine: item.totalVitrine / item.count,
-      avgOpCost: item.totalOpCost / item.count
+      count: item.inStockCount,
+      avgCost: item.totalEval / item.totalCount,
+      avgVitrine: item.totalVitrine / item.totalCount,
+      avgOpCost: item.totalOpCost / item.totalCount
     })).sort((a, b) => b.count - a.count)
   }, [evaluations])
 
@@ -2260,7 +2270,8 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
       biometrics_status: biometricsStatus,
       camera_status: cameraStatus,
       body_condition: bodyCondition,
-      payment_splits: entryType === 'supplier' ? [] : paymentSplits 
+      payment_splits: entryType === 'supplier' ? [] : paymentSplits,
+      status_estoque: originalRecord ? (originalRecord.status_estoque || 'Em Estoque') : 'Em Estoque'
     }
 
     try {
@@ -2327,6 +2338,38 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
   }
 
   // Deletar Registro
+  const toggleStockStatus = async (record) => {
+    const newStatus = record.status_estoque === 'Vendido' ? 'Em Estoque' : 'Vendido'
+    const updatedRecord = {
+      ...record,
+      status_estoque: newStatus
+    }
+
+    try {
+      if (isSupabaseConfigured && dbStatus.connected) {
+        const { error } = await supabase
+          .from('evaluations')
+          .update({ status_estoque: newStatus })
+          .eq('id', record.id)
+        if (error) throw error
+        triggerNotification(`Aparelho marcado como ${newStatus} no Supabase.`)
+      } else {
+        await localDb.updateEvaluation(record.id, updatedRecord)
+        triggerNotification(`Aparelho marcado como ${newStatus} localmente.`)
+      }
+      loadEvaluations()
+    } catch (err) {
+      console.error('Error toggling stock status:', err)
+      try {
+        await localDb.updateEvaluation(record.id, updatedRecord)
+        triggerNotification(`Erro na nuvem. Salvo como ${newStatus} localmente.`, 'warning')
+        loadEvaluations()
+      } catch (localErr) {
+        triggerNotification('Erro ao atualizar status do estoque.', 'error')
+      }
+    }
+  }
+
   const handleDeleteEvaluation = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir esta venda?')) return
 
@@ -4597,9 +4640,23 @@ ${splitsList}
                       {/* Cliente e Data */}
                       <td className="py-3 px-4">
                         <span className="font-semibold text-slate-900 block">{record.client_name || record.clientName || 'Cliente Geral'}</span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-slate-500 block">
                           {new Date(record.created_at).toLocaleDateString('pt-BR')} às {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleStockStatus(record)}
+                            className={`text-[9px] font-black px-2 py-0.5 rounded-full border transition-all cursor-pointer inline-flex items-center ${
+                              record.status_estoque === 'Vendido'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                            }`}
+                            title="Clique para alternar o status de estoque"
+                          >
+                            {record.status_estoque === 'Vendido' ? '🔴 Vendido' : '🟢 Em Estoque'}
+                          </button>
+                        </div>
                       </td>
 
                       {/* Novo Vendido */}
