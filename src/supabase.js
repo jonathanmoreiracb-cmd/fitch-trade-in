@@ -286,5 +286,17 @@ export const localDb = {
       console.error('Error updating OS in localStorage', e)
       throw e
     }
+  },
+
+  async deleteOS(id) {
+    try {
+      const ordens = await this.getOS()
+      const filtered = ordens.filter(item => item.id !== id)
+      localStorage.setItem('fitch_ordens_servico', JSON.stringify(filtered))
+      return true
+    } catch (e) {
+      console.error('Error deleting OS from localStorage', e)
+      throw e
+    }
   }
 }

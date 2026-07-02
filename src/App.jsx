@@ -394,6 +394,7 @@ function App() {
   
   // OS Form States
   const [osType, setOsType] = useState('Serviço') // 'Serviço' ou 'Garantia'
+  const [editingOsId, setEditingOsId] = useState(null)
   const [osClientName, setOsClientName] = useState('')
   const [osBatteryHealth, setOsBatteryHealth] = useState('85')
   const [osTrueTone, setOsTrueTone] = useState('Sim')
@@ -969,6 +970,75 @@ function App() {
     }
   }
 
+  const handleDeleteOS = async (id) => {
+    if (!window.confirm('Tem certeza que deseja EXCLUIR esta Ordem de Serviço? Esta ação removerá a OS e seu registro de faturamento associado.')) return
+
+    try {
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.from('ordens_servico').delete().eq('id', id)
+        } catch (err) {
+          console.warn("Supabase OS deletion failed:", err)
+        }
+      }
+      
+      await localDb.deleteOS(id)
+      triggerNotification('Ordem de Serviço (OS) excluída com sucesso!')
+      await loadAssistenciaData()
+    } catch (err) {
+      console.error("Error deleting OS:", err)
+      triggerNotification('Erro ao excluir O.S.', 'error')
+    }
+  }
+
+  const handleEditOS = (os) => {
+    setEditingOsId(os.id)
+    setOsType(os.tipo_os || 'Serviço')
+    setOsClientName(os.client_name || '')
+    
+    const matchedClient = clientesList.find(c => c.id === os.cliente_id)
+    if (matchedClient) {
+      setOsClientPhone(matchedClient.telefone || '')
+      setOsClientCpf(matchedClient.cpf_cnpj || '')
+    } else {
+      setOsClientPhone('')
+      setOsClientCpf('')
+    }
+
+    const matchedDevice = dispositivosList.find(d => d.id === os.dispositivo_id)
+    if (matchedDevice) {
+      setOsDeviceModel(matchedDevice.modelo || 'iPhone 13')
+      setOsDeviceColor(matchedDevice.cor || 'Preto')
+      setOsDeviceStorage(matchedDevice.capacidade || '128GB')
+      setOsDeviceImei(matchedDevice.imei || '')
+      setOsDeviceSerial(matchedDevice.numero_serie || '')
+    } else {
+      setOsDeviceImei(os.serial_imei || '')
+      setOsDeviceSerial('')
+    }
+
+    setOsSymptom(os.relatorio_tecnico || '')
+    setOsLaborValue(String(os.valor_mao_de_obra || ''))
+    setOsDiscountValue(String(os.valor_desconto || ''))
+    
+    setOsChecklistEntrada({
+      faceId: os.checklist_entrada?.faceId || 'NT',
+      camera: os.checklist_entrada?.camera || 'NT',
+      tela: os.checklist_entrada?.tela || 'NT',
+      audio: os.checklist_entrada?.audio || 'NT',
+      conexao: os.checklist_entrada?.conexao || 'NT',
+      bateria: os.checklist_entrada?.bateria || 'NT',
+      carcaca: os.checklist_entrada?.carcaca || 'NT'
+    })
+    
+    setOsBatteryHealth(String(os.checklist_entrada?.saude_bateria || '85'))
+    setOsTrueTone(os.checklist_entrada?.true_tone || 'Sim')
+    setOsPecaDesconhecida(os.checklist_entrada?.peca_desconhecida || 'Nenhuma')
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    triggerNotification('Carregando dados da OS no formulário de edição.')
+  }
+
   const validarCPF = (cpf) => {
     const clean = String(cpf).replace(/\D/g, '')
     if (clean.length !== 11) return false
@@ -1094,28 +1164,57 @@ function App() {
         serial_imei: dispositivo.imei
       }
 
-      const savedOS = await localDb.saveOS(record)
-
-      // 4. Enviar a mesma OS com os mesmos identificadores para o Supabase
-      if (isSupabaseConfigured) {
-        try {
-          const remoteRecord = {
-            ...record,
-            id: savedOS.id,
-            os_number: savedOS.os_number,
-            uuid_acesso_vip: savedOS.uuid_acesso_vip,
-            created_at: savedOS.created_at,
-            data_entrada: savedOS.data_entrada
-          }
-          await supabase.from('ordens_servico').insert([remoteRecord])
-        } catch (err) {
-          console.warn("Supabase OS insert failed:", err)
+      let savedOS;
+      if (editingOsId) {
+        const originalOS = ordensServicoList.find(o => o.id === editingOsId)
+        const updatedRecord = {
+          ...record,
+          status: originalOS ? originalOS.status : 'Entrada',
+          checklist_saida: originalOS ? (originalOS.checklist_saida || {}) : {},
+          checklist_fotos: originalOS ? (originalOS.checklist_fotos || []) : [],
+          valor_pecas: originalOS ? (originalOS.valor_pecas || 0) : 0,
+          os_number: originalOS ? originalOS.os_number : 1001,
+          uuid_acesso_vip: originalOS ? originalOS.uuid_acesso_vip : (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
+          created_at: originalOS ? originalOS.created_at : new Date().toISOString(),
+          data_entrada: originalOS ? originalOS.data_entrada : new Date().toISOString()
         }
-      }
+        
+        savedOS = await localDb.updateOS(editingOsId, updatedRecord)
 
-      triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
+        if (isSupabaseConfigured) {
+          try {
+            await supabase
+              .from('ordens_servico')
+              .update(updatedRecord)
+              .eq('id', editingOsId)
+          } catch (err) {
+            console.warn("Supabase OS update failed:", err)
+          }
+        }
+        triggerNotification('Ordem de Serviço (OS) editada com sucesso!')
+      } else {
+        savedOS = await localDb.saveOS(record)
+
+        if (isSupabaseConfigured) {
+          try {
+            const remoteRecord = {
+              ...record,
+              id: savedOS.id,
+              os_number: savedOS.os_number,
+              uuid_acesso_vip: savedOS.uuid_acesso_vip,
+              created_at: savedOS.created_at,
+              data_entrada: savedOS.data_entrada
+            }
+            await supabase.from('ordens_servico').insert([remoteRecord])
+          } catch (err) {
+            console.warn("Supabase OS insert failed:", err)
+          }
+        }
+        triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
+      }
       
       setOsType('Serviço')
+      setEditingOsId(null)
       setOsClientName('')
       setOsClientPhone('')
       setOsClientCpf('')
@@ -5554,11 +5653,38 @@ ${splitsList}
                   <button
                     type="button"
                     onClick={handleSaveOS}
-                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-purple-655 hover:bg-purple-600 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Abrir Ordem de Serviço & Imprimir Via Cliente
-                    <ArrowRight className="w-4 h-4" />
+                    {editingOsId ? 'Salvar Alterações na OS' : 'Abrir Ordem de Serviço & Imprimir Via Cliente'}
+                    {editingOsId ? <Edit3 className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
                   </button>
+                  {editingOsId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingOsId(null)
+                        setOsType('Serviço')
+                        setOsClientName('')
+                        setOsClientPhone('')
+                        setOsClientCpf('')
+                        setOsDeviceImei('')
+                        setOsDeviceSerial('')
+                        setOsSymptom('')
+                        setOsLaborValue('')
+                        setOsDiscountValue('')
+                        setOsBatteryHealth('85')
+                        setOsTrueTone('Sim')
+                        setOsPecaDesconhecida('Nenhuma')
+                        setOsChecklistEntrada({
+                          faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
+                        })
+                        triggerNotification('Edição cancelada.')
+                      }}
+                      className="w-full bg-slate-105 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs py-3 rounded-xl transition-all cursor-pointer mt-2"
+                    >
+                      Cancelar Edição da OS
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -5599,14 +5725,36 @@ ${splitsList}
 
                         <div className="flex justify-between items-center border-t border-slate-200/60 pt-2 text-[10px] text-slate-500">
                           <span className="font-semibold text-slate-800">Total: {formatBRL(os.valor_total)}</span>
-                          <button
-                            type="button"
-                            onClick={() => printOSReceipt(os)}
-                            className="text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 cursor-pointer"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            Comprovante
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => printOSReceipt(os)}
+                              className="text-purple-600 hover:text-purple-750 font-bold flex items-center gap-1 cursor-pointer"
+                              title="Imprimir Comprovante"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                            {currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditOS(os)}
+                                  className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 cursor-pointer"
+                                  title="Editar O.S."
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteOS(os.id)}
+                                  className="text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                                  title="Excluir O.S."
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
