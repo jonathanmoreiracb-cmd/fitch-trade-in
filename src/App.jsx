@@ -1022,13 +1022,14 @@ function App() {
     setOsDiscountValue(String(os.valor_desconto || ''))
     
     setOsChecklistEntrada({
-      faceId: os.checklist_entrada?.faceId || 'NT',
-      camera: os.checklist_entrada?.camera || 'NT',
-      tela: os.checklist_entrada?.tela || 'NT',
-      audio: os.checklist_entrada?.audio || 'NT',
-      conexao: os.checklist_entrada?.conexao || 'NT',
-      bateria: os.checklist_entrada?.bateria || 'NT',
-      carcaca: os.checklist_entrada?.carcaca || 'NT'
+      faceId: 'NT',
+      camera: 'NT',
+      tela: 'NT',
+      audio: 'NT',
+      conexao: 'NT',
+      bateria: 'NT',
+      carcaca: 'NT',
+      ...(os.checklist_entrada || {})
     })
     
     setOsBatteryHealth(String(os.checklist_entrada?.saude_bateria || '85'))
@@ -1547,13 +1548,13 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
             </tr>
           </thead>
           <tbody>
-            <tr><td>Face ID / Touch ID</td><td>${os.checklist_entrada?.faceId || 'NT'}</td></tr>
-            <tr><td>Tela e Touch</td><td>${os.checklist_entrada?.tela || 'NT'}</td></tr>
-            <tr><td>Câmeras</td><td>${os.checklist_entrada?.camera || 'NT'}</td></tr>
-            <tr><td>Áudio (Microfone/Alto-falante)</td><td>${os.checklist_entrada?.audio || 'NT'}</td></tr>
-            <tr><td>Conectividade (Wi-Fi/Rede)</td><td>${os.checklist_entrada?.conexao || 'NT'}</td></tr>
-            <tr><td>Bateria</td><td>${os.checklist_entrada?.bateria || 'NT'}</td></tr>
-            <tr><td>Carcaça e Botões</td><td>${os.checklist_entrada?.carcaca || 'NT'}</td></tr>
+            <tr><td>Face ID / Touch ID</td><td>${os.checklist_entrada?.faceId || 'NT'}${os.checklist_entrada?.faceId_comment ? ` (${os.checklist_entrada.faceId_comment})` : ''}</td></tr>
+            <tr><td>Tela e Touch</td><td>${os.checklist_entrada?.tela || 'NT'}${os.checklist_entrada?.tela_comment ? ` (${os.checklist_entrada.tela_comment})` : ''}</td></tr>
+            <tr><td>Câmeras</td><td>${os.checklist_entrada?.camera || 'NT'}${os.checklist_entrada?.camera_comment ? ` (${os.checklist_entrada.camera_comment})` : ''}</td></tr>
+            <tr><td>Áudio (Microfone/Alto-falante)</td><td>${os.checklist_entrada?.audio || 'NT'}${os.checklist_entrada?.audio_comment ? ` (${os.checklist_entrada.audio_comment})` : ''}</td></tr>
+            <tr><td>Conectividade (Wi-Fi/Rede)</td><td>${os.checklist_entrada?.conexao || 'NT'}${os.checklist_entrada?.conexao_comment ? ` (${os.checklist_entrada.conexao_comment})` : ''}</td></tr>
+            <tr><td>Bateria</td><td>${os.checklist_entrada?.bateria || 'NT'}${os.checklist_entrada?.bateria_comment ? ` (${os.checklist_entrada.bateria_comment})` : ''}</td></tr>
+            <tr><td>Carcaça e Botões</td><td>${os.checklist_entrada?.carcaca || 'NT'}${os.checklist_entrada?.carcaca_comment ? ` (${os.checklist_entrada.carcaca_comment})` : ''}</td></tr>
             <tr><td><strong>Saúde da Bateria (Apple Check)</strong></td><td>${os.checklist_entrada?.saude_bateria ? `${os.checklist_entrada.saude_bateria}%` : 'Não aferido'}</td></tr>
             <tr><td><strong>True Tone (Apple Check)</strong></td><td>${os.checklist_entrada?.true_tone || 'Não aferido'}</td></tr>
             <tr><td><strong>Peça Desconhecida (Apple Check)</strong></td><td>${os.checklist_entrada?.peca_desconhecida || 'Nenhuma'}</td></tr>
@@ -5557,6 +5558,18 @@ ${splitsList}
                             </button>
                           ))}
                         </div>
+                        {osChecklistEntrada[item.key] === 'Def' && (
+                          <input
+                            type="text"
+                            placeholder="Descreva o defeito..."
+                            value={osChecklistEntrada[`${item.key}_comment`] || ''}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setOsChecklistEntrada(prev => ({ ...prev, [`${item.key}_comment`]: val }))
+                            }}
+                            className="w-full bg-white border border-slate-300 focus:border-rose-500 rounded-lg py-1.5 px-2.5 text-[9px] text-slate-900 outline-none transition-all mt-1 font-medium"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
