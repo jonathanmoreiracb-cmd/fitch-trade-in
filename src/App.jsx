@@ -1865,6 +1865,12 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
       return
     }
 
+    // Restrições de Cargo / Destino
+    if (user.role === 'tech' && loginTarget !== 'assistencia') {
+      triggerNotification('Acesso negado! Técnicos possuem permissão exclusiva para o módulo de Assistência Técnica.', 'error')
+      return
+    }
+
     if (loginTarget === 'simulator') {
       if (user.role !== 'admin' && user.role !== 'manager') {
         triggerNotification('Acesso negado! Apenas Administradores e Gerentes podem acessar o Simulador.', 'error')
