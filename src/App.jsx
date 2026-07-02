@@ -2048,49 +2048,86 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
   // Estatísticas de Estoque Histórico
   const inventoryStats = useMemo(() => {
     const stats = {}
+    
+    // Group evaluations by model key
+    const groups = {}
     evaluations.forEach(item => {
       // Exclude assistance records
       if ((item.new_model || item.newModel) === 'ASSISTENCIA TECNICA') return
 
       const cat = item.used_category || item.usedCategory || 'Comum'
       const key = `${item.used_model} ${item.used_storage} - ${cat}`
-      const evalVal = parseFloat(item.max_evaluation || item.maxEvaluation || 0)
-      const vitrineVal = parseFloat(item.vitrine_price || item.vitrinePrice || 0)
       
-      const opCostVal = ((item.new_model || item.newModel) === 'COMPRA FORNECEDOR') 
-        ? 120 
-        : parseFloat(item.operational_cost !== undefined ? item.operational_cost : (item.operationalCost !== undefined ? item.operationalCost : 120))
-
-      const isSold = item.status_estoque === 'Vendido'
-
-      if (!stats[key]) {
-        stats[key] = {
-          model: item.used_model || item.usedModel,
-          storage: item.used_storage || item.usedStorage,
-          category: cat,
-          totalCount: 0,
-          inStockCount: 0,
-          totalEval: 0,
-          totalVitrine: 0,
-          totalOpCost: 0
-        }
+      if (!groups[key]) {
+        groups[key] = []
       }
-      stats[key].totalCount += 1
-      if (!isSold) {
-        stats[key].inStockCount += 1
-      }
-      stats[key].totalEval += evalVal
-      stats[key].totalVitrine += vitrineVal
-      stats[key].totalOpCost += opCostVal
+      groups[key].push(item)
     })
-    
-    return Object.values(stats).map(item => ({
-      ...item,
-      count: item.inStockCount,
-      avgCost: item.totalEval / item.totalCount,
-      avgVitrine: item.totalVitrine / item.totalCount,
-      avgOpCost: item.totalOpCost / item.totalCount
-    })).sort((a, b) => b.count - a.count)
+
+    Object.keys(groups).forEach(key => {
+      const items = groups[key]
+      
+      // Separate active vs sold
+      const activeItems = items.filter(item => item.status_estoque !== 'Vendido')
+      const inStockCount = activeItems.length
+
+      if (inStockCount === 0) {
+        // Stock is zero, no active cost basis
+        const firstItem = items[0]
+        stats[key] = {
+          model: firstItem.used_model || firstItem.usedModel,
+          storage: firstItem.used_storage || firstItem.usedStorage,
+          category: firstItem.used_category || firstItem.usedCategory || 'Comum',
+          count: 0,
+          avgCost: 0,
+          avgVitrine: 0,
+          avgOpCost: 0
+        }
+        return
+      }
+
+      // Find the oldest active item in stock
+      let oldestActive = activeItems[0]
+      activeItems.forEach(item => {
+        if (new Date(item.created_at) < new Date(oldestActive.created_at)) {
+          oldestActive = item
+        }
+      })
+
+      const cutoffTime = new Date(oldestActive.created_at)
+
+      // Filter all items (including sold ones) that were created at or after cutoffTime
+      const batchItems = items.filter(item => new Date(item.created_at) >= cutoffTime)
+      
+      let totalEval = 0
+      let totalVitrine = 0
+      let totalOpCost = 0
+      
+      batchItems.forEach(item => {
+        const evalVal = parseFloat(item.max_evaluation || item.maxEvaluation || 0)
+        const vitrineVal = parseFloat(item.vitrine_price || item.vitrinePrice || 0)
+        const opCostVal = ((item.new_model || item.newModel) === 'COMPRA FORNECEDOR') 
+          ? 120 
+          : parseFloat(item.operational_cost !== undefined ? item.operational_cost : (item.operationalCost !== undefined ? item.operationalCost : 120))
+
+        totalEval += evalVal
+        totalVitrine += vitrineVal
+        totalOpCost += opCostVal
+      })
+
+      const firstItem = items[0]
+      stats[key] = {
+        model: firstItem.used_model || firstItem.usedModel,
+        storage: firstItem.used_storage || firstItem.usedStorage,
+        category: firstItem.used_category || firstItem.usedCategory || 'Comum',
+        count: inStockCount,
+        avgCost: totalEval / batchItems.length,
+        avgVitrine: totalVitrine / batchItems.length,
+        avgOpCost: totalOpCost / batchItems.length
+      }
+    })
+
+    return Object.values(stats).sort((a, b) => b.count - a.count)
   }, [evaluations])
 
   const currentModelAverage = useMemo(() => {
