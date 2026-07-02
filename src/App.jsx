@@ -851,63 +851,84 @@ function App() {
 
   // --- Fitch Assistência Business Logic Methods ---
   const loadAssistenciaData = async () => {
+    let localClientes = []
+    let localDispositivos = []
+    let localPecas = []
+    let localOS = []
+
     try {
-      // 1. Always load local data first as baseline/instant cache
-      const localClientes = await localDb.getClientes()
-      const localDispositivos = await localDb.getDispositivos()
-      const localPecas = await localDb.getPecas()
-      const localOS = await localDb.getOS()
+      localClientes = await localDb.getClientes()
+      localDispositivos = await localDb.getDispositivos()
+      localPecas = await localDb.getPecas()
+      localOS = await localDb.getOS()
+    } catch (e) {
+      console.error("Error reading from localDb baseline:", e)
+    }
 
-      let finalClientes = localClientes
-      let finalDispositivos = localDispositivos
-      let finalPecas = localPecas
-      let finalOS = localOS
+    // Set local baseline immediately
+    setClientesList(localClientes)
+    setDispositivosList(localDispositivos)
+    setPecasList(localPecas)
+    setOrdensServicoList(localOS)
 
-      // 2. Query Supabase in background if configured
-      if (isSupabaseConfigured) {
+    // Sync with Supabase in background if configured
+    if (isSupabaseConfigured) {
+      try {
         // Fetch Clientes
-        const { data: cData, error: cErr } = await supabase.from('clientes').select('*').order('nome')
-        if (!cErr && cData) {
-          const map = new Map()
-          localClientes.forEach(item => map.set(item.id, item))
-          cData.forEach(item => map.set(item.id, item))
-          finalClientes = Array.from(map.values())
+        try {
+          const { data: cData, error: cErr } = await supabase.from('clientes').select('*').order('nome')
+          if (!cErr && cData) {
+            const map = new Map()
+            localClientes.forEach(item => map.set(item.id, item))
+            cData.forEach(item => map.set(item.id, item))
+            setClientesList(Array.from(map.values()))
+          }
+        } catch (err) {
+          console.warn("Supabase fetch clientes failed:", err)
         }
 
         // Fetch Dispositivos
-        const { data: dData, error: dErr } = await supabase.from('cliente_dispositivos').select('*')
-        if (!dErr && dData) {
-          const map = new Map()
-          localDispositivos.forEach(item => map.set(item.id, item))
-          dData.forEach(item => map.set(item.id, item))
-          finalDispositivos = Array.from(map.values())
+        try {
+          const { data: dData, error: dErr } = await supabase.from('cliente_dispositivos').select('*')
+          if (!dErr && dData) {
+            const map = new Map()
+            localDispositivos.forEach(item => map.set(item.id, item))
+            dData.forEach(item => map.set(item.id, item))
+            setDispositivosList(Array.from(map.values()))
+          }
+        } catch (err) {
+          console.warn("Supabase fetch devices failed:", err)
         }
 
         // Fetch Pecas
-        const { data: pData, error: pErr } = await supabase.from('pecas_estoque').select('*').order('sku')
-        if (!pErr && pData) {
-          const map = new Map()
-          localPecas.forEach(item => map.set(item.id, item))
-          pData.forEach(item => map.set(item.id, item))
-          finalPecas = Array.from(map.values())
+        try {
+          const { data: pData, error: pErr } = await supabase.from('pecas_estoque').select('*').order('sku')
+          if (!pErr && pData) {
+            const map = new Map()
+            localPecas.forEach(item => map.set(item.id, item))
+            pData.forEach(item => map.set(item.id, item))
+            setPecasList(Array.from(map.values()))
+          }
+        } catch (err) {
+          console.warn("Supabase fetch parts failed:", err)
         }
 
         // Fetch OS
-        const { data: oData, error: oErr } = await supabase.from('ordens_servico').select('*').order('os_number', { ascending: false })
-        if (!oErr && oData) {
-          const map = new Map()
-          localOS.forEach(item => map.set(item.id, item))
-          oData.forEach(item => map.set(item.id, item))
-          finalOS = Array.from(map.values()).sort((a, b) => (b.os_number || 0) - (a.os_number || 0))
+        try {
+          const { data: oData, error: oErr } = await supabase.from('ordens_servico').select('*').order('os_number', { ascending: false })
+          if (!oErr && oData) {
+            const map = new Map()
+            localOS.forEach(item => map.set(item.id, item))
+            oData.forEach(item => map.set(item.id, item))
+            const merged = Array.from(map.values()).sort((a, b) => (b.os_number || 0) - (a.os_number || 0))
+            setOrdensServicoList(merged)
+          }
+        } catch (err) {
+          console.warn("Supabase fetch OS failed:", err)
         }
+      } catch (e) {
+        console.error("General error during Supabase sync:", e)
       }
-
-      setClientesList(finalClientes)
-      setDispositivosList(finalDispositivos)
-      setPecasList(finalPecas)
-      setOrdensServicoList(finalOS)
-    } catch (e) {
-      console.error("Error loading assistance data:", e)
     }
   }
 
@@ -969,13 +990,17 @@ function App() {
           telefone: osClientPhone
         })
         if (isSupabaseConfigured) {
-          await supabase.from('clientes').insert([{
-            id: cliente.id,
-            nome: osClientName,
-            cpf_cnpj: osClientCpf,
-            telefone: osClientPhone,
-            created_at: cliente.created_at
-          }])
+          try {
+            await supabase.from('clientes').insert([{
+              id: cliente.id,
+              nome: osClientName,
+              cpf_cnpj: osClientCpf,
+              telefone: osClientPhone,
+              created_at: cliente.created_at
+            }])
+          } catch (err) {
+            console.warn("Supabase client insert failed:", err)
+          }
         }
       }
 
@@ -991,16 +1016,20 @@ function App() {
           numero_serie: osDeviceSerial
         })
         if (isSupabaseConfigured) {
-          await supabase.from('cliente_dispositivos').insert([{
-            id: dispositivo.id,
-            cliente_id: cliente.id,
-            modelo: osDeviceModel,
-            capacidade: osDeviceStorage,
-            cor: osDeviceColor,
-            imei: osDeviceImei,
-            numero_serie: osDeviceSerial,
-            created_at: dispositivo.created_at
-          }])
+          try {
+            await supabase.from('cliente_dispositivos').insert([{
+              id: dispositivo.id,
+              cliente_id: cliente.id,
+              modelo: osDeviceModel,
+              capacidade: osDeviceStorage,
+              cor: osDeviceColor,
+              imei: osDeviceImei,
+              numero_serie: osDeviceSerial,
+              created_at: dispositivo.created_at
+            }])
+          } catch (err) {
+            console.warn("Supabase device insert failed:", err)
+          }
         }
       }
 
@@ -1027,15 +1056,19 @@ function App() {
 
       // 4. Enviar a mesma OS com os mesmos identificadores para o Supabase
       if (isSupabaseConfigured) {
-        const remoteRecord = {
-          ...record,
-          id: savedOS.id,
-          os_number: savedOS.os_number,
-          uuid_acesso_vip: savedOS.uuid_acesso_vip,
-          created_at: savedOS.created_at,
-          data_entrada: savedOS.data_entrada
+        try {
+          const remoteRecord = {
+            ...record,
+            id: savedOS.id,
+            os_number: savedOS.os_number,
+            uuid_acesso_vip: savedOS.uuid_acesso_vip,
+            created_at: savedOS.created_at,
+            data_entrada: savedOS.data_entrada
+          }
+          await supabase.from('ordens_servico').insert([remoteRecord])
+        } catch (err) {
+          console.warn("Supabase OS insert failed:", err)
         }
-        await supabase.from('ordens_servico').insert([remoteRecord])
       }
 
       triggerNotification('Ordem de Serviço (OS) aberta com sucesso!')
@@ -1053,7 +1086,7 @@ function App() {
         faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
       })
 
-      loadAssistenciaData()
+      await loadAssistenciaData()
     } catch (e) {
       console.error(e)
       triggerNotification('Erro ao salvar OS.', 'error')
@@ -1117,7 +1150,11 @@ function App() {
 
       try {
         if (isSupabaseConfigured) {
-          await supabase.from('evaluations').insert([mockEvaluationRecord])
+          try {
+            await supabase.from('evaluations').insert([mockEvaluationRecord])
+          } catch (err) {
+            console.warn("Supabase insert evaluation failed:", err)
+          }
         } else {
           await localDb.saveEvaluation(mockEvaluationRecord)
         }
@@ -1132,10 +1169,14 @@ function App() {
     try {
       await localDb.updateOS(osId, updatedData)
       if (isSupabaseConfigured) {
-        await supabase.from('ordens_servico').update(updatedData).eq('id', osId)
+        try {
+          await supabase.from('ordens_servico').update(updatedData).eq('id', osId)
+        } catch (err) {
+          console.warn("Supabase update OS status failed:", err)
+        }
       }
       triggerNotification(`OS #${os.os_number} alterada para ${nextStatus}`)
-      loadAssistenciaData()
+      await loadAssistenciaData()
     } catch (e) {
       console.error(e)
       triggerNotification('Erro ao atualizar status.', 'error')
@@ -1161,7 +1202,11 @@ function App() {
       
       await localDb.updatePeca(peca.id, updatedPeca)
       if (isSupabaseConfigured) {
-        await supabase.from('pecas_estoque').update(updatedPeca).eq('id', peca.id)
+        try {
+          await supabase.from('pecas_estoque').update(updatedPeca).eq('id', peca.id)
+        } catch (err) {
+          console.warn("Supabase update part stock failed:", err)
+        }
       }
 
       const updatedOS = {
@@ -1171,14 +1216,18 @@ function App() {
       
       await localDb.updateOS(os.id, updatedOS)
       if (isSupabaseConfigured) {
-        await supabase.from('ordens_servico').update(updatedOS).eq('id', os.id)
+        try {
+          await supabase.from('ordens_servico').update(updatedOS).eq('id', os.id)
+        } catch (err) {
+          console.warn("Supabase update OS parts cost failed:", err)
+        }
       }
 
       triggerNotification(`Peça ${peca.nome} vinculada à OS #${os.os_number} com sucesso!`)
       setShowAddPartModal(false)
       setSelectedPartForOS(null)
       setSerialInstalledForOS('')
-      loadAssistenciaData()
+      await loadAssistenciaData()
     } catch (e) {
       console.error(e)
       triggerNotification('Erro ao vincular peça.', 'error')
@@ -1206,10 +1255,14 @@ function App() {
     try {
       const savedLocal = await localDb.savePeca(newRecord)
       if (isSupabaseConfigured) {
-        await supabase.from('pecas_estoque').insert([{
-          id: savedLocal.id,
-          ...newRecord
-        }])
+        try {
+          await supabase.from('pecas_estoque').insert([{
+            id: savedLocal.id,
+            ...newRecord
+          }])
+        } catch (err) {
+          console.warn("Supabase part insert failed:", err)
+        }
       }
 
       triggerNotification('Nova peça cadastrada com sucesso!')
@@ -1218,7 +1271,7 @@ function App() {
       setNewPartCusto('')
       setNewPartVenda('')
       setNewPartEstoque('')
-      loadAssistenciaData()
+      await loadAssistenciaData()
     } catch (e) {
       console.error(e)
       triggerNotification('Erro ao cadastrar peça.', 'error')
@@ -1232,12 +1285,16 @@ function App() {
       
       await localDb.updateOS(selectedOsForChecklistSaida, updatedOS)
       if (isSupabaseConfigured) {
-        await supabase.from('ordens_servico').update(updatedOS).eq('id', selectedOsForChecklistSaida)
+        try {
+          await supabase.from('ordens_servico').update(updatedOS).eq('id', selectedOsForChecklistSaida)
+        } catch (err) {
+          console.warn("Supabase update OS checklist status failed:", err)
+        }
       }
 
       triggerNotification('Checklist de Saída salvo com sucesso!')
       setSelectedOsForChecklistSaida(null)
-      loadAssistenciaData()
+      await loadAssistenciaData()
     } catch (e) {
       console.error(e)
       triggerNotification('Erro ao salvar checklist de saída.', 'error')
