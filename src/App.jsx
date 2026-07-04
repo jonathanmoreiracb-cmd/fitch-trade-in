@@ -28,7 +28,8 @@ import {
   Edit3,
   X,
   Eye,
-  Wrench
+  Wrench,
+  Camera
 } from 'lucide-react'
 import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
 import logo from './assets/logo.png'
@@ -411,6 +412,10 @@ function App() {
   const [osDeviceStorage, setOsDeviceStorage] = useState('128GB')
   const [osDeviceImei, setOsDeviceImei] = useState('')
   const [osDeviceSerial, setOsDeviceSerial] = useState('')
+  const [osDeviceCondition, setOsDeviceCondition] = useState('')
+  const [osDevicePhotos, setOsDevicePhotos] = useState([])
+  const [osHasAccessories, setOsHasAccessories] = useState('Não')
+  const [osAccessoriesDetails, setOsAccessoriesDetails] = useState('')
   const [osSymptom, setOsSymptom] = useState('')
   const [osChecklistEntrada, setOsChecklistEntrada] = useState({
     faceId: 'NT', camera: 'NT', tela: 'NT', audio: 'NT', conexao: 'NT', bateria: 'NT', carcaca: 'NT'
@@ -1038,6 +1043,10 @@ function App() {
     setOsBatteryHealth(String(os.checklist_entrada?.saude_bateria || '85'))
     setOsTrueTone(os.checklist_entrada?.true_tone || 'Sim')
     setOsPecaDesconhecida(os.checklist_entrada?.peca_desconhecida || 'Nenhuma')
+    setOsDeviceCondition(os.checklist_entrada?.estado_aparelho || '')
+    setOsDevicePhotos(os.checklist_fotos || [])
+    setOsHasAccessories(os.checklist_entrada?.has_acessorios || 'Não')
+    setOsAccessoriesDetails(os.checklist_entrada?.acessorios_detalhes || '')
 
     window.scrollTo({ top: 0, behavior: 'smooth' })
     triggerNotification('Carregando dados da OS no formulário de edição.')
@@ -1166,10 +1175,13 @@ function App() {
           saude_bateria: parseInt(osBatteryHealth) || 85,
           true_tone: osTrueTone,
           peca_desconhecida: osPecaDesconhecida,
-          assinatura_cliente: assinaturaBase64
+          assinatura_cliente: assinaturaBase64,
+          estado_aparelho: osDeviceCondition,
+          has_acessorios: osHasAccessories,
+          acessorios_detalhes: osHasAccessories === 'Sim' ? osAccessoriesDetails : ''
         },
         checklist_saida: {},
-        checklist_fotos: [],
+        checklist_fotos: osDevicePhotos,
         relatorio_tecnico: osSymptom,
         client_name: cliente.nome,
         device_model: `${dispositivo.modelo} ${dispositivo.capacidade} (${dispositivo.cor})`,
@@ -1183,7 +1195,7 @@ function App() {
           ...record,
           status: originalOS ? originalOS.status : 'Entrada',
           checklist_saida: originalOS ? (originalOS.checklist_saida || {}) : {},
-          checklist_fotos: originalOS ? (originalOS.checklist_fotos || []) : [],
+          checklist_fotos: osDevicePhotos,
           valor_pecas: originalOS ? (originalOS.valor_pecas || 0) : 0,
           os_number: originalOS ? originalOS.os_number : 1001,
           uuid_acesso_vip: originalOS ? originalOS.uuid_acesso_vip : (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
@@ -1238,6 +1250,10 @@ function App() {
       setOsDeviceImei('')
       setOsDeviceSerial('')
       setOsSymptom('')
+      setOsDeviceCondition('')
+      setOsDevicePhotos([])
+      setOsHasAccessories('Não')
+      setOsAccessoriesDetails('')
       setOsLaborValue('')
       setOsDiscountValue('')
       setOsBatteryHealth('85')
@@ -1307,6 +1323,27 @@ function App() {
     const ctx = canvas.getContext('2d')
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     setHasClientOsSigned(false)
+  }
+
+  const handleOSPhotosChange = async (e) => {
+    const files = Array.from(e.target.files)
+    const compressedList = []
+    
+    for (const file of files) {
+      try {
+        const base64 = await compressChecklistImage(file)
+        compressedList.push(base64)
+      } catch (err) {
+        console.error("Compression error:", err)
+      }
+    }
+
+    setOsDevicePhotos(prev => [...prev, ...compressedList])
+    triggerNotification(`${compressedList.length} foto(s) anexada(s) com sucesso.`)
+  }
+
+  const removeOSPhoto = (idx) => {
+    setOsDevicePhotos(prev => prev.filter((_, i) => i !== idx))
   }
 
   const getWarrantyStatus = (os) => {
@@ -1690,6 +1727,12 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
         </div>
         <h3>Defeito / Sintoma Relatado:</h3>
         <p>${os.relatorio_tecnico || 'Sem observações adicionais.'}</p>
+        
+        <h3>Estado Físico & Acessórios:</h3>
+        <div style="font-size: 11px; line-height: 1.5; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 12px; font-family: sans-serif;">
+          <strong>Condição Estética do Aparelho:</strong> ${os.checklist_entrada?.estado_aparelho || 'Não relatada'}<br>
+          <strong>Acessórios Deixados:</strong> ${os.checklist_entrada?.has_acessorios === 'Sim' ? (os.checklist_entrada.acessorios_detalhes || 'Sim (Sem detalhes)') : 'Nenhum acessório deixado'}
+        </div>
         
         <h3>Checklist de Entrada:</h3>
         <table class="checklist-table">
@@ -3577,6 +3620,33 @@ ${splitsList}
                   </div>
                 )
               })()}
+
+              {/* Fotos de Entrada do Aparelho */}
+              {trackingOsData.checklist_fotos && trackingOsData.checklist_fotos.length > 0 && (
+                <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-3">
+                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest block">
+                    📸 Fotos de Registro de Entrada
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {trackingOsData.checklist_fotos.map((photo, i) => (
+                      <a
+                        key={i}
+                        href={photo}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="relative aspect-square border border-slate-800 rounded-xl overflow-hidden hover:opacity-90 transition-opacity bg-slate-950"
+                      >
+                        <img
+                          src={photo}
+                          alt={`Registro ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                  <span className="text-[9px] text-slate-500 block text-center uppercase tracking-wider">Estado estético arquivado com segurança</span>
+                </div>
+              )}
 
               {/* Assinatura Digital do Cliente */}
               {trackingOsData.checklist_entrada?.assinatura_cliente && (
@@ -5842,6 +5912,100 @@ ${splitsList}
                         <option value="Múltiplas">Múltiplos Avisos</option>
                       </select>
                     </div>
+                  </div>
+                </div>
+                {/* Seção de Estado Físico & Acessórios */}
+                <div className="border-t border-slate-100 pt-5 space-y-4">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">📦 Estado Físico & Acessórios</span>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Estado Físico */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-slate-550 uppercase tracking-wider block">Relatório do Estado Físico / Estético</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Riscos na tela, tampa traseira arranhada..."
+                        value={osDeviceCondition}
+                        onChange={(e) => setOsDeviceCondition(e.target.value)}
+                        className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-semibold"
+                      />
+                    </div>
+
+                    {/* Acessórios */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-bold text-slate-550 uppercase tracking-wider block">Aparelho Deixado Com Acessórios?</label>
+                      <div className="flex gap-2">
+                        {['Não', 'Sim'].map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setOsHasAccessories(opt)}
+                            className={`flex-1 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer ${
+                              osHasAccessories === opt
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Campo dinâmico para digitar os acessórios se for Sim */}
+                  {osHasAccessories === 'Sim' && (
+                    <div className="space-y-1.5 animate-fade-in">
+                      <label className="text-[9px] font-bold text-slate-550 uppercase tracking-wider block">Quais acessórios foram deixados?</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Carregador original, cabo USB-C, capa protetora..."
+                        value={osAccessoriesDetails}
+                        onChange={(e) => setOsAccessoriesDetails(e.target.value)}
+                        className="w-full bg-white border border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-xs text-slate-900 outline-none transition-all font-semibold"
+                      />
+                    </div>
+                  )}
+
+                  {/* Upload de Fotos do Estado do Aparelho */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-bold text-slate-555 uppercase tracking-wider block">Fotos do Estado do Aparelho (Evidências)</label>
+                    <div className="flex items-center gap-3">
+                      <label className="bg-slate-50 hover:bg-slate-100 border border-slate-300 hover:border-slate-400 text-slate-700 text-xs font-semibold py-2 px-4 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 select-none">
+                        <Camera className="w-4 h-4 text-slate-500" />
+                        Anexar Fotos
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleOSPhotosChange}
+                          className="hidden"
+                        />
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">{osDevicePhotos.length} foto(s) anexada(s)</span>
+                    </div>
+
+                    {/* Grid de miniaturas das fotos anexadas */}
+                    {osDevicePhotos.length > 0 && (
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 pt-2">
+                        {osDevicePhotos.map((photo, i) => (
+                          <div key={i} className="relative aspect-square border border-slate-200 rounded-xl overflow-hidden group shadow-sm bg-slate-50">
+                            <img
+                              src={photo}
+                              alt={`Aparelho ${i + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeOSPhoto(i)}
+                              className="absolute top-1 right-1 bg-rose-500/80 hover:bg-rose-600 text-white rounded-full p-1 shadow transition-colors cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
