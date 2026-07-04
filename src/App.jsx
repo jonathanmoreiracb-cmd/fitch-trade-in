@@ -3782,74 +3782,83 @@ ${splitsList}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+          {/* Grid Principal: Dois Módulos em Destaque */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl">
             
-            {/* Card 1: Simulador de Trade-in */}
-            <button
-              type="button"
-              onClick={() => requestAccess('simulator')}
-              className="group text-left bg-white border border-slate-200 hover:border-blue-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/5 cursor-pointer flex flex-col justify-between min-h-[240px]"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
-                  <Calculator className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                  Simulador de Trade-in
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Cálculo financeiro avançado de taxas, custos operacionais e margens de vitrine. Otimizado para **Notebooks / Desktops**.
-                </p>
-              </div>
-              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
-                Acesso Gerente / ADM &gt;
-              </span>
-            </button>
-
-            {/* Card 2: Checklist de Seminovos */}
+            {/* Card 1: Checklist de Seminovos */}
             <button
               type="button"
               onClick={() => requestAccess('checklist')}
-              className="group text-left bg-white border border-slate-200 hover:border-emerald-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/5 cursor-pointer flex flex-col justify-between min-h-[240px]"
+              className="group text-left bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-500/5 cursor-pointer flex flex-col justify-between min-h-[250px] shadow-sm relative overflow-hidden"
             >
+              <div className="absolute top-0 right-0 bg-emerald-500 text-white font-extrabold text-[8px] uppercase tracking-wider px-3.5 py-1 rounded-bl-xl">
+                Uso Diário - Vendedores
+              </div>
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                   <ListTodo className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                  Checklist de Seminovos
+                <h3 className="text-xl font-black text-slate-900 group-hover:text-emerald-700 transition-colors">
+                  Checklist & Avaliação de Seminovos
                 </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Inspeção técnica detalhada, anexo de fotos de evidência e classificação automática de grade. Otimizado para **Celulares**.
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Faça a avaliação técnica detalhada de celulares seminovos recebidos na troca (Trade-in), adicione fotos de evidência e gere a classificação da grade do aparelho.
                 </p>
               </div>
-              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
-                Acesso Vendedores &gt;
+              <span className="text-[10px] text-emerald-600 uppercase font-black tracking-widest block pt-2 group-hover:translate-x-1.5 transition-transform">
+                Iniciar Avaliação / Checklist &gt;
               </span>
             </button>
 
-            {/* Card 3: Assistência Técnica */}
+            {/* Card 2: Assistência Técnica */}
             <button
               type="button"
               onClick={() => requestAccess('assistencia')}
-              className="group text-left bg-white border border-slate-200 hover:border-purple-500/50 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5 cursor-pointer flex flex-col justify-between min-h-[240px]"
+              className="group text-left bg-white border-2 border-slate-200 hover:border-purple-550 rounded-3xl p-8 space-y-6 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/5 cursor-pointer flex flex-col justify-between min-h-[250px] shadow-sm relative overflow-hidden"
             >
+              <div className="absolute top-0 right-0 bg-purple-500 text-white font-extrabold text-[8px] uppercase tracking-wider px-3.5 py-1 rounded-bl-xl">
+                Uso Diário - Vendedores
+              </div>
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                   <Smartphone className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 group-hover:text-purple-600 transition-colors">
-                  Assistência Técnica
+                <h3 className="text-xl font-black text-slate-900 group-hover:text-purple-600 transition-colors">
+                  Assistência Técnica (O.S.)
                 </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Ordens de serviço especialistas, controle de estoque de peças, Kanban de manutenção e IA Fitch Assist.
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Abra ordens de serviço rápidas para reparos de assistência, realize a assinatura digital do cliente na tela do celular e imprima comprovantes.
                 </p>
               </div>
-              <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest block pt-2 group-hover:translate-x-1 transition-transform">
-                Acesso Gerente / ADM &gt;
+              <span className="text-[10px] text-purple-600 uppercase font-black tracking-widest block pt-2 group-hover:translate-x-1.5 transition-transform">
+                Abrir Ordem de Serviço (O.S.) &gt;
               </span>
             </button>
 
+          </div>
+
+          {/* Seção Secundária: Simulador Trade-in (Apenas Gerentes) */}
+          <div className="w-full max-w-md pt-4 border-t border-slate-200/80 flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => requestAccess('simulator')}
+              className="group w-full bg-slate-50 hover:bg-slate-100/80 border border-slate-200 hover:border-blue-400 rounded-2xl p-4 flex items-center justify-between transition-all duration-200 cursor-pointer shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0">
+                  <Calculator className="w-4.5 h-4.5" />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                    Simulador Financeiro de Trade-in
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-medium">Ajustes operacionais e precificações de margem</p>
+                </div>
+              </div>
+              <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider group-hover:translate-x-1 transition-transform pr-1">
+                Acesso Restrito Gerente &gt;
+              </span>
+            </button>
           </div>
         </div>
       )}
