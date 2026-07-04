@@ -302,6 +302,7 @@ function App() {
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterEntryType, setFilterEntryType] = useState('all')
   const [filterModel, setFilterModel] = useState('all')
+  const [filterStockStatus, setFilterStockStatus] = useState('estoque')
   const [sortBy, setSortBy] = useState('date-desc')
   const [stockSearchQuery, setStockSearchQuery] = useState('')
   const [stockFilterCategory, setStockFilterCategory] = useState('all')
@@ -3245,6 +3246,14 @@ ${splitsList}
       })
     }
 
+    // Filtro de Status do Estoque (Disponibilidade)
+    if (filterStockStatus !== 'all') {
+      result = result.filter(record => {
+        const status = record.status_estoque || 'Em Estoque'
+        return filterStockStatus === 'estoque' ? status === 'Em Estoque' : status === 'Vendido'
+      })
+    }
+
     // 5. Ordenação
     result.sort((a, b) => {
       if (sortBy === 'date-desc') {
@@ -3276,7 +3285,7 @@ ${splitsList}
     })
 
     return result
-  }, [evaluations, searchQuery, filterCategory, filterEntryType, filterModel, sortBy])
+  }, [evaluations, searchQuery, filterCategory, filterEntryType, filterModel, filterStockStatus, sortBy])
 
   const filteredServices = useMemo(() => {
     let result = evaluations.filter(record => (record.new_model || record.newModel) === 'ASSISTENCIA TECNICA')
@@ -4966,7 +4975,7 @@ ${splitsList}
 
           {/* Barra de Filtros e Ordenação */}
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-1">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 flex-1">
               
               {/* Filtro por Categoria */}
               <div className="flex flex-col gap-1">
@@ -5025,6 +5034,20 @@ ${splitsList}
                   <option value="model-new">Modelo Vendido (A-Z)</option>
                   <option value="vitrine-desc">Preço Vitrine (Maior)</option>
                   <option value="vitrine-asc">Preço Vitrine (Menor)</option>
+                </select>
+              </div>
+
+              {/* Status do Estoque */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Disponibilidade</span>
+                <select
+                  value={filterStockStatus}
+                  onChange={(e) => setFilterStockStatus(e.target.value)}
+                  className="bg-white border border-slate-350 focus:border-blue-600 rounded-lg px-2 py-1.5 text-[11px] text-slate-700 outline-none cursor-pointer font-semibold"
+                >
+                  <option value="estoque">🟢 Em Estoque (Disponíveis)</option>
+                  <option value="vendido">🔴 Vendidos (Histórico)</option>
+                  <option value="all">📁 Todos os Lançamentos</option>
                 </select>
               </div>
 
