@@ -395,6 +395,9 @@ function App() {
   // OS Form States
   const [osType, setOsType] = useState('Serviço') // 'Serviço' ou 'Garantia'
   const [editingOsId, setEditingOsId] = useState(null)
+  const clientOsSignatureCanvasRef = useRef(null)
+  const [hasClientOsSigned, setHasClientOsSigned] = useState(false)
+  const [isClientOsSigning, setIsClientOsSigning] = useState(false)
   const [osClientName, setOsClientName] = useState('')
   const [osBatteryHealth, setOsBatteryHealth] = useState('85')
   const [osTrueTone, setOsTrueTone] = useState('Sim')
@@ -1141,6 +1144,13 @@ function App() {
         }
       }
 
+      let assinaturaBase64 = null
+      if (hasClientOsSigned && clientOsSignatureCanvasRef.current) {
+        assinaturaBase64 = clientOsSignatureCanvasRef.current.toDataURL('image/png')
+      } else if (editingOsId && osChecklistEntrada.assinatura_cliente) {
+        assinaturaBase64 = osChecklistEntrada.assinatura_cliente
+      }
+
       // 3. Salvar OS localmente primeiro
       const record = {
         cliente_id: cliente.id,
@@ -1155,7 +1165,8 @@ function App() {
           ...osChecklistEntrada,
           saude_bateria: parseInt(osBatteryHealth) || 85,
           true_tone: osTrueTone,
-          peca_desconhecida: osPecaDesconhecida
+          peca_desconhecida: osPecaDesconhecida,
+          assinatura_cliente: assinaturaBase64
         },
         checklist_saida: {},
         checklist_fotos: [],
@@ -1216,6 +1227,11 @@ function App() {
       
       setOsType('Serviço')
       setEditingOsId(null)
+      setHasClientOsSigned(false)
+      if (clientOsSignatureCanvasRef.current) {
+        const ctx = clientOsSignatureCanvasRef.current.getContext('2d')
+        ctx.clearRect(0, 0, clientOsSignatureCanvasRef.current.width, clientOsSignatureCanvasRef.current.height)
+      }
       setOsClientName('')
       setOsClientPhone('')
       setOsClientCpf('')
@@ -1236,6 +1252,61 @@ function App() {
       console.error(e)
       triggerNotification('Erro ao salvar OS.', 'error')
     }
+  }
+
+  const startClientOsDrawing = (e) => {
+    const canvas = clientOsSignatureCanvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    
+    if (canvas.width !== Math.round(rect.width)) {
+      canvas.width = Math.round(rect.width)
+    }
+    if (canvas.height !== Math.round(rect.height)) {
+      canvas.height = Math.round(rect.height)
+    }
+
+    const ctx = canvas.getContext('2d')
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.strokeStyle = '#0f172a'
+
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
+
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    setIsClientOsSigning(true)
+    setHasClientOsSigned(true)
+  }
+
+  const drawClientOs = (e) => {
+    if (!isClientOsSigning) return
+    const canvas = clientOsSignatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const rect = canvas.getBoundingClientRect()
+    const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left
+    const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
+
+    ctx.lineTo(x, y)
+    ctx.stroke()
+
+    if (e.touches) {
+      e.preventDefault()
+    }
+  }
+
+  const stopClientOsDrawing = () => {
+    setIsClientOsSigning(false)
+  }
+
+  const clearClientOsSignature = () => {
+    const canvas = clientOsSignatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    setHasClientOsSigned(false)
   }
 
   const getWarrantyStatus = (os) => {
@@ -1666,8 +1737,16 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
           </a>
         </div>
 
-        <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #64748b;">
-          Assinatura do Cliente: __________________________________________________
+        <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #64748b; font-family: sans-serif;">
+          Assinatura do Cliente:<br>
+          ${os.checklist_entrada?.assinatura_cliente ? `
+            <div style="margin-top: 5px;">
+              <img src="${os.checklist_entrada.assinatura_cliente}" style="max-height: 70px; display: inline-block;" /><br>
+              <span style="font-size: 9px; color: #94a3b8;">Assinado digitalmente em ${new Date(os.created_at || new Date()).toLocaleDateString('pt-BR')}</span>
+            </div>
+          ` : `
+            <br>__________________________________________________
+          `}
         </div>
         <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); }</script>
       </body>
@@ -3481,6 +3560,40 @@ ${splitsList}
                   </div>
                 </div>
               </div>
+
+              {/* Termo de Garantia no VIP */}
+              {trackingOsData.status === 'Entregue' && (() => {
+                const warranty = getWarrantyStatus(trackingOsData)
+                return (
+                  <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-3">
+                    <span className="text-[10px] font-black text-emerald-450 uppercase tracking-widest block">
+                      🛡️ Termo de Garantia Fitch Ativo
+                    </span>
+                    <div className="text-xs text-slate-350 leading-relaxed bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                      <p className="font-semibold text-white">Status da Garantia: <span className={warranty.status === 'Ativa' ? 'text-emerald-400 font-bold' : 'text-slate-400 font-medium'}>{warranty.status}</span></p>
+                      <p className="mt-1">Período de 90 dias com cobertura até <span className="font-extrabold text-white underline">{warranty.endDate}</span>.</p>
+                      <p className="text-[10px] text-slate-500 mt-2">A garantia cobre o funcionamento e defeitos na peça substituída. Quebras físicas, riscos na tela ou contato com água não são cobertos.</p>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Assinatura Digital do Cliente */}
+              {trackingOsData.checklist_entrada?.assinatura_cliente && (
+                <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl space-y-3 text-center">
+                  <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest block">
+                    ✍️ Sua Assinatura de Confirmação
+                  </span>
+                  <div className="bg-white p-3.5 rounded-2xl inline-block border border-slate-800 shadow-inner">
+                    <img
+                      src={trackingOsData.checklist_entrada.assinatura_cliente}
+                      alt="Sua Assinatura"
+                      className="max-h-[60px] mx-auto"
+                    />
+                  </div>
+                  <span className="text-[9px] text-slate-550 block uppercase tracking-wider">Assinado Digitalmente na Entrada</span>
+                </div>
+              )}
 
               {/* Botão de Ajuda WhatsApp */}
               <div className="flex flex-col sm:flex-row gap-3 pt-3">
@@ -5752,6 +5865,60 @@ ${splitsList}
                         osType === 'Garantia' ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-300 focus:border-blue-600'
                       }`}
                     />
+                  </div>
+                </div>
+
+                {/* Assinatura Digital do Cliente */}
+                <div className="border-t border-slate-100 pt-5 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">✍️ Assinatura Digital do Cliente (Na Tela)</label>
+                    <button
+                      type="button"
+                      onClick={clearClientOsSignature}
+                      className="text-[9px] font-black text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-0.5 rounded border border-rose-200 uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      Limpar Tela
+                    </button>
+                  </div>
+                  <div className="relative bg-slate-50 border border-slate-300 rounded-2xl overflow-hidden h-[130px] flex items-center justify-center">
+                    {editingOsId && !hasClientOsSigned && osChecklistEntrada.assinatura_cliente ? (
+                      <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-2">
+                        <img
+                          src={osChecklistEntrada.assinatura_cliente}
+                          alt="Assinatura Existente"
+                          className="max-h-[85px] object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOsChecklistEntrada(prev => ({ ...prev, assinatura_cliente: null }))
+                            clearClientOsSignature()
+                          }}
+                          className="mt-1.5 text-[8px] font-black text-blue-600 hover:text-blue-700 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded border border-blue-200 cursor-pointer"
+                        >
+                          Refazer Assinatura
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <canvas
+                          ref={clientOsSignatureCanvasRef}
+                          onMouseDown={startClientOsDrawing}
+                          onMouseMove={drawClientOs}
+                          onMouseUp={stopClientOsDrawing}
+                          onMouseLeave={stopClientOsDrawing}
+                          onTouchStart={startClientOsDrawing}
+                          onTouchMove={drawClientOs}
+                          onTouchEnd={stopClientOsDrawing}
+                          className="w-full h-full cursor-crosshair touch-none"
+                        />
+                        {!hasClientOsSigned && (
+                          <span className="absolute text-[10px] font-bold text-slate-400 pointer-events-none select-none uppercase tracking-widest">
+                            Assine com o dedo ou mouse aqui
+                          </span>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 
