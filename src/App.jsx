@@ -6122,7 +6122,7 @@ ${splitsList}
                   <button
                     type="button"
                     onClick={handleSaveOS}
-                    className="w-full bg-purple-655 hover:bg-purple-600 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
                   >
                     {editingOsId ? 'Salvar Alterações na OS' : 'Abrir Ordem de Serviço & Imprimir Via Cliente'}
                     {editingOsId ? <Edit3 className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
@@ -6149,7 +6149,7 @@ ${splitsList}
                         })
                         triggerNotification('Edição cancelada.')
                       }}
-                      className="w-full bg-slate-105 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs py-3 rounded-xl transition-all cursor-pointer mt-2"
+                      className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold text-xs py-3 rounded-xl transition-all cursor-pointer mt-2"
                     >
                       Cancelar Edição da OS
                     </button>
