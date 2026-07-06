@@ -1103,7 +1103,7 @@ function App() {
 
     try {
       // 1. Salvar ou obter cliente localmente
-      let cliente = clientesList.find(c => c.cpf_cnpj === osClientCpf)
+      let cliente = clientesList.find(c => c && c.cpf_cnpj === osClientCpf)
       if (!cliente) {
         cliente = await localDb.saveCliente({
           nome: osClientName,
@@ -1126,7 +1126,7 @@ function App() {
       }
 
       // 2. Salvar ou obter dispositivo localmente
-      let dispositivo = dispositivosList.find(d => d.imei === osDeviceImei || d.numero_serie === osDeviceSerial)
+      let dispositivo = dispositivosList.find(d => d && (d.imei === osDeviceImei || d.numero_serie === osDeviceSerial))
       if (!dispositivo) {
         dispositivo = await localDb.saveDispositivo({
           cliente_id: cliente.id,
@@ -1267,7 +1267,7 @@ function App() {
       await loadAssistenciaData()
     } catch (e) {
       console.error(e)
-      triggerNotification('Erro ao salvar OS.', 'error')
+      triggerNotification(`Erro ao salvar OS: ${e.message || String(e)}`, 'error')
     }
   }
 

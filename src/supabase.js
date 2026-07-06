@@ -134,7 +134,8 @@ export const localDb = {
   async getClientes() {
     try {
       const data = localStorage.getItem('fitch_clientes')
-      return data ? JSON.parse(data) : []
+      const parsed = data ? JSON.parse(data) : []
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : []
     } catch (e) {
       console.error('Error reading localStorage for clientes', e)
       return []
@@ -161,7 +162,8 @@ export const localDb = {
   async getDispositivos() {
     try {
       const data = localStorage.getItem('fitch_dispositivos')
-      return data ? JSON.parse(data) : []
+      const parsed = data ? JSON.parse(data) : []
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : []
     } catch (e) {
       console.error('Error reading localStorage for dispositivos', e)
       return []
@@ -242,7 +244,8 @@ export const localDb = {
   async getOS() {
     try {
       const data = localStorage.getItem('fitch_ordens_servico')
-      return data ? JSON.parse(data) : []
+      const parsed = data ? JSON.parse(data) : []
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : []
     } catch (e) {
       console.error('Error reading localStorage for ordens de servico', e)
       return []
