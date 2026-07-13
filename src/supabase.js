@@ -29,6 +29,21 @@ export const isSupabaseConfigured = isConfigured
 export const supabase = client
 export const supabaseInitError = initError
 
+export const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    try {
+      return crypto.randomUUID()
+    } catch (e) {
+      // Fallback
+    }
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // Mock local database helper para simular o comportamento do Supabase quando desconectado
 const LOCAL_STORAGE_KEY = 'trade_in_evaluations'
 
@@ -47,7 +62,7 @@ export const localDb = {
     try {
       const evaluations = await this.getEvaluations()
       const newRecord = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        id: generateUUID(),
         created_at: new Date().toISOString(),
         ...evaluation
       }
@@ -105,7 +120,7 @@ export const localDb = {
     try {
       const checklists = await this.getChecklists()
       const newRecord = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        id: generateUUID(),
         created_at: new Date().toISOString(),
         ...checklist
       }
@@ -146,7 +161,7 @@ export const localDb = {
     try {
       const clientes = await this.getClientes()
       const newRecord = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        id: generateUUID(),
         created_at: new Date().toISOString(),
         ...cliente
       }
@@ -174,7 +189,7 @@ export const localDb = {
     try {
       const dispositivos = await this.getDispositivos()
       const newRecord = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        id: generateUUID(),
         created_at: new Date().toISOString(),
         ...dispositivo
       }
@@ -211,7 +226,7 @@ export const localDb = {
     try {
       const pecas = await this.getPecas()
       const newRecord = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        id: generateUUID(),
         created_at: new Date().toISOString(),
         estoque_reservado: 0,
         ...peca
@@ -257,9 +272,9 @@ export const localDb = {
       const ordens = await this.getOS()
       const nextNumber = ordens.length > 0 ? Math.max(...ordens.map(o => o.os_number || 0)) + 1 : 1001
       const newRecord = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        id: generateUUID(),
         os_number: nextNumber,
-        uuid_acesso_vip: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+        uuid_acesso_vip: generateUUID(),
         created_at: new Date().toISOString(),
         data_entrada: new Date().toISOString(),
         status: 'Entrada',

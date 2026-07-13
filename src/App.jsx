@@ -31,7 +31,7 @@ import {
   Wrench,
   Camera
 } from 'lucide-react'
-import { supabase, isSupabaseConfigured, localDb, supabaseInitError } from './supabase'
+import { supabase, isSupabaseConfigured, localDb, supabaseInitError, generateUUID } from './supabase'
 import logo from './assets/logo.png'
 
 // Matrix de Taxas do Gateway
@@ -891,6 +891,9 @@ function App() {
     // Sync with Supabase in background if configured
     if (isSupabaseConfigured) {
       try {
+        let activeClientes = [...localClientes]
+        let activeDispositivos = [...localDispositivos]
+
         // Fetch Clientes
         try {
           const { data: cData, error: cErr } = await supabase.from('clientes').select('*').order('nome')
@@ -898,7 +901,8 @@ function App() {
             const map = new Map()
             localClientes.forEach(item => map.set(item.id, item))
             cData.forEach(item => map.set(item.id, item))
-            setClientesList(Array.from(map.values()))
+            activeClientes = Array.from(map.values())
+            setClientesList(activeClientes)
           }
         } catch (err) {
           console.warn("Supabase fetch clientes failed:", err)
@@ -911,7 +915,8 @@ function App() {
             const map = new Map()
             localDispositivos.forEach(item => map.set(item.id, item))
             dData.forEach(item => map.set(item.id, item))
-            setDispositivosList(Array.from(map.values()))
+            activeDispositivos = Array.from(map.values())
+            setDispositivosList(activeDispositivos)
           }
         } catch (err) {
           console.warn("Supabase fetch devices failed:", err)
@@ -934,9 +939,22 @@ function App() {
         try {
           const { data: oData, error: oErr } = await supabase.from('ordens_servico').select('*').order('os_number', { ascending: false })
           if (!oErr && oData) {
+            const hydratedOData = oData.map(os => {
+              const client = activeClientes.find(c => c && c.id === os.cliente_id)
+              const device = activeDispositivos.find(d => d && d.id === os.dispositivo_id)
+              return {
+                ...os,
+                client_name: client ? client.nome : (os.client_name || 'Cliente Geral'),
+                device_model: device ? `${device.modelo} ${device.capacidade} (${device.cor})` : (os.device_model || 'Aparelho Geral'),
+                serial_imei: device ? device.imei : (os.serial_imei || ''),
+                relatorio_tecnico: os.diagnostico_tecnico || os.relatorio_tecnico || '',
+                tipo_os: os.tipo_os || (os.checklist_entrada?.tipo_os) || 'Serviço'
+              }
+            })
+
             const map = new Map()
             localOS.forEach(item => map.set(item.id, item))
-            oData.forEach(item => map.set(item.id, item))
+            hydratedOData.forEach(item => map.set(item.id, item))
             const merged = Array.from(map.values()).sort((a, b) => (b.os_number || 0) - (a.os_number || 0))
             setOrdensServicoList(merged)
           }
@@ -968,7 +986,31 @@ function App() {
             .maybeSingle()
           
           if (!error && data) {
-            setTrackingOsData(data)
+            let clientData = null
+            let deviceData = null
+            try {
+              const { data: cData } = await supabase.from('clientes').select('*').eq('id', data.cliente_id).maybeSingle()
+              clientData = cData
+            } catch (cErr) {
+              console.warn("Supabase load tracking client failed:", cErr)
+            }
+            try {
+              const { data: dData } = await supabase.from('cliente_dispositivos').select('*').eq('id', data.dispositivo_id).maybeSingle()
+              deviceData = dData
+            } catch (dErr) {
+              console.warn("Supabase load tracking device failed:", dErr)
+            }
+
+            const hydratedData = {
+              ...data,
+              client_name: clientData ? clientData.nome : (data.client_name || 'Cliente Geral'),
+              client_phone: clientData ? clientData.telefone : (data.client_phone || ''),
+              device_model: deviceData ? `${deviceData.modelo} ${deviceData.capacidade} (${deviceData.cor})` : (data.device_model || 'Aparelho Geral'),
+              serial_imei: deviceData ? deviceData.imei : (data.serial_imei || ''),
+              relatorio_tecnico: data.diagnostico_tecnico || data.relatorio_tecnico || '',
+              tipo_os: data.tipo_os || (data.checklist_entrada?.tipo_os) || 'Serviço'
+            }
+            setTrackingOsData(hydratedData)
           }
         } catch (err) {
           console.warn("Supabase load tracking OS failed:", err)
@@ -1173,6 +1215,7 @@ function App() {
         valor_desconto: osType === 'Garantia' ? 0 : (parseFloat(osDiscountValue) || 0),
         checklist_entrada: {
           ...osChecklistEntrada,
+          tipo_os: osType,
           saude_bateria: parseInt(osBatteryHealth) || 85,
           true_tone: osTrueTone,
           peca_desconhecida: osPecaDesconhecida,
@@ -1199,7 +1242,7 @@ function App() {
           checklist_fotos: osDevicePhotos,
           valor_pecas: originalOS ? (originalOS.valor_pecas || 0) : 0,
           os_number: originalOS ? originalOS.os_number : 1001,
-          uuid_acesso_vip: originalOS ? originalOS.uuid_acesso_vip : (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
+          uuid_acesso_vip: originalOS ? originalOS.uuid_acesso_vip : generateUUID(),
           created_at: originalOS ? originalOS.created_at : new Date().toISOString(),
           data_entrada: originalOS ? originalOS.data_entrada : new Date().toISOString()
         }
@@ -1208,9 +1251,25 @@ function App() {
 
         if (isSupabaseConfigured) {
           try {
+            const cleanUpdatedRecord = {
+              cliente_id: updatedRecord.cliente_id,
+              dispositivo_id: updatedRecord.dispositivo_id,
+              tecnico_responsavel: updatedRecord.tecnico_responsavel,
+              status: updatedRecord.status,
+              valor_mao_de_obra: updatedRecord.valor_mao_de_obra,
+              valor_pecas: updatedRecord.valor_pecas,
+              valor_desconto: updatedRecord.valor_desconto,
+              checklist_entrada: updatedRecord.checklist_entrada,
+              checklist_saida: updatedRecord.checklist_saida,
+              checklist_fotos: updatedRecord.checklist_fotos,
+              os_number: updatedRecord.os_number,
+              uuid_acesso_vip: updatedRecord.uuid_acesso_vip,
+              data_entrada: updatedRecord.data_entrada,
+              diagnostico_tecnico: updatedRecord.relatorio_tecnico
+            }
             await supabase
               .from('ordens_servico')
-              .update(updatedRecord)
+              .update(cleanUpdatedRecord)
               .eq('id', editingOsId)
           } catch (err) {
             console.warn("Supabase OS update failed:", err)
@@ -1222,15 +1281,24 @@ function App() {
 
         if (isSupabaseConfigured) {
           try {
-            const remoteRecord = {
-              ...record,
+            const cleanRemoteRecord = {
               id: savedOS.id,
+              cliente_id: record.cliente_id,
+              dispositivo_id: record.dispositivo_id,
+              tecnico_responsavel: record.tecnico_responsavel,
+              status: record.status,
+              valor_mao_de_obra: record.valor_mao_de_obra,
+              valor_pecas: record.valor_pecas,
+              valor_desconto: record.valor_desconto,
+              checklist_entrada: record.checklist_entrada,
+              checklist_saida: record.checklist_saida,
+              checklist_fotos: record.checklist_fotos,
               os_number: savedOS.os_number,
               uuid_acesso_vip: savedOS.uuid_acesso_vip,
-              created_at: savedOS.created_at,
-              data_entrada: savedOS.data_entrada
+              data_entrada: savedOS.data_entrada,
+              diagnostico_tecnico: record.relatorio_tecnico
             }
-            await supabase.from('ordens_servico').insert([remoteRecord])
+            await supabase.from('ordens_servico').insert([cleanRemoteRecord])
           } catch (err) {
             console.warn("Supabase OS insert failed:", err)
           }
@@ -1456,7 +1524,9 @@ function App() {
       await localDb.updateOS(osId, updatedData)
       if (isSupabaseConfigured) {
         try {
-          await supabase.from('ordens_servico').update(updatedData).eq('id', osId)
+          const cleanUpdatedData = { ...updatedData }
+          delete cleanUpdatedData.data_entrega
+          await supabase.from('ordens_servico').update(cleanUpdatedData).eq('id', osId)
         } catch (err) {
           console.warn("Supabase update OS status failed:", err)
         }
@@ -1956,7 +2026,7 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
     }
 
     setIsSavingChecklist(true)
-    const generatedId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)
+    const generatedId = generateUUID()
     
     const esteticaObj = {
       tela: esteticaTela,
@@ -2592,7 +2662,7 @@ Recebi sua pergunta sobre: *"${iaQuestion}"*.
 
     setIsSaving(true)
     const originalRecord = evaluations.find(item => item.id === editingRecordId)
-    const recordId = editingRecordId || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9))
+    const recordId = editingRecordId || generateUUID()
     const recordCreatedAt = originalRecord ? (originalRecord.created_at || originalRecord.createdAt) : new Date().toISOString()
 
     const newRecord = {
